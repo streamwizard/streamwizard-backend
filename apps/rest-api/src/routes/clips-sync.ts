@@ -5,14 +5,14 @@ import { syncTwitch } from "../functions/sync-twitch";
 
 /**
  * POST /api/clips/sync
- * 
+ *
  * Triggers a Twitch clips sync for the authenticated user.
  * Requires Supabase authentication via JWT token.
- * 
+ *
  * Request:
  * - Headers: Authorization: Bearer <token> OR Cookie with Supabase auth token
  * - Body (optional): { skipRecentCheck?: boolean }
- * 
+ *
  * Response:
  * - 200: { success: true, clipsCount: number, message: string }
  * - 204: { success: true, skipped: true, message: string } (if sync was skipped due to recent sync)
@@ -44,7 +44,7 @@ export async function syncClipsHandler(c: Context) {
     // Look up the user's Twitch integration to get their broadcaster_id
     const { data: integration, error: integrationError } = await supabase
       .from("integrations_twitch")
-      .select("twitch_user_id, access_token")
+      .select("twitch_user_id, access_token_ciphertext")
       .eq("user_id", userId)
       .single();
 
@@ -54,17 +54,18 @@ export async function syncClipsHandler(c: Context) {
           error: "Twitch integration not found",
           message: "Please connect your Twitch account first",
         },
-        404
+        404,
       );
     }
 
-    if (!integration.access_token) {
+    if (!integration.access_token_ciphertext) {
       return c.json(
         {
           error: "Twitch authentication required",
-          message: "Your Twitch access token is missing or expired. Please reconnect your Twitch account.",
+          message:
+            "Your Twitch access token is missing or expired. Please reconnect your Twitch account.",
         },
-        400
+        400,
       );
     }
 
@@ -72,11 +73,7 @@ export async function syncClipsHandler(c: Context) {
     const TwitchAPI = new TwitchApi(integration.twitch_user_id);
 
     // Trigger the sync
-    const totalClips = await syncTwitch(
-      integration.twitch_user_id,
-      TwitchAPI,
-      { skipRecentCheck }
-    );
+    const totalClips = await syncTwitch(integration.twitch_user_id, TwitchAPI, { skipRecentCheck });
 
     // Check if sync was skipped
     if (totalClips === null) {
@@ -86,7 +83,7 @@ export async function syncClipsHandler(c: Context) {
           skipped: true,
           message: "Sync skipped. Last sync was less than an hour ago.",
         },
-        429 // Too Many Requests
+        429, // Too Many Requests
       );
     }
 
@@ -96,7 +93,7 @@ export async function syncClipsHandler(c: Context) {
         clipsCount: totalClips,
         message: `Successfully synced ${totalClips} clips`,
       },
-      200
+      200,
     );
   } catch (error) {
     console.error("Clips sync error:", error);
@@ -105,16 +102,16 @@ export async function syncClipsHandler(c: Context) {
         error: "Sync failed",
         message: error instanceof Error ? error.message : "Unknown error occurred",
       },
-      500
+      500,
     );
   }
 }
 
 /**
  * GET /api/clips/sync-status
- * 
+ *
  * Get the current sync status for the authenticated user.
- * 
+ *
  * Response:
  * - 200: { status: string, lastSync: string, clipCount: number }
  * - 404: { error: string } (if no sync record found)
@@ -142,7 +139,7 @@ export async function syncStatusHandler(c: Context) {
           message: "No sync history found",
           status: "never_synced",
         },
-        200
+        200,
       );
     }
 
@@ -152,7 +149,7 @@ export async function syncStatusHandler(c: Context) {
         lastSync: syncStatus.last_sync,
         clipCount: syncStatus.clip_count,
       },
-      200
+      200,
     );
   } catch (error) {
     console.error("Sync status error:", error);
@@ -161,8 +158,7 @@ export async function syncStatusHandler(c: Context) {
         error: "Failed to get sync status",
         message: error instanceof Error ? error.message : "Unknown error occurred",
       },
-      500
+      500,
     );
   }
 }
-

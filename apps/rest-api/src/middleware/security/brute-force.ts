@@ -1,10 +1,10 @@
 // middleware/security/brute-force.ts
-import { Context, Next } from 'hono';
-import { logSecurityEvent } from './utils';
+import { Context, Next } from "hono";
+import { logSecurityEvent } from "./utils";
 
 /**
  * Brute Force Protection Middleware
- * 
+ *
  * Protects against brute force attacks by tracking failed authentication attempts
  * and temporarily blocking IPs that exceed the threshold.
  */
@@ -25,28 +25,32 @@ interface BruteForceOptions {
 const bruteForceStore = new Map<string, BruteForceRecord>();
 
 // Clean up expired records every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of bruteForceStore.entries()) {
-    if (record.resetAt < now) {
-      bruteForceStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, record] of bruteForceStore.entries()) {
+      if (record.resetAt < now) {
+        bruteForceStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000,
+);
 
 export function bruteForceProtection(options: Partial<BruteForceOptions> = {}) {
   const config: BruteForceOptions = {
     maxAttempts: 10,
     windowMs: 15 * 60 * 1000, // 15 minutes
     blockDurationMs: 60 * 60 * 1000, // 1 hour
-    ...options
+    ...options,
   };
 
   return async (c: Context, next: Next) => {
-    const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim() || 
-               c.req.header('x-real-ip') || 
-               c.req.header('cf-connecting-ip') || // Cloudflare
-               'unknown';
+    const ip =
+      c.req.header("x-forwarded-for")?.split(",")?.[0]?.trim() ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip") || // Cloudflare
+      "unknown";
 
     const now = Date.now();
     let record = bruteForceStore.get(ip);
@@ -60,13 +64,16 @@ export function bruteForceProtection(options: Partial<BruteForceOptions> = {}) {
     // Check if IP is blocked
     if (record?.blockedUntil && record.blockedUntil > now) {
       const waitSeconds = Math.ceil((record.blockedUntil - now) / 1000);
-      
-      c.header('Retry-After', waitSeconds.toString());
-      return c.json({
-        error: 'Too many failed attempts',
-        message: `Your IP has been temporarily blocked due to multiple failed authentication attempts. Try again in ${Math.ceil(waitSeconds / 60)} minutes.`,
-        retryAfter: waitSeconds
-      }, 429);
+
+      c.header("Retry-After", waitSeconds.toString());
+      return c.json(
+        {
+          error: "Too many failed attempts",
+          message: `Your IP has been temporarily blocked due to multiple failed authentication attempts. Try again in ${Math.ceil(waitSeconds / 60)} minutes.`,
+          retryAfter: waitSeconds,
+        },
+        429,
+      );
     }
 
     await next();
@@ -76,7 +83,7 @@ export function bruteForceProtection(options: Partial<BruteForceOptions> = {}) {
       if (!record) {
         record = {
           count: 1,
-          resetAt: now + config.windowMs
+          resetAt: now + config.windowMs,
         };
       } else {
         record.count++;
@@ -85,12 +92,12 @@ export function bruteForceProtection(options: Partial<BruteForceOptions> = {}) {
       // Block IP if threshold exceeded
       if (record.count >= config.maxAttempts) {
         record.blockedUntil = now + config.blockDurationMs;
-        
+
         // Log security event
-        logSecurityEvent('ip_blocked_brute_force', {
+        logSecurityEvent("ip_blocked_brute_force", {
           ip,
           attempts: record.count,
-          blocked_until: new Date(record.blockedUntil).toISOString()
+          blocked_until: new Date(record.blockedUntil).toISOString(),
         });
       }
 

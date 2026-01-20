@@ -10,6 +10,9 @@
       "default": "./src/index.ts"
     }
   },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
     "@repo/env": "workspace:*"

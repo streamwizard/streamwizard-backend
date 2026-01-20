@@ -1,11 +1,17 @@
-import type { GetChattersResponse } from "@/types/twitch-api";
+import type { GetChattersResponse } from "@repo/types";
 import { TwitchApiBaseClient } from "./base-client";
 
 export class TwitchChatClient extends TwitchApiBaseClient {
   constructor(broadcaster_id: string | null = null) {
     super(broadcaster_id);
   }
-  async sendMessage({ message, replyToMessageId }: { message: string; replyToMessageId?: string | null }) {
+  async sendMessage({
+    message,
+    replyToMessageId,
+  }: {
+    message: string;
+    replyToMessageId?: string | null;
+  }) {
     const response = await this.appApi().post(`/chat/messages`, {
       message,
       broadcaster_id: this.broadcaster_id,

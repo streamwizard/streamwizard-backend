@@ -1,4 +1,4 @@
-import { TwitchApi } from "@/classes/twitchApi";
+import { TwitchApi } from "@repo/twitch-api";
 import { TwitchActionHandlers } from "./twitch-actions";
 
 export interface ActionEvent {
@@ -13,10 +13,14 @@ export type ActionHandler = (event: ActionEvent, twitchApi: TwitchApi) => Promis
 
 // Namespaced registry similar to variable resolvers
 const ActionRegistry: Record<string, Record<string, ActionHandler>> = {
-  twitch: TwitchActionHandlers,
+  twitch: TwitchActionHandlers as any,
 };
 
-export async function handleAction(action: ActionEvent, twitchApi: TwitchApi, broadcaster_id: string) {
+export async function handleAction(
+  action: ActionEvent,
+  twitchApi: TwitchApi,
+  broadcaster_id: string,
+) {
   const moduleHandlers = ActionRegistry[action.module];
   if (!moduleHandlers) {
     console.error(`No module registered for '${action.module}'`);
@@ -27,7 +31,6 @@ export async function handleAction(action: ActionEvent, twitchApi: TwitchApi, br
     console.error(`No action handler for '${action.module} + ${action.action}'`);
     return;
   }
-
 
   const result = await handler(action, twitchApi);
   return result;

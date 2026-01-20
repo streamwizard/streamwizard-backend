@@ -2,7 +2,7 @@ import { handleStreamOffline } from "../functions/twitch-eventsub-events/stream-
 import * as TwitchSchema from "@repo/schemas";
 import type { HandlerRegistry } from "./eventHandler";
 import { handleStreamOnline } from "../functions/twitch-eventsub-events/stream-online";
-import { handleChannelUpdate } from "../functions/twitch-eventsub-events/channel.update";
+import { handleChannelUpdate } from "../functions/twitch-eventsub-events/channel-update";
 
 export const registerTwitchHandlers = (handlers: HandlerRegistry) => {
   // stream offline event
@@ -11,7 +11,7 @@ export const registerTwitchHandlers = (handlers: HandlerRegistry) => {
     async (event, context) => {
       handleStreamOffline(event, context.twitchApi);
     },
-    TwitchSchema.StreamOfflineSchema
+    TwitchSchema.StreamOfflineSchema,
   );
 
   // stream online event
@@ -20,9 +20,8 @@ export const registerTwitchHandlers = (handlers: HandlerRegistry) => {
     async (event, context) => {
       handleStreamOnline(event, context.twitchApi);
     },
-    TwitchSchema.StreamOnlineSchema
+    TwitchSchema.StreamOnlineSchema,
   );
-
 
   // channel update event
   handlers.registerTwitchHandler(
@@ -30,6 +29,6 @@ export const registerTwitchHandlers = (handlers: HandlerRegistry) => {
     async (event, context) => {
       handleChannelUpdate(event, context.twitchApi);
     },
-    TwitchSchema.ChannelUpdateEventSchema
+    TwitchSchema.ChannelUpdateEventSchema,
   );
 };

@@ -1,7 +1,7 @@
 // middleware/security/utils.ts
-import { Context, Next } from 'hono';
-import { createHash } from 'crypto';
-import { supabase } from '@repo/supabase';
+import { Context, Next } from "hono";
+import { createHash } from "crypto";
+import { supabase } from "@repo/supabase";
 
 /**
  * Security Event Metadata Interface
@@ -23,15 +23,17 @@ export interface SecurityEventMetadata {
 
 /**
  * Log Security Event
- * 
- * Logs security events to the audit_logs table for monitoring and compliance.
+ *
+ * Logs security events for monitoring and compliance.
  * Handles errors gracefully to prevent logging failures from breaking the application.
  */
 export async function logSecurityEvent(
   eventType: string,
-  metadata: SecurityEventMetadata
+  metadata: SecurityEventMetadata,
 ): Promise<void> {
   try {
+    // TODO: Uncomment when audit_logs table is added to Supabase
+    /*
     await supabase.from("audit_logs").insert({
       event_type: eventType,
       user_id: null, // Security events are system-level
@@ -39,26 +41,28 @@ export async function logSecurityEvent(
       ip_address: metadata.ip || metadata.client_ip,
       created_at: new Date().toISOString()
     });
+    */
+    console.log(`[Security Event] ${eventType}:`, metadata);
   } catch (error) {
     // Don't let logging errors break the application
-    console.error('Failed to log security event:', error);
+    console.error("Failed to log security event:", error);
   }
 }
 
 /**
  * Request ID Middleware
- * 
+ *
  * Generates a unique request ID for each request to aid in debugging and tracing.
  */
 export function requestId() {
   return async (c: Context, next: Next) => {
-    const reqId = createHash('sha256')
+    const reqId = createHash("sha256")
       .update(`${Date.now()}-${Math.random()}`)
-      .digest('hex')
+      .digest("hex")
       .substring(0, 16);
 
-    c.set('requestId', reqId);
-    c.header('X-Request-ID', reqId);
+    c.set("requestId", reqId);
+    c.header("X-Request-ID", reqId);
 
     await next();
   };
@@ -66,7 +70,7 @@ export function requestId() {
 
 /**
  * Safe Error Handler Middleware
- * 
+ *
  * Provides secure error handling that doesn't leak sensitive information
  * in production while providing detailed error information in development.
  */
@@ -75,34 +79,37 @@ export function safeErrorHandler() {
     try {
       await next();
     } catch (error: any) {
-      const requestId = c.get('requestId') || 'unknown';
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      const requestId = c.get("requestId") || "unknown";
+      const isDevelopment = process.env.NODE_ENV === "development";
 
       // Log the full error internally
-      console.error('API Error:', {
+      console.error("API Error:", {
         requestId,
         error: error.message,
         stack: error.stack,
         path: c.req.path,
-        method: c.req.method
+        method: c.req.method,
       });
 
       // Log to audit logs
-      await logSecurityEvent('api_error', {
+      await logSecurityEvent("api_error", {
         request_id: requestId,
         error_message: error.message,
         endpoint: c.req.path,
-        method: c.req.method
+        method: c.req.method,
       });
 
       // Return safe error to client
-      return c.json({
-        error: 'Internal server error',
-        message: isDevelopment
-          ? error.message // Show details in dev
-          : 'An unexpected error occurred. Please try again later.',
-        requestId // Always include for support
-      }, 500);
+      return c.json(
+        {
+          error: "Internal server error",
+          message: isDevelopment
+            ? error.message // Show details in dev
+            : "An unexpected error occurred. Please try again later.",
+          requestId, // Always include for support
+        },
+        500,
+      );
     }
   };
 }

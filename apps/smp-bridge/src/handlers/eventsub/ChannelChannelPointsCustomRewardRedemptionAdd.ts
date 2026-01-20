@@ -1,9 +1,15 @@
 import type { MinecraftActions } from "@/classes/minecraft/handle-minecraft-actions";
-import type { TwitchApi } from "@/classes/twitchApi";
-import type { ChannelPointsCustomRewardRedemptionAddEvent } from "@/schema/twitch-schema";
+import { TwitchApi } from "@repo/twitch-api";
+import { ChannelPointsCustomRewardRedemptionAddEvent } from "@repo/schemas";
 
-export async function handleChannelChannelPointsCustomRewardRedemptionAdd(event: ChannelPointsCustomRewardRedemptionAddEvent, twitchApi: TwitchApi, minecraftActions: MinecraftActions) {
-  console.log(`[${event.broadcaster_user_name}] ${event.user_name} redeemed ${event.reward.title} `);
+export async function handleChannelChannelPointsCustomRewardRedemptionAdd(
+  event: ChannelPointsCustomRewardRedemptionAddEvent,
+  twitchApi: TwitchApi,
+  minecraftActions: MinecraftActions,
+) {
+  console.log(
+    `[${event.broadcaster_user_name}] ${event.user_name} redeemed ${event.reward.title} `,
+  );
 
   // await minecraftActions.Events.TwitchSubscriptionAlert({
   //   title: `${event.user_name} has subscribed!`,

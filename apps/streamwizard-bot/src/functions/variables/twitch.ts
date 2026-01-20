@@ -1,5 +1,5 @@
 // ./variables/twitch.ts
-import type { TwitchApi } from "@/classes/twitchApi";
+import { TwitchApi } from "@repo/twitch-api";
 import type { BaseContext, VariableResolver, FlexibleResolver } from "../resolveVariables";
 
 // Twitch context requires TwitchApi
@@ -8,7 +8,10 @@ export type TwitchContext = BaseContext & {
 };
 
 // Twitch variable resolvers - requires twitchApi (mix of string and flexible resolvers)
-export const TwitchVariableResolvers: Record<string, VariableResolver<TwitchContext> | FlexibleResolver<TwitchContext>> = {
+export const TwitchVariableResolvers: Record<
+  string,
+  VariableResolver<TwitchContext> | FlexibleResolver<TwitchContext>
+> = {
   // Follower related
   follower_count: async ({ twitchApi }) => {
     try {
@@ -80,7 +83,7 @@ export const TwitchVariableResolvers: Record<string, VariableResolver<TwitchCont
     const viewers = await twitchApi.chat.getViewers();
 
     if (!viewers) return [];
-    return viewers.map((viewer) => viewer.user_name);
+    return viewers.map((viewer: { user_name: string }) => viewer.user_name);
   },
 };
 

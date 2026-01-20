@@ -18,7 +18,10 @@ export function auditApiKeyUsage() {
     if (!keyData) return;
 
     const duration = Date.now() - startTime;
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0].trim() || c.req.header("x-real-ip") || "unknown";
+    const ip =
+      c.req.header("x-forwarded-for")?.split(",")?.[0]?.trim() ||
+      c.req.header("x-real-ip") ||
+      "unknown";
 
     // Log every request (or batch them for performance)
     // In production, consider sampling or batching
@@ -41,8 +44,11 @@ export function auditApiKeyUsage() {
     }
 
     // Update last_used_at (async, don't wait)
+    // TODO: Uncomment when api_keys table is added to Supabase
+    /*
     if (c.res.status < 400) {
       supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyData.id).then(); // Fire and forget
     }
+    */
   };
 }
