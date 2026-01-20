@@ -1,7 +1,7 @@
 // middleware/security/utils.ts
 import { Context, Next } from 'hono';
 import { createHash } from 'crypto';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@repo/supabase';
 
 /**
  * Security Event Metadata Interface
@@ -28,7 +28,7 @@ export interface SecurityEventMetadata {
  * Handles errors gracefully to prevent logging failures from breaking the application.
  */
 export async function logSecurityEvent(
-  eventType: string, 
+  eventType: string,
   metadata: SecurityEventMetadata
 ): Promise<void> {
   try {
@@ -98,7 +98,7 @@ export function safeErrorHandler() {
       // Return safe error to client
       return c.json({
         error: 'Internal server error',
-        message: isDevelopment 
+        message: isDevelopment
           ? error.message // Show details in dev
           : 'An unexpected error occurred. Please try again later.',
         requestId // Always include for support

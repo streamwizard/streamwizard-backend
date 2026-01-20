@@ -3,8 +3,8 @@ import { createServerClient, parseCookieHeader } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { setCookie } from "hono/cookie";
-import { env } from "../lib/env";
-import type { Database } from "../types/supabase";
+import { env } from "@repo/env";
+import type { Database } from "@repo/supabase";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -57,7 +57,12 @@ export const supabaseMiddleware = (): MiddlewareHandler => {
     const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
-          return parseCookieHeader(c.req.header("Cookie") ?? "");
+          const cookies = parseCookieHeader(c.req.header("Cookie") ?? "");
+          // Filter out cookies with undefined values and ensure value is always a string
+          return cookies
+            .filter((cookie): cookie is { name: string; value: string } =>
+              cookie.value !== undefined
+            );
         },
         setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
           cookiesToSet.forEach(({ name, value, options }) => setCookie(c, name, value, options));

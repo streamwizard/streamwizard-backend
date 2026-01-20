@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
-    "hono": "^4.11.4"
+    "hono": "^4.11.4",
+    "zod": "^4.3.5"
   }
 }

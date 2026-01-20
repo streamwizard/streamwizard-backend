@@ -1,7 +1,7 @@
 // middleware/security/audit.ts
 import { Context, Next } from "hono";
 import { logSecurityEvent } from "./utils";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@repo/supabase";
 
 /**
  * Audit Logging Middleware

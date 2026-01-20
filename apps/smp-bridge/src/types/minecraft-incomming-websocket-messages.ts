@@ -1,0 +1,1 @@
+export type MinecraftMessageType = 'player_death' | 'player_join' | 'player_leave';

@@ -25,11 +25,15 @@ export class TwitchMarkersClient extends TwitchApiBaseClient {
     return response.data;
   }
 
-  async createMarker(description?: string): Promise<{ data: Marker }> {
+  async createMarker(description?: string): Promise<Marker> {
     const response = await this.clientApi().post("/streams/markers", {
       user_id: this.broadcaster_id,
       description,
     });
-    return response.data.data[0];
+    const marker = response.data.data[0];
+    if (!marker) {
+      throw new Error("Failed to create marker: No data returned from Twitch API");
+    }
+    return marker;
   }
 }

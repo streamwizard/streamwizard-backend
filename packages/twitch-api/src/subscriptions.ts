@@ -39,7 +39,11 @@ export class TwitchSubscriptionsClient extends TwitchApiBaseClient {
     const response = await this.clientApi().get("/subscriptions/user", {
       params: { broadcaster_id: broadcasterId, user_id: userId },
     });
-    return response.data.data[0];
+    const subscription = response.data.data[0];
+    if (!subscription) {
+      throw new Error(`Subscription for user ID ${userId} not found`);
+    }
+    return subscription;
   }
 
   // TODO: make it work with tier 1, 2, 3 so for example if there are 100 subscribers, 50 of them are tier 1, 30 of them are tier 2, and 20 of them are tier 3,

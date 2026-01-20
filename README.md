@@ -1,135 +1,84 @@
-# Turborepo starter
+# StreamWizard Backend Tools
 
-This Turborepo starter is maintained by the Turborepo core team.
+StreamWizard.org is the ultimate toolkit for Twitch broadcasters, designed to enhance stream interactivity, automate content creation, and provide deep analytics. This repository contains the core backend infrastructure that powers the StreamWizard ecosystem.
 
-## Using this example
+## 🚀 Overview
 
-Run the following command:
+This repository houses the core backend services and shared logic for Twitch integrations. It's built as a monorepo using [Turborepo](https://turbo.build/) and [Bun](https://bun.sh/).
 
-```sh
-npx create-turbo@latest
+### Core Features
+
+- **Twitch EventSub Management**: Robust handling of real-time Twitch events (follows, subs, raids).
+- **VOD & Clip Management**: Automated synchronization and organization of Twitch content.
+- **Interactive SMP Bridge**: Real-time integration between Twitch events and Minecraft servers.
+- **Shared Architecture**: Centralized types, configurations, and API clients used across all StreamWizard services.
+
+## 📁 Repository Structure
+
+```text
+.
+├── apps/
+│   ├── rest-api/         # Hono-based API for frontend and webhooks
+│   ├── streamwizard-bot/  # Dedicated bot for processing Twitch events
+│   └── smp-bridge/       # Twitch-to-SMP integration service
+└── packages/
+    ├── twitch-api/       # Shared Twitch Helix API client
+    ├── supabase/         # Shared database client and helpers
+    ├── logger/           # Centralized logging utilities
+    ├── types/           # Shared TypeScript interfaces (Helix, EventSub, etc)
+    ├── env/             # Type-safe environment variable management
+    ├── schemas/         # Zod validation schemas
+    └── typescript-config/# Shared TS configuration
 ```
 
-## What's inside?
+## 🛠 Tech Stack
 
-This Turborepo includes the following packages/apps:
+- **Runtime**: [Bun](https://bun.sh/)
+- **Monorepo Manager**: [Turborepo](https://turbo.build/)
+- **Framework**: [Hono](https://hono.dev/)
+- **Database**: [Supabase](https://supabase.com/) / PostgreSQL
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Validation**: [Zod](https://zod.dev/)
 
-### Apps and Packages
+## 🏁 Getting Started
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+### Prerequisites
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- [Bun](https://bun.sh/docs/installation) installed on your machine.
+- A Twitch Developer Application for client IDs and secrets.
+- A Supabase project for data storage.
 
-### Utilities
+### Installation
 
-This Turborepo has some additional tools already setup for you:
+1. Clone the repository:
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+   ```bash
+   git clone https://github.com/streamwizard/streamwizard-backend.git
+   cd streamwizard-backend
+   ```
 
-### Build
+2. Install dependencies:
 
-To build all apps and packages, run the following command:
+   ```bash
+   bun install
+   ```
 
-```
-cd my-turborepo
+3. Set up environment variables:
+   Create a `.env` in the root and configure the necessary keys as defined in `@repo/env`.
 
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+4. Run development mode:
+   ```bash
+   bun dev
+   ```
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+## 📜 Available Scripts
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+- `bun dev`: Starts all applications in development mode.
+- `bun build`: Builds all applications for production.
+- `bun lint`: Runs linting across the entire workspace.
+- `bun format`: Formats code using Prettier.
+- `bun check-types`: Validates TypeScript types across all packages.
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+## 📄 License
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This project is licensed under the MIT License.

@@ -1,6 +1,6 @@
 // middleware/security/https.ts
 import { Context, Next } from 'hono';
-import { env } from '../../lib/env';
+import { env } from '@repo/env';
 
 /**
  * HTTPS Enforcement Middleware
@@ -16,9 +16,9 @@ export function enforceHttps() {
       return;
     }
 
-    const proto = c.req.header('x-forwarded-proto') || 
-                  c.req.header('x-forwarded-protocol') ||
-                  'http';
+    const proto = c.req.header('x-forwarded-proto') ||
+      c.req.header('x-forwarded-protocol') ||
+      'http';
 
     if (proto !== 'https') {
       return c.json({
@@ -29,7 +29,7 @@ export function enforceHttps() {
 
     // Add security headers
     c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    
+
     await next();
   };
 }

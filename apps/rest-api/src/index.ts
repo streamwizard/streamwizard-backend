@@ -35,7 +35,7 @@ app.use("*", securityMiddleware.safeErrorHandler());
 // ============================================
 
 app.get("/", (c) => {
-    return c.json({ message: "StreamWizard API", version: "1.0.0" });
+  return c.json({ message: "StreamWizard API", version: "1.0.0" });
 });
 
 // Twitch EventSub Webhook Handler
@@ -43,10 +43,10 @@ app.get("/", (c) => {
 // Raw body middleware preserves the body for signature verification
 // Verification middleware validates headers and HMAC signature
 app.post(
-    "/webhooks/twitch/eventsub",
-    rawBodyMiddleware(),
-    twitchEventSubVerification(),
-    handleTwitchEventSub
+  "/webhooks/twitch/eventsub",
+  rawBodyMiddleware(),
+  twitchEventSubVerification(),
+  handleTwitchEventSub,
 );
 
 // ============================================
@@ -55,13 +55,13 @@ app.post(
 
 // Enable CORS for API routes
 app.use(
-    "/api/*",
-    cors({
-        origin: ["http://localhost:3000", "https://streamwizard.org"], // Add your frontend URLs
-        credentials: true,
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowHeaders: ["Content-Type", "Authorization"],
-    })
+  "/api/*",
+  cors({
+    origin: ["http://localhost:3000", "https://streamwizard.org"], // Add your frontend URLs
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
 // Apply Supabase middleware to all API routes
@@ -74,11 +74,8 @@ app.post("/api/clips/sync", supabaseAuth(), syncClipsHandler);
 app.get("/api/clips/sync-status", supabaseAuth(), syncStatusHandler);
 
 Bun.serve({
-    fetch: app.fetch,
-    port: 8000,
+  fetch: app.fetch,
+  port: 8000,
 });
 
 console.log(`Server is running on port ${8000}`);
-
-
-// 2C6suthvhco5IGojQc5G5MHJgN7xqggeLWueSub6Or1SHO5jJH1R9UqQMAZnorB12W5pJGZfJFQV4aSxSeYzy1ZcTrVMrZaPh5ba

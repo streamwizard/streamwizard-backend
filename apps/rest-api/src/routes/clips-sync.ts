@@ -1,7 +1,7 @@
 import { type Context } from "hono";
-import { supabase } from "@/lib/supabase";
-import { TwitchApi } from "@/services/twitchApi";
-import { syncTwitch } from "@/function/sync-twitch";
+import { supabase } from "@repo/supabase";
+import { TwitchApi } from "@repo/twitch-api";
+import { syncTwitch } from "../functions/sync-twitch";
 
 /**
  * POST /api/clips/sync

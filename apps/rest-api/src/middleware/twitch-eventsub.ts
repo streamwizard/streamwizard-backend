@@ -6,8 +6,8 @@ import {
   TWITCH_MESSAGE_SIGNATURE,
   TWITCH_MESSAGE_TYPE,
   verifySignature,
-} from "../lib/twitch-eventsub";
-import type { EventSubVerificationPayload, EventSubNotificationPayload, EventSubRevocationPayload } from "../types/twitch-eventsub";
+} from "../utils/twitch-eventsub"
+import type { EventSubVerificationPayload, EventSubNotificationPayload, EventSubRevocationPayload } from "@repo/types";
 
 /**
  * Twitch EventSub Webhook Verification Middleware

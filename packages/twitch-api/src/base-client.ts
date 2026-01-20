@@ -35,7 +35,6 @@ export abstract class TwitchApiBaseClient {
         }
 
         // Maybe we should redis cache for caching the token?
-
         const token = await getChannelAccessToken(this.broadcaster_id);
 
         config.headers["Client-Id"] = env.TWITCH_CLIENT_ID;

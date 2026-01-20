@@ -1,7 +1,7 @@
 import { type Context } from "hono";
-import { MESSAGE_TYPE_VERIFICATION, MESSAGE_TYPE_NOTIFICATION, MESSAGE_TYPE_REVOCATION } from "../lib/twitch-eventsub";
-import type { EventSubVerificationPayload, EventSubNotificationPayload, EventSubRevocationPayload } from "../types/twitch-eventsub";
-import handleEventsub from "../function/handle-eventsub";
+import { MESSAGE_TYPE_VERIFICATION, MESSAGE_TYPE_NOTIFICATION, MESSAGE_TYPE_REVOCATION } from "../utils/twitch-eventsub";
+import type { EventSubVerificationPayload, EventSubNotificationPayload, EventSubRevocationPayload } from "@repo/types";
+import handleEventsub from "../functions/handle-eventsub";
 
 
 export async function handleTwitchEventSub(c: Context) {

@@ -7,10 +7,73 @@
       "dependencies": {
         "@supabase/supabase-js": "^2.90.1",
         "hono": "^4.11.4",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "prettier": "^3.7.4",
         "turbo": "^2.7.4",
+        "typescript": "5.9.2",
+      },
+    },
+    "apps/rest-api": {
+      "name": "@repo/rest-api",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/env": "workspace:*",
+        "@repo/logger": "workspace:*",
+        "@repo/schemas": "workspace:*",
+        "@repo/supabase": "workspace:*",
+        "@repo/twitch-api": "workspace:*",
+        "@repo/types": "workspace:*",
+        "@supabase/ssr": "^0.8.0",
+        "@supabase/supabase-js": "^2.48.1",
+        "hono": "^4.11.4",
+        "zod": "^4.3.5",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.6",
+        "typescript": "5.9.2",
+      },
+    },
+    "apps/smp-bridge": {
+      "name": "@repo/smp-bridge",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/env": "workspace:*",
+        "@repo/logger": "workspace:*",
+        "@repo/schemas": "workspace:*",
+        "@repo/supabase": "workspace:*",
+        "@repo/twitch-api": "workspace:*",
+        "@repo/twitch-eventsub": "workspace:*",
+        "@repo/types": "workspace:*",
+        "lovely-logs": "^2.7.2",
+        "zod": "^4.3.5",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.6",
+        "typescript": "5.9.2",
+      },
+    },
+    "apps/streamwizard-bot": {
+      "name": "@repo/streamwizard-bot",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/env": "workspace:*",
+        "@repo/logger": "workspace:*",
+        "@repo/schemas": "workspace:*",
+        "@repo/supabase": "workspace:*",
+        "@repo/twitch-api": "workspace:*",
+        "@repo/twitch-eventsub": "workspace:*",
+        "@repo/types": "workspace:*",
+        "date-fns": "^4.1.0",
+        "lovely-logs": "^2.7.2",
+        "zod": "^4.3.5",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.6",
         "typescript": "5.9.2",
       },
     },
@@ -43,6 +106,30 @@
         "typescript-eslint": "^8.50.0",
       },
     },
+    "packages/logger": {
+      "name": "@repo/logger",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/env": "workspace:*",
+        "@repo/supabase": "workspace:*",
+        "@repo/twitch-api": "workspace:*",
+        "axios": "^1.13.2",
+        "zod": "^4.3.5",
+      },
+      "devDependencies": {
+        "@repo/types": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^25.0.8",
+        "typescript": "^5.7.3",
+      },
+    },
+    "packages/schemas": {
+      "name": "@repo/schemas",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.3.5",
+      },
+    },
     "packages/supabase": {
       "name": "@repo/supabase",
       "version": "0.0.0",
@@ -65,6 +152,31 @@
         "axios": "^1.13.2",
         "zod": "^4.3.5",
       },
+      "devDependencies": {
+        "@repo/types": "workspace:*",
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^25.0.8",
+        "typescript": "^5.7.3",
+      },
+    },
+    "packages/twitch-eventsub": {
+      "name": "@repo/twitch-eventsub",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/env": "workspace:*",
+        "@repo/supabase": "workspace:*",
+        "@repo/twitch-api": "workspace:*",
+        "@repo/types": "workspace:*",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/node": "^25.0.8",
+        "typescript": "^5.7.3",
+      },
+    },
+    "packages/types": {
+      "name": "@repo/types",
+      "version": "0.0.0",
       "devDependencies": {
         "@repo/typescript-config": "workspace:*",
         "@types/node": "^25.0.8",
@@ -115,9 +227,23 @@
 
     "@repo/eslint-config": ["@repo/eslint-config@workspace:packages/eslint-config"],
 
+    "@repo/logger": ["@repo/logger@workspace:packages/logger"],
+
+    "@repo/rest-api": ["@repo/rest-api@workspace:apps/rest-api"],
+
+    "@repo/schemas": ["@repo/schemas@workspace:packages/schemas"],
+
+    "@repo/smp-bridge": ["@repo/smp-bridge@workspace:apps/smp-bridge"],
+
+    "@repo/streamwizard-bot": ["@repo/streamwizard-bot@workspace:apps/streamwizard-bot"],
+
     "@repo/supabase": ["@repo/supabase@workspace:packages/supabase"],
 
     "@repo/twitch-api": ["@repo/twitch-api@workspace:packages/twitch-api"],
+
+    "@repo/twitch-eventsub": ["@repo/twitch-eventsub@workspace:packages/twitch-eventsub"],
+
+    "@repo/types": ["@repo/types@workspace:packages/types"],
 
     "@repo/typescript-config": ["@repo/typescript-config@workspace:packages/typescript-config"],
 
@@ -129,9 +255,13 @@
 
     "@supabase/realtime-js": ["@supabase/realtime-js@2.90.1", "", { "dependencies": { "@types/phoenix": "^1.6.6", "@types/ws": "^8.18.1", "tslib": "2.8.1", "ws": "^8.18.2" } }, "sha512-PWbnEMkcQRuor8jhObp4+Snufkq8C6fBp+MchVp2qBPY1NXk/c3Iv3YyiFYVzo0Dzuw4nAlT4+ahuPggy4r32w=="],
 
+    "@supabase/ssr": ["@supabase/ssr@0.8.0", "", { "dependencies": { "cookie": "^1.0.2" }, "peerDependencies": { "@supabase/supabase-js": "^2.76.1" } }, "sha512-/PKk8kNFSs8QvvJ2vOww1mF5/c5W8y42duYtXvkOSe+yZKRgTTZywYG2l41pjhNomqESZCpZtXuWmYjFRMV+dw=="],
+
     "@supabase/storage-js": ["@supabase/storage-js@2.90.1", "", { "dependencies": { "iceberg-js": "^0.8.1", "tslib": "2.8.1" } }, "sha512-GHY+Ps/K/RBfRj7kwx+iVf2HIdqOS43rM2iDOIDpapyUnGA9CCBFzFV/XvfzznGykd//z2dkGZhlZZprsVFqGg=="],
 
     "@supabase/supabase-js": ["@supabase/supabase-js@2.90.1", "", { "dependencies": { "@supabase/auth-js": "2.90.1", "@supabase/functions-js": "2.90.1", "@supabase/postgrest-js": "2.90.1", "@supabase/realtime-js": "2.90.1", "@supabase/storage-js": "2.90.1" } }, "sha512-U8KaKGLUgTIFHtwEW1dgw1gK7XrdpvvYo7nzzqPx721GqPe8WZbAiLh/hmyKLGBYQ/mmQNr20vU9tWSDZpii3w=="],
+
+    "@types/bun": ["@types/bun@1.3.6", "", { "dependencies": { "bun-types": "1.3.6" } }, "sha512-uWCv6FO/8LcpREhenN1d1b6fcspAB+cefwD7uti8C8VffIv0Um08TKMn98FynpTiU38+y2dUO55T11NgDt8VAA=="],
 
     "@types/estree": ["@types/estree@1.0.8", "", {}, "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="],
 
@@ -201,6 +331,8 @@
 
     "braces": ["braces@3.0.3", "", { "dependencies": { "fill-range": "^7.1.1" } }, "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA=="],
 
+    "bun-types": ["bun-types@1.3.6", "", { "dependencies": { "@types/node": "*" } }, "sha512-OlFwHcnNV99r//9v5IIOgQ9Uk37gZqrNMCcqEaExdkVq3Avwqok1bJFmvGMCkCE0FqzdY8VMOZpfpR3lwI+CsQ=="],
+
     "call-bind": ["call-bind@1.0.8", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.0", "es-define-property": "^1.0.0", "get-intrinsic": "^1.2.4", "set-function-length": "^1.2.2" } }, "sha512-oKlSFMcMwpUg2ednkhQ454wfWiU/ul3CkJe/PEHcTKuiX6RpbehUiFMXu13HalGZxfUwCQzZG747YXBn1im9ww=="],
 
     "call-bind-apply-helpers": ["call-bind-apply-helpers@1.0.2", "", { "dependencies": { "es-errors": "^1.3.0", "function-bind": "^1.1.2" } }, "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ=="],
@@ -219,6 +351,8 @@
 
     "concat-map": ["concat-map@0.0.1", "", {}, "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg=="],
 
+    "cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
+
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 
     "data-view-buffer": ["data-view-buffer@1.0.2", "", { "dependencies": { "call-bound": "^1.0.3", "es-errors": "^1.3.0", "is-data-view": "^1.0.2" } }, "sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ=="],
@@ -226,6 +360,8 @@
     "data-view-byte-length": ["data-view-byte-length@1.0.2", "", { "dependencies": { "call-bound": "^1.0.3", "es-errors": "^1.3.0", "is-data-view": "^1.0.2" } }, "sha512-tuhGbE6CfTM9+5ANGf+oQb72Ky/0+s3xKUpHvShfiz2RxMFgFPjsXuRLBVMtvMs15awe45SRb83D6wH4ew6wlQ=="],
 
     "data-view-byte-offset": ["data-view-byte-offset@1.0.1", "", { "dependencies": { "call-bound": "^1.0.2", "es-errors": "^1.3.0", "is-data-view": "^1.0.1" } }, "sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ=="],
+
+    "date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
 
     "debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
 
@@ -440,6 +576,8 @@
     "lodash.merge": ["lodash.merge@4.6.2", "", {}, "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ=="],
 
     "loose-envify": ["loose-envify@1.4.0", "", { "dependencies": { "js-tokens": "^3.0.0 || ^4.0.0" }, "bin": { "loose-envify": "cli.js" } }, "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="],
+
+    "lovely-logs": ["lovely-logs@2.7.2", "", {}, "sha512-2S8t4RCwmBIGnC/PpBnJ38QdB6AB9mqDmSbc35ZkF/v4h9MbqIbLl197NIRC8uuuEfKdIFLu23RyyHcVkA/GBw=="],
 
     "math-intrinsics": ["math-intrinsics@1.1.0", "", {}, "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="],
 

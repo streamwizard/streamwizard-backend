@@ -1,0 +1,9 @@
+# Bun configuration for smp-bridge
+# This ensures path aliases work correctly
+
+[run]
+# Automatically preload tsconfig paths
+preload = []
+
+# Use tsconfig.json for module resolution
+tsconfig-override = "tsconfig.json"
