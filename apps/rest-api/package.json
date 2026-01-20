@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "build": "bun build src/index.ts --outdir=dist",
     "start": "bun run ./src/index.ts",
     "check-types": "tsc --noEmit"
   },
