@@ -123,6 +123,18 @@
         "typescript": "^5.7.3",
       },
     },
+    "packages/metrics": {
+      "name": "@repo/metrics",
+      "version": "0.0.0",
+      "dependencies": {
+        "@influxdata/influxdb-client": "^1.35.0",
+        "@repo/env": "workspace:*",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "typescript": "^5.7.3",
+      },
+    },
     "packages/schemas": {
       "name": "@repo/schemas",
       "version": "0.0.0",
@@ -152,6 +164,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@repo/env": "workspace:*",
+        "@repo/metrics": "workspace:*",
         "@repo/supabase": "workspace:*",
         "axios": "^1.13.2",
         "zod": "^4.3.5",
@@ -219,6 +232,8 @@
 
     "@humanwhocodes/retry": ["@humanwhocodes/retry@0.4.3", "", {}, "sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ=="],
 
+    "@influxdata/influxdb-client": ["@influxdata/influxdb-client@1.35.0", "", {}, "sha512-woWMi8PDpPQpvTsRaUw4Ig+nOGS/CWwAwS66Fa1Vr/EkW+NEwxI8YfPBsdBMn33jK2Y86/qMiiuX/ROHIkJLTw=="],
+
     "@next/eslint-plugin-next": ["@next/eslint-plugin-next@15.5.9", "", { "dependencies": { "fast-glob": "3.3.1" } }, "sha512-kUzXx0iFiXw27cQAViE1yKWnz/nF8JzRmwgMRTMh8qMY90crNsdXJRh2e+R0vBpFR3kk1yvAR7wev7+fCCb79Q=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
@@ -232,6 +247,8 @@
     "@repo/eslint-config": ["@repo/eslint-config@workspace:packages/eslint-config"],
 
     "@repo/logger": ["@repo/logger@workspace:packages/logger"],
+
+    "@repo/metrics": ["@repo/metrics@workspace:packages/metrics"],
 
     "@repo/rest-api": ["@repo/rest-api@workspace:apps/rest-api"],
 

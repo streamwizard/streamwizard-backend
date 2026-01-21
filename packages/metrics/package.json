@@ -1,5 +1,5 @@
 {
-  "name": "@repo/twitch-api",
+  "name": "@repo/metrics",
   "version": "0.0.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -13,17 +13,12 @@
   "scripts": {
     "check-types": "tsc --noEmit"
   },
-  "devDependencies": {
-    "@repo/types": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/node": "^25.0.8",
-    "typescript": "^5.7.3"
-  },
   "dependencies": {
-    "axios": "^1.13.2",
-    "zod": "^4.3.5",
-    "@repo/supabase": "workspace:*",
-    "@repo/env": "workspace:*",
-    "@repo/metrics": "workspace:*"
+    "@influxdata/influxdb-client": "^1.35.0",
+    "@repo/env": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "^5.7.3"
   }
 }

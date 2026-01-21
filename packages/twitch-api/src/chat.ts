@@ -5,13 +5,7 @@ export class TwitchChatClient extends TwitchApiBaseClient {
   constructor(broadcaster_id: string | null = null) {
     super(broadcaster_id);
   }
-  async sendMessage({
-    message,
-    replyToMessageId,
-  }: {
-    message: string;
-    replyToMessageId?: string | null;
-  }) {
+  async sendMessage({ message, replyToMessageId }: { message: string; replyToMessageId?: string | null }) {
     const response = await this.appApi().post(`/chat/messages`, {
       message,
       broadcaster_id: this.broadcaster_id,
