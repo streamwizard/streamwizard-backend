@@ -7,6 +7,7 @@ import {
   type RefreshTwitchTokenResponse,
 } from "@repo/supabase";
 import { env } from "@repo/env";
+import { trackTwitchApiRequest, normalizeEndpoint } from "@repo/metrics";
 import type { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
@@ -43,12 +44,23 @@ export abstract class TwitchApiBaseClient {
 
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // This interceptor is used to intercept the response and check if the token is expired and refresh it if it is
     api.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        // Track successful request (sync, never throws)
+        try {
+          trackTwitchApiRequest(
+            response.config.method?.toUpperCase() || "UNKNOWN",
+            normalizeEndpoint(response.config.url || ""),
+            String(response.status),
+            "twitch-client",
+          );
+        } catch {}
+        return response;
+      },
       async (error: AxiosError) => {
         const config = error.config as InternalAxiosRequestConfig & { __retryCount?: number };
         if (!config) return Promise.reject(error);
@@ -56,16 +68,25 @@ export abstract class TwitchApiBaseClient {
         const statusCode = error.response?.status;
         const currentRetryCount = config.__retryCount || 0;
 
+        // Track error request (sync, never throws) - only on final failure
+        if (!(statusCode === 401 && currentRetryCount < this.MAX_RETRIES)) {
+          try {
+            trackTwitchApiRequest(
+              config.method?.toUpperCase() || "UNKNOWN",
+              normalizeEndpoint(config.url || ""),
+              statusCode ? String(statusCode) : "ERROR",
+              "twitch-client",
+            );
+          } catch {}
+        }
+
         if (statusCode === 401 && currentRetryCount < this.MAX_RETRIES) {
           config.__retryCount = currentRetryCount + 1;
           try {
             if (!this.broadcaster_id) {
               throw new Error("Broadcaster ID is required in Twitch client interceptor");
             }
-            console.log(
-              "🔄 Token expired, attempting to refresh for broadcaster:",
-              this.broadcaster_id
-            );
+            console.log("🔄 Token expired, attempting to refresh for broadcaster:", this.broadcaster_id);
             const newToken = await this.refreshUserToken(this.broadcaster_id);
             if (!newToken) {
               return Promise.reject(error);
@@ -81,7 +102,7 @@ export abstract class TwitchApiBaseClient {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -116,17 +137,40 @@ export abstract class TwitchApiBaseClient {
       },
       (error) => {
         return Promise.reject(error);
-      }
+      },
     );
 
     api.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response: AxiosResponse) => {
+        // Track successful request (sync, never throws)
+        try {
+          trackTwitchApiRequest(
+            response.config.method?.toUpperCase() || "UNKNOWN",
+            normalizeEndpoint(response.config.url || ""),
+            String(response.status),
+            "twitch-app",
+          );
+        } catch {}
+        return response;
+      },
       async (error: AxiosError) => {
         const config = error.config as InternalAxiosRequestConfig & { __retryCount?: number };
         if (!config) return Promise.reject(error);
 
         const statusCode = error.response?.status;
         const currentRetryCount = config.__retryCount || 0;
+
+        // Track error request (sync, never throws) - only on final failure
+        if (!(statusCode === 401 && currentRetryCount < this.MAX_RETRIES)) {
+          try {
+            trackTwitchApiRequest(
+              config.method?.toUpperCase() || "UNKNOWN",
+              normalizeEndpoint(config.url || ""),
+              statusCode ? String(statusCode) : "ERROR",
+              "twitch-app",
+            );
+          } catch {}
+        }
 
         if (statusCode === 401 && currentRetryCount < this.MAX_RETRIES) {
           config.__retryCount = currentRetryCount + 1;
@@ -147,7 +191,7 @@ export abstract class TwitchApiBaseClient {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -166,18 +210,14 @@ export abstract class TwitchApiBaseClient {
         throw new Error("No refresh token found for channel");
       }
       // refresh the token
-      const response = await axios.post<RefreshTwitchTokenResponse>(
-        "https://id.twitch.tv/oauth2/token",
-        null,
-        {
-          params: {
-            client_id: env.TWITCH_CLIENT_ID,
-            client_secret: env.TWITCH_CLIENT_SECRET,
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-          },
-        }
-      );
+      const response = await axios.post<RefreshTwitchTokenResponse>("https://id.twitch.tv/oauth2/token", null, {
+        params: {
+          client_id: env.TWITCH_CLIENT_ID,
+          client_secret: env.TWITCH_CLIENT_SECRET,
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        },
+      });
       // update the token in the database
       await updateChannelAccessToken(response.data, broadcaster_id);
       return response.data.access_token;
