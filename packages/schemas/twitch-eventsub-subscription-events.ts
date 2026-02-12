@@ -75,6 +75,7 @@ export const ChannelChatMessageEventSchema = z.object({
             bits: z.number().int(),
             tier: z.number().int(),
           })
+          .nullable()
           .optional(),
         emote: z
           .object({
@@ -83,6 +84,7 @@ export const ChannelChatMessageEventSchema = z.object({
             owner_id: z.string(),
             format: z.array(z.enum(["animated", "static"])),
           })
+          .nullable()
           .optional(),
         mention: z
           .object({
@@ -90,6 +92,7 @@ export const ChannelChatMessageEventSchema = z.object({
             user_name: z.string(),
             user_login: z.string(),
           })
+          .nullable()
           .optional(),
       }),
     ),
@@ -114,6 +117,7 @@ export const ChannelChatMessageEventSchema = z.object({
     .object({
       bits: z.number().int(),
     })
+    .nullable()
     .optional(),
   reply: z
     .object({
@@ -127,8 +131,9 @@ export const ChannelChatMessageEventSchema = z.object({
       thread_user_name: z.string(),
       thread_user_login: z.string(),
     })
+    .nullable()
     .optional(),
-  channel_points_custom_reward_id: z.string().optional(),
+  channel_points_custom_reward_id: z.string().nullable().optional(),
   source_broadcaster_user_id: z.string().nullable().optional(),
   source_broadcaster_user_login: z.string().nullable().optional(),
   source_broadcaster_user_name: z.string().nullable().optional(),
@@ -143,7 +148,7 @@ export const ChannelChatMessageEventSchema = z.object({
     )
     .nullable()
     .optional(),
-  is_source_only: z.boolean().optional(),
+  is_source_only: z.boolean().nullable().optional(),
 });
 
 export type ChannelChatMessageEvent = z.infer<typeof ChannelChatMessageEventSchema>;
