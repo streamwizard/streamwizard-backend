@@ -1,3 +1,4 @@
+import { GetVodsResponse } from "@repo/types";
 import { TwitchApiBaseClient } from "./base-client";
 
 export interface Vod {
@@ -44,5 +45,10 @@ export class TwitchVodsClient extends TwitchApiBaseClient {
   async getVodById(vodId: string): Promise<Vod> {
     const response = await this.clientApi().get("/videos", { params: { id: vodId } });
     return response.data.data[0];
+  }
+
+  async getVodByBroadcasterId(broadcasterId: string): Promise<GetVodsResponse> {
+    const response = await this.clientApi().get<GetVodsResponse>("/videos", { params: { user_id: broadcasterId } });
+    return response.data;
   }
 }

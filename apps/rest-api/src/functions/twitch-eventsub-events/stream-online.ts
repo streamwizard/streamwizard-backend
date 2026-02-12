@@ -10,10 +10,30 @@ export const handleStreamOnline = async (event: StreamOnlineEvent, TwitchAPI: Tw
 
   // get the stream data from the twitch api
   const stream = await TwitchAPI.streams.getStream({ type: "live" });
+  const video = await TwitchAPI.videos.getVodByBroadcasterId(event.broadcaster_user_id);
 
   if (!stream) {
     console.error("Stream not found", { event });
     return;
+  }
+
+  const video_id = video.data.find((v) => v.stream_id === stream.id)?.id;
+
+  if (!video_id) {
+    console.error("Video not found", { event });
+    return;
+  }
+
+  const { error: videoError } = await supabase.from("vods").insert({
+    broadcaster_id: stream.user_id,
+    video_id: video_id,
+    stream_id: stream.id,
+    started_at: stream.started_at,
+  });
+
+  if (videoError) {
+    console.error("Error inserting vod", { videoError });
+    throw videoError;
   }
 
   // update the database with the stream online event

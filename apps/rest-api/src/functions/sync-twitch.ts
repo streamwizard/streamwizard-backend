@@ -10,28 +10,16 @@ import type { TwitchApi } from "@repo/twitch-api";
  * @param options.skipRecentCheck - Skip the 1-hour check for recent syncs (default: false)
  * @returns The total number of clips synced, or null if sync was skipped
  */
-export async function syncTwitch(
-  broadcaster_id: string,
-  TwitchAPI: TwitchApi,
-  options: { skipRecentCheck?: boolean } = {},
-): Promise<number | null> {
+export async function syncTwitch(broadcaster_id: string, TwitchAPI: TwitchApi, options: { skipRecentCheck?: boolean } = {}): Promise<number | null> {
   // Look up the user from the broadcaster_id
-  const { data: user, error: userError } = await supabase
-    .from("integrations_twitch")
-    .select("user_id")
-    .eq("twitch_user_id", broadcaster_id)
-    .single();
+  const { data: user, error: userError } = await supabase.from("integrations_twitch").select("user_id").eq("twitch_user_id", broadcaster_id).single();
 
   if (userError || !user) {
     throw new Error(`User not found for broadcaster_id: ${broadcaster_id}`);
   }
 
   // Check if the last sync was more than an hour ago (unless skipRecentCheck is true)
-  const { data: lastSync } = await supabase
-    .from("twitch_clip_syncs")
-    .select("last_sync, sync_status")
-    .eq("user_id", user.user_id)
-    .single();
+  const { data: lastSync } = await supabase.from("twitch_clip_syncs").select("last_sync, sync_status").eq("user_id", user.user_id).single();
 
   const now = new Date();
   if (!options.skipRecentCheck && lastSync && lastSync.last_sync) {
@@ -78,19 +66,13 @@ export async function syncTwitch(
     const totalClips = await syncTwitchClips(user.user_id, TwitchAPI);
 
     // Mark as completed
-    await supabase
-      .from("twitch_clip_syncs")
-      .update({ sync_status: "completed", clip_count: totalClips })
-      .eq("user_id", user.user_id);
+    await supabase.from("twitch_clip_syncs").update({ sync_status: "completed", clip_count: totalClips }).eq("user_id", user.user_id);
 
     return totalClips;
   } catch (error) {
     console.error("Sync failed:", error);
     // Mark as failed
-    await supabase
-      .from("twitch_clip_syncs")
-      .update({ sync_status: "failed" })
-      .eq("user_id", user.user_id);
+    await supabase.from("twitch_clip_syncs").update({ sync_status: "failed" }).eq("user_id", user.user_id);
     throw error;
   }
 }
@@ -103,11 +85,7 @@ export async function syncTwitchClips(user_id: string, TwitchAPI: TwitchApi) {
   const MAX_ITERATIONS = 1000; // Safety limit: max 100,000 clips (1000 * 100)
   const seenCursors = new Set<string | undefined>(); // Track cursors to detect infinite loops
 
-  const { data: integration, error } = await supabase
-    .from("integrations_twitch")
-    .select("twitch_user_id, user_id")
-    .eq("user_id", user_id)
-    .single();
+  const { data: integration, error } = await supabase.from("integrations_twitch").select("twitch_user_id, user_id").eq("user_id", user_id).single();
 
   if (error || !integration || !integration.twitch_user_id) {
     console.error(error);
@@ -119,9 +97,7 @@ export async function syncTwitchClips(user_id: string, TwitchAPI: TwitchApi) {
   while (hasMoreClips) {
     // Safety check: prevent infinite loops
     if (iterationCount >= MAX_ITERATIONS) {
-      console.warn(
-        `Sync stopped at ${MAX_ITERATIONS} iterations (${totalClips} clips synced). Possible infinite loop detected.`,
-      );
+      console.warn(`Sync stopped at ${MAX_ITERATIONS} iterations (${totalClips} clips synced). Possible infinite loop detected.`);
       break;
     }
 
@@ -135,11 +111,7 @@ export async function syncTwitchClips(user_id: string, TwitchAPI: TwitchApi) {
     iterationCount++;
 
     try {
-      const clipsResponse = await fetchAndFormatTwitchClips(
-        integration.twitch_user_id,
-        TwitchAPI,
-        cursor,
-      );
+      const clipsResponse = await fetchAndFormatTwitchClips(integration.twitch_user_id, TwitchAPI, cursor);
 
       if (!clipsResponse) {
         break;
@@ -186,11 +158,7 @@ export async function syncTwitchClips(user_id: string, TwitchAPI: TwitchApi) {
   return totalClips;
 }
 
-export async function fetchAndFormatTwitchClips(
-  broadcasterId: string,
-  TwitchAPI: TwitchApi,
-  cursor?: string,
-) {
+export async function fetchAndFormatTwitchClips(broadcasterId: string, TwitchAPI: TwitchApi, cursor?: string) {
   // total number of clips to fetch
   const batchSize = 100;
 
@@ -229,10 +197,7 @@ export type TwitchClip = {
 };
 
 // format the clips for the database
-export function formatClipsForDB(
-  clips: TwitchClip[],
-  userId: string,
-): Database["public"]["Tables"]["clips"]["Insert"][] {
+export function formatClipsForDB(clips: TwitchClip[], userId: string): Database["public"]["Tables"]["clips"]["Insert"][] {
   return clips.map((clip) => ({
     twitch_clip_id: clip.id,
     url: clip.url,
