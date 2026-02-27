@@ -1,0 +1,16 @@
+{
+  "name": "clip-sync",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@repo/supabase": "workspace:*",
+    "@repo/twitch-api": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

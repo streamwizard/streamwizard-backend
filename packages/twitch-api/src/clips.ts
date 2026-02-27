@@ -7,15 +7,13 @@ export class TwitchClipsClient extends TwitchApiBaseClient {
   }
 
   async getClips(options: Helix.GetClipsParams): Promise<Helix.GetClipsResponse> {
-    const response = await this.clientApi().get<Helix.GetClipsResponse>("/clips", {
+    const response = await this.appApi().get<Helix.GetClipsResponse>("/clips", {
       params: options,
     });
     return response.data;
   }
 
-  async createClip(
-    params: Omit<Helix.CreateClipParams, "broadcaster_id"> = {},
-  ): Promise<Helix.CreateClipResponse> {
+  async createClip(params: Omit<Helix.CreateClipParams, "broadcaster_id"> = {}): Promise<Helix.CreateClipResponse> {
     const response = await this.clientApi().post<Helix.CreateClipResponse>("/clips", null, {
       params: {
         broadcaster_id: this.broadcaster_id,
@@ -25,9 +23,7 @@ export class TwitchClipsClient extends TwitchApiBaseClient {
     return response.data;
   }
 
-  async createClipFromVod(
-    params: Omit<Helix.CreateClipParams, "broadcaster_id">,
-  ): Promise<Helix.CreateClipResponse> {
+  async createClipFromVod(params: Omit<Helix.CreateClipParams, "broadcaster_id">): Promise<Helix.CreateClipResponse> {
     const response = await this.clientApi().post<Helix.CreateClipResponse>("/videos/clips", null, {
       params: {
         broadcaster_id: this.broadcaster_id,

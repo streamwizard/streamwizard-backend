@@ -437,6 +437,53 @@ export type Database = {
           },
         ]
       }
+      pending_clips: {
+        Row: {
+          broadcaster_id: string
+          clip_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          last_checked_at: string | null
+          max_retries: number
+          next_retry_at: string
+          retry_count: number
+          status: string
+        }
+        Insert: {
+          broadcaster_id: string
+          clip_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_checked_at?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          retry_count?: number
+          status?: string
+        }
+        Update: {
+          broadcaster_id?: string
+          clip_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_checked_at?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          retry_count?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_clips_broadcaster_id_fkey"
+            columns: ["broadcaster_id"]
+            isOneToOne: false
+            referencedRelation: "integrations_twitch"
+            referencedColumns: ["twitch_user_id"]
+          },
+        ]
+      }
       smp_actions: {
         Row: {
           action: string
@@ -711,6 +758,36 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          active: boolean
+          content: string
+          created_at: string
+          href: string
+          id: string
+          profile_img: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          content: string
+          created_at?: string
+          href: string
+          id?: string
+          profile_img: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          content?: string
+          created_at?: string
+          href?: string
+          id?: string
+          profile_img?: string
+          username?: string
+        }
+        Relationships: []
+      }
       twitch_app_token: {
         Row: {
           access_token: string
@@ -965,6 +1042,7 @@ export type Database = {
           vod_offset: number
         }[]
       }
+      get_stream_data: { Args: { p_video_id: string }; Returns: Json }
       get_user_twitch_ids: { Args: never; Returns: string[] }
       insert_discord_integration: {
         Args: { integration_id: string; provider_data: Json; user_id: string }
@@ -981,6 +1059,7 @@ export type Database = {
         Args: { integration_id: string; provider_data: Json; user_id: string }
         Returns: undefined
       }
+      jwt_broadcaster_id: { Args: never; Returns: string }
       remove_clip_from_folder: {
         Args: { p_clip_id: string; p_folder_id: string }
         Returns: undefined
