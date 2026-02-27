@@ -1,8 +1,11 @@
 {
-  "name": "clip-sync",
+  "name": "@repo/clip-sync",
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
   "dependencies": {
     "@repo/supabase": "workspace:*",
     "@repo/twitch-api": "workspace:*"
