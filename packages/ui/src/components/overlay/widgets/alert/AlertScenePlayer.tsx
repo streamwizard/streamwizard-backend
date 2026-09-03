@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { collectSceneFontFamilies, type AlertScene } from "@repo/alert-scene";
 import { SceneStage, useScenePlayback, type SceneStageHandle } from "@repo/alert-scene/renderer";
 import { useGoogleFonts } from "../../hooks/use-google-font";
@@ -39,7 +39,9 @@ export function AlertScenePlayer({
   useGoogleFonts(fonts);
 
   const onEndedRef = useRef(onEnded);
-  onEndedRef.current = onEnded;
+  useLayoutEffect(() => {
+    onEndedRef.current = onEnded;
+  });
   const endedRef = useRef(false);
   const finish = useCallback(() => {
     if (endedRef.current) return;

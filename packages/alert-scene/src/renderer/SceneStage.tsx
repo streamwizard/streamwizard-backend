@@ -1,11 +1,11 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, type CSSProperties } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
 import { evaluate } from "../core/evaluate";
 import { substituteTokens } from "../core/tokens";
 import type { AlertScene, Clip, ClipEffects, ClipSource, Layer, RenderNode } from "../core/types";
 import { applyNode, createStageNode, hideNode, type StageNode } from "./apply-render-state";
-import { createMediaSyncState, releaseMedia, syncMedia, type MediaSyncState } from "./media-sync";
+import { createMediaSyncState, syncMedia, type MediaSyncState } from "./media-sync";
 
 export interface SceneStageHandle {
   /** Paints the scene at `timeMs`. Pure in (scene, time); safe to call every frame or once after a seek. */
@@ -135,12 +135,16 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
   const pendingMedia = useRef(new Map<string, HTMLMediaElement | null>());
   const timeRef = useRef(initialTime);
   const playingRef = useRef(false);
+  // Latest props for the frame loop, mirrored in a layout effect so nothing
+  // reads or writes a ref during render.
   const sceneRef = useRef(scene);
-  sceneRef.current = scene;
   const volumeRef = useRef(volume);
-  volumeRef.current = volume;
   const mutedRef = useRef(muted);
-  mutedRef.current = muted;
+  useLayoutEffect(() => {
+    sceneRef.current = scene;
+    volumeRef.current = volume;
+    mutedRef.current = muted;
+  });
 
   const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
@@ -192,14 +196,15 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
     paint(timeRef.current, playingRef.current);
   }, [scene, tokens, paint]);
 
+  // Unmount: stop sound. The elements leave the DOM with the component, so the
+  // browser frees their decoders; stripping `src` here would also break the
+  // StrictMode remount in development, where the same elements come back.
   useEffect(() => {
     const map = entries.current;
     return () => {
       for (const entry of map.values()) {
-        entry.sync?.detach();
-        if (entry.node.media) releaseMedia(entry.node.media);
+        if (entry.node.media && !entry.node.media.paused) entry.node.media.pause();
       }
-      map.clear();
     };
   }, []);
 
@@ -209,7 +214,7 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
         const prev = entries.current.get(clipId);
         if (prev) {
           prev.sync?.detach();
-          if (prev.node.media) releaseMedia(prev.node.media);
+          if (prev.node.media && !prev.node.media.paused) prev.node.media.pause();
           entries.current.delete(clipId);
         }
         return;

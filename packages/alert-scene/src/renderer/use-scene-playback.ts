@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { createSceneClock, type SceneClock } from "../core/clock";
 import type { SceneStageHandle } from "./SceneStage";
 
@@ -23,71 +23,79 @@ export interface ScenePlaybackControls {
 }
 
 /**
- * The one rAF loop behind a stage. Creates a clock on mount, tears it down on
- * unmount, and forwards every tick to `stage.render(t)`. Returns a stable
- * controls object so callers can bind buttons and shortcuts once.
+ * The one rAF loop behind a stage. The clock is created on first use and
+ * disposed on unmount; creating it lazily (not in render) is what keeps it
+ * alive through StrictMode's simulated unmount/remount in development, which
+ * would otherwise dispose a clock nothing recreates.
  */
 export function useScenePlayback(opts: ScenePlaybackOptions): ScenePlaybackControls {
   const { stageRef, duration, loop = false, onTime, onEnded } = opts;
   const onTimeRef = useRef(onTime);
-  onTimeRef.current = onTime;
   const onEndedRef = useRef(onEnded);
-  onEndedRef.current = onEnded;
+  const durationRef = useRef(duration);
+  const loopRef = useRef(loop);
+  useLayoutEffect(() => {
+    onTimeRef.current = onTime;
+    onEndedRef.current = onEnded;
+    durationRef.current = duration;
+    loopRef.current = loop;
+  });
   const clockRef = useRef<SceneClock | null>(null);
 
-  if (clockRef.current === null) {
-    clockRef.current = createSceneClock({
-      duration,
-      loop,
+  const clock = useCallback((): SceneClock => {
+    if (clockRef.current) return clockRef.current;
+    const created = createSceneClock({
+      duration: durationRef.current,
+      loop: loopRef.current,
       onFrame: (t) => {
-        const clock = clockRef.current;
-        stageRef.current?.render(t, { playing: clock?.isPlaying() ?? false });
+        stageRef.current?.render(t, { playing: clockRef.current?.isPlaying() ?? false });
         onTimeRef.current?.(t);
       },
       onEnded: () => onEndedRef.current?.(),
     });
-  }
+    clockRef.current = created;
+    return created;
+  }, [stageRef]);
 
   useEffect(() => {
-    clockRef.current?.setDuration(duration);
-  }, [duration]);
+    clock().setDuration(duration);
+  }, [clock, duration]);
 
   useEffect(() => {
-    clockRef.current?.setLoop(loop);
-  }, [loop]);
+    clock().setLoop(loop);
+  }, [clock, loop]);
 
   useEffect(() => {
-    const clock = clockRef.current;
+    clock();
     return () => {
-      clock?.dispose();
+      clockRef.current?.dispose();
       clockRef.current = null;
     };
-  }, []);
+  }, [clock]);
 
-  return useMemo<ScenePlaybackControls>(
-    () => ({
-      play: () => clockRef.current?.play(),
+  return useMemo<ScenePlaybackControls>(() => {
+    const paintPaused = () => {
+      const c = clock();
+      stageRef.current?.render(c.getTime(), { playing: false });
+      onTimeRef.current?.(c.getTime());
+    };
+    return {
+      play: () => clock().play(),
       pause: () => {
-        const clock = clockRef.current;
-        if (!clock) return;
-        clock.pause();
+        clock().pause();
         // Paint the paused frame so media elements stop exactly here.
-        stageRef.current?.render(clock.getTime(), { playing: false });
-        onTimeRef.current?.(clock.getTime());
+        paintPaused();
       },
       toggle: () => {
-        const clock = clockRef.current;
-        if (!clock) return;
-        if (clock.isPlaying()) {
-          clock.pause();
-          stageRef.current?.render(clock.getTime(), { playing: false });
-          onTimeRef.current?.(clock.getTime());
-        } else clock.play();
+        const c = clock();
+        if (c.isPlaying()) {
+          c.pause();
+          paintPaused();
+        } else c.play();
       },
-      seek: (t) => clockRef.current?.seek(t),
-      getTime: () => clockRef.current?.getTime() ?? 0,
-      isPlaying: () => clockRef.current?.isPlaying() ?? false,
-    }),
-    [stageRef]
-  );
+      seek: (t) => clock().seek(t),
+      getTime: () => clock().getTime(),
+      isPlaying: () => clock().isPlaying(),
+    };
+  }, [clock, stageRef]);
 }
