@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import { Clapperboard } from "lucide-react";
+import { toast } from "sonner";
+import type { AlertScene } from "@repo/alert-scene";
 import { useDemoFire } from "@/hooks/overlays/use-demo-fire";
+import { formatSeconds } from "@/components/overlays/alert-timeline/format-time";
+import { createTimelineFromVariant } from "@/components/overlays/alert-timeline/scene-from-variant";
 import {
   Accordion,
   AccordionContent,
@@ -33,6 +39,7 @@ import {
   ALERT_MESSAGE_EVENTS,
   ALERT_NAME_LABELS,
   ALERT_EVENT_SUBSCRIPTION_TYPES,
+  getDesignSize,
   normalizeAlertWidgetConfig,
   type AlertAnimationIn,
   type AlertAnimationOut,
@@ -57,6 +64,20 @@ import {
 } from "./alert-widget-labels";
 import type { OverlayInspectorAppendProps } from "../../registry/overlay-widget-registry.types";
 
+// The timeline editor is a whole second editor; it only loads the first time
+// someone opens it, so the overlay inspector stays light.
+const AlertTimelineDialog = dynamic(
+  () => import("@/components/overlays/alert-timeline").then((m) => m.AlertTimelineDialog),
+  { ssr: false }
+);
+
+interface TimelineSession {
+  event: AlertEventType;
+  scene: AlertScene;
+  /** False when the scene was just seeded and the alert box does not hold it yet. */
+  saved: boolean;
+}
+
 export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppendProps) {
   const cfg = normalizeAlertWidgetConfig(item.config);
   const [category, setCategory] = useState<AlertEventCategoryId>("community");
@@ -66,6 +87,9 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
     community: "follow",
   });
   const [testBusy, setTestBusy] = useState<AlertEventType | null>(null);
+  // Mounted only while open, so the editor's store, clock and media are created
+  // on open and destroyed on close.
+  const [timelineSession, setTimelineSession] = useState<TimelineSession | null>(null);
   const { mode, fire } = useDemoFire();
 
   function patchConfig(updates: Partial<AlertWidgetItemConfig>) {
@@ -79,6 +103,15 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
         [event]: { ...cfg.variants[event], ...updates },
       },
     });
+  }
+
+  function openTimeline(event: AlertEventType) {
+    const variant = cfg.variants[event];
+    const design = getDesignSize(item);
+    const scene =
+      variant.timeline ??
+      createTimelineFromVariant(variant, { width: design.w, height: design.h, name: ALERT_EVENT_LABELS[event] });
+    setTimelineSession({ event, scene, saved: Boolean(variant.timeline) });
   }
 
   async function fireTest(event: AlertEventType) {
@@ -165,6 +198,61 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                       </div>
 
                       <AccordionContent className="space-y-4 px-1 pb-5">
+                        {variant.timeline ? (
+                          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                            <div className="flex items-center gap-2">
+                              <Clapperboard className="size-4 shrink-0 text-primary" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium">Timeline</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {formatSeconds(variant.timeline.duration)} ·{" "}
+                                  {variant.timeline.layers.length}{" "}
+                                  {variant.timeline.layers.length === 1 ? "layer" : "layers"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" className="flex-1" onClick={() => openTimeline(event)}>
+                                Edit timeline
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  patchVariant(event, { timeline: undefined });
+                                  toast("Timeline removed. Undo brings it back.");
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                            <p className="text-[11px] leading-snug text-muted-foreground">
+                              The timeline plays instead of the simple alert. Remove it to get the fields back.
+                            </p>
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => openTimeline(event)}>
+                            <Clapperboard className="size-3.5" />
+                            Create timeline
+                          </Button>
+                        )}
+
+                        {variant.timeline && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Volume ({Math.round(variant.volume * 100)}%)</Label>
+                            <Slider
+                              value={[variant.volume]}
+                              onValueChange={([v]) => patchVariant(event, { volume: v })}
+                              min={0}
+                              max={1}
+                              step={0.05}
+                              className="py-1"
+                            />
+                          </div>
+                        )}
+
+                        {!variant.timeline && (
+                          <>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Title</Label>
                           <Input
@@ -286,6 +374,9 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                           </div>
                         )}
 
+                          </>
+                        )}
+
                         {amountLabel && (
                           <div className="space-y-1.5">
                             <Label className="text-xs">Minimum {amountLabel}</Label>
@@ -306,6 +397,8 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                           </div>
                         )}
 
+                        {!variant.timeline && (
+                          <>
                         <GroupLabel>Look &amp; feel</GroupLabel>
 
                         <div className="space-y-1.5">
@@ -458,6 +551,8 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                             onCheckedChange={(v) => patchVariant(event, { textShadow: v })}
                           />
                         </div>
+                          </>
+                        )}
                       </AccordionContent>
                     </AccordionItem>
                   );
@@ -512,6 +607,21 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
           </div>
         </div>
       </div>
+
+      {timelineSession && (
+        <AlertTimelineDialog
+          event={timelineSession.event}
+          eventLabel={ALERT_EVENT_LABELS[timelineSession.event]}
+          initialScene={timelineSession.scene}
+          saved={timelineSession.saved}
+          onSave={(scene) => {
+            patchVariant(timelineSession.event, { timeline: scene });
+            setTimelineSession(null);
+            toast.success("Timeline saved to the alert box. Save the overlay to keep it.");
+          }}
+          onClose={() => setTimelineSession(null)}
+        />
+      )}
     </div>
   );
 }
