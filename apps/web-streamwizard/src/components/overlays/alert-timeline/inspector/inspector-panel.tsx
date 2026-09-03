@@ -1,0 +1,215 @@
+"use client";
+
+import { findClip, type Clip, type ClipSource, type PropName } from "@repo/alert-scene";
+import { ALERT_TEMPLATE_TOKENS } from "@repo/ui/overlay";
+import { Button, ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@repo/ui";
+import { NumberField } from "@/components/overlays/editor/number-field";
+import { InspectorSection } from "@/components/overlays/editor/inspector-section";
+import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlignSelect } from "@/components/overlays/inspector-fields";
+import { setBasePropCommand, setSceneMetaCommand, trimClipCommand, updateClipCommand } from "../commands";
+import { useTimeline, useTimelineStoreApi } from "../timeline-context";
+import { clampClipTrim, neighboursOf } from "../timeline/timeline-math";
+import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
+
+/** Unit suffix inside a NumberField, same placement the overlay inspector uses. */
+function Unit({ children }: { children: React.ReactNode }) {
+  return <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{children}</span>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function SceneSection() {
+  const api = useTimelineStoreApi();
+  const scene = useTimeline((s) => s.scene);
+  const patch = (p: Parameters<typeof setSceneMetaCommand>[1], key: string) => {
+    const s = api.getState();
+    s.execute(setSceneMetaCommand(s.scene, p, `scene:${key}`));
+  };
+  return (
+    <InspectorSection title="Scene" defaultOpen>
+      <div className="space-y-3">
+        <Field label="Name">
+          <Input value={scene.name} onChange={(e) => patch({ name: e.target.value.slice(0, 100) }, "name")} className="h-8 text-xs" />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Width">
+            <NumberField value={scene.width} min={1} max={MAX_SCENE_SIZE} onCommit={(v) => patch({ width: Math.round(v) }, "width")} className="pr-8" adornment={<Unit>px</Unit>} />
+          </Field>
+          <Field label="Height">
+            <NumberField value={scene.height} min={1} max={MAX_SCENE_SIZE} onCommit={(v) => patch({ height: Math.round(v) }, "height")} className="pr-8" adornment={<Unit>px</Unit>} />
+          </Field>
+        </div>
+        <Field label="Duration">
+          <NumberField
+            value={Math.round(scene.duration) / 1000}
+            min={MIN_SCENE_DURATION_MS / 1000}
+            max={MAX_SCENE_DURATION_MS / 1000}
+            onCommit={(v) => patch({ duration: Math.round(v * 1000) }, "duration")}
+            className="pr-8" adornment={<Unit>s</Unit>}
+          />
+        </Field>
+      </div>
+    </InspectorSection>
+  );
+}
+
+function TransformSection({ clip }: { clip: Clip }) {
+  const api = useTimelineStoreApi();
+  const set = (prop: PropName, value: number) => {
+    const s = api.getState();
+    const cmd = setBasePropCommand(s.scene, clip.id, prop, value, `base:${clip.id}:${prop}`);
+    if (cmd) s.execute(cmd);
+  };
+  const b = clip.base;
+  return (
+    <InspectorSection title="Transform" defaultOpen>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="X">
+          <NumberField value={Math.round(b.x)} onCommit={(v) => set("x", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+        </Field>
+        <Field label="Y">
+          <NumberField value={Math.round(b.y)} onCommit={(v) => set("y", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+        </Field>
+        <Field label="Width">
+          <NumberField value={Math.round(b.width)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => set("width", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+        </Field>
+        <Field label="Height">
+          <NumberField value={Math.round(b.height)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => set("height", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+        </Field>
+        <Field label="Rotation">
+          <NumberField value={Math.round(b.rotation)} min={-3600} max={3600} onCommit={(v) => set("rotation", v)} className="pr-8" adornment={<Unit>°</Unit>} />
+        </Field>
+        <Field label="Opacity">
+          <NumberField value={Math.round(b.opacity * 100)} min={0} max={100} onCommit={(v) => set("opacity", v / 100)} className="pr-8" adornment={<Unit>%</Unit>} />
+        </Field>
+      </div>
+    </InspectorSection>
+  );
+}
+
+function TimingSection({ clip }: { clip: Clip }) {
+  const api = useTimelineStoreApi();
+  const trim = (edge: "start" | "end", seconds: number) => {
+    const s = api.getState();
+    const loc = findClip(s.scene, clip.id);
+    if (!loc) return;
+    const t = clampClipTrim(loc.clip, edge, Math.round(seconds * 1000), neighboursOf(loc.layer.clips, clip.id));
+    if (t === loc.clip[edge]) return;
+    const cmd = trimClipCommand(s.scene, clip.id, edge, t);
+    if (cmd) s.execute({ ...cmd, coalesceKey: `trim:${clip.id}:${edge}` });
+  };
+  return (
+    <InspectorSection title="Timing" defaultOpen>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Start">
+          <NumberField value={clip.start / 1000} min={0} onCommit={(v) => trim("start", v)} className="pr-8" adornment={<Unit>s</Unit>} />
+        </Field>
+        <Field label="End">
+          <NumberField value={clip.end / 1000} min={0} onCommit={(v) => trim("end", v)} className="pr-8" adornment={<Unit>s</Unit>} />
+        </Field>
+      </div>
+    </InspectorSection>
+  );
+}
+
+function SourceSection({ clip }: { clip: Clip }) {
+  const api = useTimelineStoreApi();
+  const src = clip.source;
+  const setSource = (next: ClipSource, key: string) => {
+    const s = api.getState();
+    const cmd = updateClipCommand(s.scene, clip.id, { source: next }, `src:${clip.id}:${key}`);
+    if (cmd) s.execute(cmd);
+  };
+
+  if (src.kind === "text") {
+    const patch = (p: Partial<Extract<ClipSource, { kind: "text" }>>, key: string) => setSource({ ...src, ...p }, key);
+    return (
+      <InspectorSection title="Text" defaultOpen>
+        <div className="space-y-3">
+          <Field label="Text">
+            <Textarea value={src.text} rows={3} onChange={(e) => patch({ text: e.target.value.slice(0, 500) }, "text")} className="text-xs" />
+            <div className="flex flex-wrap gap-1 pt-1">
+              {ALERT_TEMPLATE_TOKENS.map((token) => (
+                <Button key={token} type="button" size="xs" variant="outline" className="font-mono" onClick={() => patch({ text: `${src.text}{${token}}` }, "text")}>
+                  {`{${token}}`}
+                </Button>
+              ))}
+            </div>
+          </Field>
+          <GoogleFontSelect value={src.fontFamily} onValueChange={(v) => patch({ fontFamily: v }, "font")} />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Size">
+              <NumberField value={src.fontSize} min={4} max={400} onCommit={(v) => patch({ fontSize: Math.round(v) }, "size")} className="pr-8" adornment={<Unit>px</Unit>} />
+            </Field>
+            <FontWeightSelect value={src.fontWeight} onValueChange={(v) => patch({ fontWeight: v }, "weight")} />
+          </div>
+          <TextAlignSelect value={src.align} onValueChange={(v) => patch({ align: v }, "align")} />
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-[11px] text-muted-foreground">Colour</Label>
+            <ColorPicker value={src.color} onChange={(v) => patch({ color: v }, "color")} aria-label="Text colour" />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor={`shadow-${clip.id}`} className="text-[11px] text-muted-foreground">
+              Shadow
+            </Label>
+            <Switch id={`shadow-${clip.id}`} checked={src.shadow} onCheckedChange={(v) => patch({ shadow: v }, "shadow")} />
+          </div>
+        </div>
+      </InspectorSection>
+    );
+  }
+
+  if (src.kind === "image") {
+    return (
+      <InspectorSection title="Image" defaultOpen>
+        <div className="space-y-3">
+          <MediaField label="Image" kinds={["image"]} value={src.url} onChange={(url) => setSource({ ...src, url }, "url")} />
+          <Field label="Fit">
+            <Select value={src.fit} onValueChange={(v) => setSource({ ...src, fit: v as typeof src.fit }, "fit")}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contain">Fit inside</SelectItem>
+                <SelectItem value="cover">Fill and crop</SelectItem>
+                <SelectItem value="fill">Stretch</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </InspectorSection>
+    );
+  }
+
+  return null;
+}
+
+export function InspectorPanel() {
+  const clipId = useTimeline((s) => s.selection.clipId);
+  const clip = useTimeline((s) => (s.selection.clipId ? findClip(s.scene, s.selection.clipId)?.clip ?? null : null));
+
+  return (
+    <div className="h-full overflow-y-auto p-3">
+      {clip ? (
+        <div key={clipId} className="space-y-5">
+          <SectionTitle>Selected clip</SectionTitle>
+          <SourceSection clip={clip} />
+          <TimingSection clip={clip} />
+          <TransformSection clip={clip} />
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <SceneSection />
+          <p className="text-xs text-muted-foreground">Select a clip on the timeline to edit it.</p>
+        </div>
+      )}
+    </div>
+  );
+}
