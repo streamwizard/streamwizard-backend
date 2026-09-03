@@ -1,3 +1,4 @@
+import { collectSceneFontFamilies } from "@repo/alert-scene";
 import type { WidgetBaseDefinition } from "../../widget-definition";
 import {
   ALERT_EVENT_TYPES,
@@ -13,13 +14,16 @@ export const alertWidgetBaseDefinition: WidgetBaseDefinition<"alert_widget"> = {
   defaultSize: { ...ALERT_WIDGET_DEFAULT_SIZE },
   createDefaultConfig: createDefaultAlertWidgetConfig,
   Renderer: AlertWidgetRenderer,
-  collectFontFamilies: (item) => {
-    const cfg = normalizeAlertWidgetConfig(item.config);
-    // Each alert type carries its own font.
-    return [
-      ...new Set(
-        ALERT_EVENT_TYPES.map((e) => cfg.variants[e].fontFamily).filter(Boolean)
-      ),
-    ];
-  },
+  collectFontFamilies: (item) => collectAlertFontFamilies(normalizeAlertWidgetConfig(item.config)),
 };
+
+/** Each alert type carries its own font, and a timeline can use several more. */
+export function collectAlertFontFamilies(cfg: ReturnType<typeof normalizeAlertWidgetConfig>): string[] {
+  const out = new Set<string>();
+  for (const event of ALERT_EVENT_TYPES) {
+    const variant = cfg.variants[event];
+    if (variant.fontFamily) out.add(variant.fontFamily);
+    if (variant.timeline) for (const f of collectSceneFontFamilies(variant.timeline)) out.add(f);
+  }
+  return [...out];
+}

@@ -6,20 +6,23 @@ declare const process: { env: Record<string, string | undefined> };
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useGoogleFonts } from "../../hooks/use-google-font";
+import { getDesignSize } from "../../lib/item-scale";
 import { subscribeToWsRoom } from "../../lib/ws-store";
 import type { OverlayItem, OverlayScene } from "../../types";
 import {
-  ALERT_EVENT_TYPES,
   ALERT_TEST_BROWSER_EVENT,
   alertAmountText,
   alertInstanceFromSocketMessage,
   alertSkipReason,
+  alertTokensFromInstance,
   normalizeAlertWidgetConfig,
   renderAlertTemplate,
   type AlertInstance,
   type AlertTestBrowserEventDetail,
   type AlertVariantConfig,
 } from "./alert-widget-config";
+import { collectAlertFontFamilies } from "./alert-widget-definition";
+import { AlertScenePlayer } from "./AlertScenePlayer";
 
 export interface AlertWidgetRendererProps {
   item: OverlayItem;
@@ -104,10 +107,7 @@ function renderAccentedTemplate(
 
 export function AlertWidgetRenderer({ item, scene, isEditor = false }: AlertWidgetRendererProps) {
   const cfg = useMemo(() => normalizeAlertWidgetConfig(item.config), [item.config]);
-  const fontFamilies = useMemo(
-    () => [...new Set(ALERT_EVENT_TYPES.map((e) => cfg.variants[e].fontFamily))],
-    [cfg]
-  );
+  const fontFamilies = useMemo(() => collectAlertFontFamilies(cfg), [cfg]);
   useGoogleFonts(fontFamilies);
 
 
@@ -171,6 +171,10 @@ export function AlertWidgetRenderer({ item, scene, isEditor = false }: AlertWidg
     setActive(next);
     setPhase("in");
 
+    // A timeline alert owns its media, sound and timing; the player reports
+    // the end and finishTimeline takes it from there.
+    if (next.variant.timeline) return;
+
     const soundUrl = next.variant.soundUrl;
     if (soundUrl) {
       const audio = new Audio(soundUrl);
@@ -186,6 +190,14 @@ export function AlertWidgetRenderer({ item, scene, isEditor = false }: AlertWidg
     scheduleOut(IN_MS + next.variant.durationSeconds * 1000);
   }, [scheduleOut]);
   playNextRef.current = playNext;
+
+  /** Timeline counterpart of the legacy done timer: clear, wait the gap, next. */
+  const finishTimeline = useCallback(() => {
+    const c = cfgRef.current;
+    if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
+    setActive(null);
+    doneTimerRef.current = setTimeout(() => playNextRef.current(), c.gapSeconds * 1000);
+  }, []);
 
   const enqueue = useCallback(
     (alert: AlertInstance) => {
@@ -265,6 +277,25 @@ export function AlertWidgetRenderer({ item, scene, isEditor = false }: AlertWidg
   }
 
   const { alert, variant } = active;
+
+  if (variant.timeline) {
+    const design = getDesignSize(item);
+    return (
+      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+        <AlertScenePlayer
+          // A fresh player per alert: the same event twice in a row must not
+          // reuse a clock that already ran to the end.
+          key={`${alert.event}-${startedAtRef.current}`}
+          scene={variant.timeline}
+          tokens={alertTokensFromInstance(alert)}
+          fit={{ width: design.w, height: design.h }}
+          volume={Math.min(1, Math.max(0, variant.volume * cfg.masterVolume))}
+          onEnded={finishTimeline}
+        />
+      </div>
+    );
+  }
+
   const fontFamily = `"${variant.fontFamily}", sans-serif`;
   const textShadow = variant.textShadow ? "0 2px 8px rgba(0,0,0,0.6)" : "none";
   const alignItems =

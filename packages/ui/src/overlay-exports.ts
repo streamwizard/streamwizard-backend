@@ -175,3 +175,11 @@ export {
   type CustomWidgetIframeProps,
   type WidgetLogEntry,
 } from "./components/overlay/CustomWidgetIframe";
+export { AlertScenePlayer, type AlertScenePlayerProps } from "./components/overlay/widgets/alert/AlertScenePlayer";
+export {
+  ALERT_TEMPLATE_TOKENS,
+  alertTierLabel,
+  alertTokensFromInstance,
+  type AlertTemplateToken,
+} from "./components/overlay/widgets/alert/alert-widget-config";
+export { collectAlertFontFamilies } from "./components/overlay/widgets/alert/alert-widget-definition";

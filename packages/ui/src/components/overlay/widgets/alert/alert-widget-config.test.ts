@@ -560,3 +560,115 @@ describe("alert type coverage", () => {
     }
   });
 });
+
+// ── Timeline + tier ──────────────────────────────────────────────────────
+
+import {
+  ALERT_TEMPLATE_TOKENS,
+  alertTierLabel,
+  alertTokensFromInstance,
+} from "./alert-widget-config";
+import { alertWidgetItemConfigSchema } from "../../../../overlay-schemas";
+import {
+  addClip,
+  addLayer,
+  createClip,
+  createDefaultBase,
+  createDefaultSource,
+  createEmptyScene,
+  createLayer,
+} from "@repo/alert-scene";
+
+function chatNotice(noticeType: string, blocks: Record<string, unknown> = {}) {
+  return {
+    type: "channel.chat.notification",
+    payload: {
+      notice_type: noticeType,
+      chatter_user_name: "ada",
+      chatter_is_anonymous: false,
+      message: { text: "" },
+      ...blocks,
+    },
+  };
+}
+
+function timelineFixture() {
+  let scene = createEmptyScene({ width: 600, height: 400, duration: 3000, name: "Follow" });
+  const layer = createLayer("text", "Title");
+  scene = addLayer(scene, layer);
+  scene = addClip(
+    scene,
+    layer.id,
+    createClip({
+      start: 0,
+      end: 2000,
+      source: { ...createDefaultSource("text"), fontFamily: "Bangers" } as never,
+      base: createDefaultBase(scene, { width: 400, height: 80 }),
+    })
+  );
+  return scene;
+}
+
+describe("sub tier", () => {
+  it("labels Twitch's sub_plan strings", () => {
+    expect(alertTierLabel("1000")).toBe("Tier 1");
+    expect(alertTierLabel("2000")).toBe("Tier 2");
+    expect(alertTierLabel("3000")).toBe("Tier 3");
+    expect(alertTierLabel("Prime")).toBe("Prime");
+    expect(alertTierLabel(undefined)).toBe("");
+    expect(alertTierLabel("weird")).toBe("");
+  });
+
+  it("carries the tier on every sub-shaped notice and nowhere else", () => {
+    expect(alertInstanceFromSocketMessage(chatNotice("sub", { sub: { sub_plan: "1000", is_gift: false } }))?.tier).toBe(
+      "Tier 1"
+    );
+    expect(
+      alertInstanceFromSocketMessage(chatNotice("resub", { resub: { sub_plan: "2000", cumulative_months: 3 } }))?.tier
+    ).toBe("Tier 2");
+    expect(
+      alertInstanceFromSocketMessage(
+        chatNotice("sub_gift", { sub_gift: { sub_plan: "3000", cumulative_total: 1, recipient_user_name: "bob" } })
+      )?.tier
+    ).toBe("Tier 3");
+    expect(
+      alertInstanceFromSocketMessage(chatNotice("community_sub_gift", { community_sub_gift: { sub_plan: "1000", total: 5 } }))
+        ?.tier
+    ).toBe("Tier 1");
+    expect(
+      alertInstanceFromSocketMessage(chatNotice("prime_paid_upgrade", { prime_paid_upgrade: { sub_plan: "1000" } }))?.tier
+    ).toBe("Tier 1");
+    expect(alertInstanceFromSocketMessage(chatNotice("raid", { raid: { user_name: "x", viewer_count: 2 } }))?.tier).toBe("");
+  });
+
+  it("renders {tier} in templates and in the token record", () => {
+    const alert = alertInstanceFromSocketMessage(chatNotice("sub", { sub: { sub_plan: "2000", is_gift: false } }))!;
+    expect(renderAlertTemplate("{name} went {tier}", alert)).toBe("ada went Tier 2");
+    const tokens = alertTokensFromInstance(alert);
+    expect(Object.keys(tokens).sort()).toEqual([...ALERT_TEMPLATE_TOKENS].sort());
+    expect(tokens.tier).toBe("Tier 2");
+    expect(tokens.name).toBe("ada");
+  });
+});
+
+describe("timeline on a variant", () => {
+  it("normalises a valid timeline through and drops an invalid one", () => {
+    const scene = timelineFixture();
+    const cfg = normalizeAlertWidgetConfig({
+      variants: {
+        follow: { timeline: JSON.parse(JSON.stringify(scene)) },
+        sub: { timeline: { version: 1, nonsense: true } },
+      },
+    });
+    expect(cfg.variants.follow.timeline).toEqual(scene);
+    expect(cfg.variants.sub.timeline).toBeUndefined();
+    expect(cfg.variants.cheer.timeline).toBeUndefined();
+  });
+
+  it("survives the persisted-config schema (which strips unknown keys)", () => {
+    const scene = timelineFixture();
+    const cfg = normalizeAlertWidgetConfig({ variants: { follow: { timeline: scene } } });
+    const parsed = alertWidgetItemConfigSchema.parse(JSON.parse(JSON.stringify(cfg)));
+    expect(parsed.variants.follow?.timeline?.layers[0]?.clips[0]?.start).toBe(0);
+  });
+});

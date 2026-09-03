@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { alertSceneSchema } from "@repo/alert-scene";
 import {
   DEFAULT_GOOGLE_FONT_FAMILY,
   isValidGoogleFontFamilyName,
@@ -223,6 +224,9 @@ const alertVariantConfigSchema = z.object({
   messageColor: hexColorSchema.default("#d4d4d8"),
   accentColor: hexColorSchema.default("#9e7aff"),
   textShadow: z.boolean().default(true),
+  // Keyframed timeline; z.object strips unknown keys, so leaving this out
+  // would silently drop every timeline on overlay save.
+  timeline: alertSceneSchema.optional(),
 });
 
 /**

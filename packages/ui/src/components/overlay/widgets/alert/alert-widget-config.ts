@@ -1,4 +1,5 @@
 import { buildWidgetTestEvent, type WidgetTestEventType } from "@repo/schemas";
+import { parseAlertScene, type AlertScene } from "@repo/alert-scene";
 import {
   DEFAULT_GOOGLE_FONT_FAMILY,
   resolvedTextWidgetFontFamily,
@@ -266,6 +267,12 @@ export interface AlertVariantConfig {
   /** Highlights `{name}` and `{amount}` inside the title. */
   accentColor: string;
   textShadow: boolean;
+  /**
+   * Keyframed timeline for this event. When set, the renderer plays it instead
+   * of the media/title/animation fields above, which stay as the fallback and
+   * for the legacy editor.
+   */
+  timeline?: AlertScene;
 }
 
 export interface AlertWidgetItemConfig {
@@ -499,6 +506,8 @@ function normalizeAlertVariant(
     accentColor:
       typeof r.accentColor === "string" ? r.accentColor : base.accentColor,
     textShadow: typeof r.textShadow === "boolean" ? r.textShadow : base.textShadow,
+    // Invalid or missing means "no timeline": the legacy body still plays.
+    timeline: parseAlertScene(r.timeline) ?? undefined,
   };
 }
 
@@ -573,13 +582,15 @@ export interface AlertInstance {
   gifter: string;
   /** Reward title or charity name — read by `{reward}` / `{charity}`. */
   detail: string;
+  /** "Tier 1" / "Tier 2" / "Tier 3" / "Prime" on sub events; empty otherwise. */
+  tier: string;
 }
 
 /** An anonymous gifter has no name in the payload; the alert still needs one. */
 const ANONYMOUS_GIFTER = "an anonymous gifter";
 
 function baseInstance(event: AlertEventType, name: string): AlertInstance {
-  return { event, name, amount: 0, amountText: "", message: "", gifter: "", detail: "" };
+  return { event, name, amount: 0, amountText: "", message: "", gifter: "", detail: "", tier: "" };
 }
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
@@ -636,13 +647,14 @@ function alertInstanceFromChatNotice(p: Record<string, unknown>): AlertInstance 
 
   switch (noticeType) {
     case "sub":
-      return baseInstance("sub", chatter);
+      return { ...baseInstance("sub", chatter), tier: alertTierLabel(block("sub")?.sub_plan) };
     case "resub": {
       const resub = block("resub");
       return {
         ...baseInstance("resub", chatter),
         amount: num(resub?.cumulative_months),
         message,
+        tier: alertTierLabel(resub?.sub_plan),
       };
     }
     case "sub_gift": {
@@ -655,11 +667,16 @@ function alertInstanceFromChatNotice(p: Record<string, unknown>): AlertInstance 
         ...baseInstance("gift_sub", chatter),
         amount: num(gift?.cumulative_total),
         detail: str(gift?.recipient_user_name),
+        tier: alertTierLabel(gift?.sub_plan),
       };
     }
     case "community_sub_gift": {
       const bomb = block("community_sub_gift");
-      return { ...baseInstance("community_gift", chatter), amount: num(bomb?.total) };
+      return {
+        ...baseInstance("community_gift", chatter),
+        amount: num(bomb?.total),
+        tier: alertTierLabel(bomb?.sub_plan),
+      };
     }
     case "gift_paid_upgrade":
       return {
@@ -667,7 +684,10 @@ function alertInstanceFromChatNotice(p: Record<string, unknown>): AlertInstance 
         gifter: gifterName(block("gift_paid_upgrade")),
       };
     case "prime_paid_upgrade":
-      return baseInstance("prime_upgrade", chatter);
+      return {
+        ...baseInstance("prime_upgrade", chatter),
+        tier: alertTierLabel(block("prime_paid_upgrade")?.sub_plan),
+      };
     case "pay_it_forward":
       return {
         ...baseInstance("pay_it_forward", chatter),
@@ -839,7 +859,52 @@ export function renderAlertTemplate(
     .replaceAll("{message}", alert.message)
     .replaceAll("{gifter}", alert.gifter)
     .replaceAll("{reward}", alert.detail)
-    .replaceAll("{charity}", alert.detail);
+    .replaceAll("{charity}", alert.detail)
+    .replaceAll("{tier}", alert.tier);
+}
+
+/** Every token a template can use, in the order the editor lists them. */
+export const ALERT_TEMPLATE_TOKENS = [
+  "name",
+  "amount",
+  "message",
+  "gifter",
+  "reward",
+  "charity",
+  "tier",
+] as const;
+export type AlertTemplateToken = (typeof ALERT_TEMPLATE_TOKENS)[number];
+
+/** Twitch's `sub_plan` / `tier` strings as a streamer would say them. */
+export function alertTierLabel(plan: unknown): string {
+  switch (plan) {
+    case "1000":
+      return "Tier 1";
+    case "2000":
+      return "Tier 2";
+    case "3000":
+      return "Tier 3";
+    case "Prime":
+      return "Prime";
+    default:
+      return "";
+  }
+}
+
+/**
+ * The same vocabulary `renderAlertTemplate` uses, as a plain record for the
+ * timeline renderer (which knows nothing about alerts).
+ */
+export function alertTokensFromInstance(alert: AlertInstance): Record<AlertTemplateToken, string> {
+  return {
+    name: alert.name,
+    amount: alertAmountText(alert),
+    message: alert.message,
+    gifter: alert.gifter,
+    reward: alert.detail,
+    charity: alert.detail,
+    tier: alert.tier,
+  };
 }
 
 // ─── Test events ────────────────────────────────────────────────────────────
