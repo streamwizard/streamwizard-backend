@@ -354,3 +354,14 @@ export function clearTrack(scene: AlertScene, clipId: string, prop: PropName): A
   if (!loc || !loc.clip.tracks[prop]) return scene;
   return replaceClip(scene, loc, withTrack(loc.clip, prop, []));
 }
+
+/** Distinct font families used by text clips, for whoever loads web fonts. */
+export function collectSceneFontFamilies(scene: AlertScene): string[] {
+  const out = new Set<string>();
+  for (const layer of scene.layers) {
+    for (const clip of layer.clips) {
+      if (clip.source.kind === "text" && clip.source.fontFamily.trim()) out.add(clip.source.fontFamily.trim());
+    }
+  }
+  return [...out];
+}
