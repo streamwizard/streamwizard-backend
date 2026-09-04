@@ -6,8 +6,11 @@ import { useTimelineWheel } from "../use-timeline-view";
 import { visibleScene } from "../timeline-store";
 import { LayerHeader } from "./layer-header";
 import { Playhead } from "./playhead";
+import { PropertyRowHeader } from "./property-row-header";
+import { PropertyTrackRow } from "./property-track-row";
 import { HEADER_COLUMN_PX, RULER_HEIGHT_PX } from "./timeline-constants";
 import { msToPx, TIMELINE_END_PADDING_PX } from "./timeline-math";
+import { buildTimelineRows } from "./timeline-rows";
 import { TimelineRuler } from "./timeline-ruler";
 import { TrackRow } from "./track-row";
 
@@ -23,8 +26,9 @@ export function TimelinePanel() {
   const headerColRef = useRef<HTMLDivElement>(null);
   const scene = useTimeline(visibleScene);
   const pxPerMs = useTimeline((s) => s.pxPerMs);
+  const expanded = useTimeline((s) => s.expandedLayerIds);
   const contentWidth = msToPx(scene.duration, pxPerMs) + TIMELINE_END_PADDING_PX;
-  const layersTopFirst = [...scene.layers].reverse();
+  const rows = buildTimelineRows(scene, expanded);
 
   return (
     <div className="flex h-full min-h-0 w-full select-none" data-timeline="">
@@ -32,9 +36,13 @@ export function TimelinePanel() {
         <div className="flex items-center border-b px-2 text-[11px] uppercase tracking-wider text-muted-foreground" style={{ height: RULER_HEIGHT_PX }}>
           Layers
         </div>
-        {layersTopFirst.map((layer) => (
-          <LayerHeader key={layer.id} layer={layer} />
-        ))}
+        {rows.map((row) =>
+          row.kind === "layer" ? (
+            <LayerHeader key={row.key} layer={row.layer} />
+          ) : (
+            <PropertyRowHeader key={row.key} layer={row.layer} clip={row.clip} prop={row.prop} />
+          )
+        )}
       </div>
       <div
         ref={paneRef}
@@ -53,9 +61,13 @@ export function TimelinePanel() {
           <div className="sticky top-0 z-20">
             <TimelineRuler width={contentWidth} />
           </div>
-          {layersTopFirst.map((layer) => (
-            <TrackRow key={layer.id} layer={layer} width={contentWidth} />
-          ))}
+          {rows.map((row) =>
+            row.kind === "layer" ? (
+              <TrackRow key={row.key} layer={row.layer} width={contentWidth} />
+            ) : (
+              <PropertyTrackRow key={row.key} layer={row.layer} clip={row.clip} prop={row.prop} track={row.track} width={contentWidth} />
+            )
+          )}
           {scene.layers.length === 0 && (
             <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 px-6 text-center text-sm text-muted-foreground">
               No layers yet. Add text or an image and it lands at the playhead.

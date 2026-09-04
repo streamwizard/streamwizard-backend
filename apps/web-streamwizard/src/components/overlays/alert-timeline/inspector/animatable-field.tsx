@@ -1,15 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Diamond, Timer } from "lucide-react";
+import { Timer } from "lucide-react";
 import { findClip, type AlertScene, type PropName } from "@repo/alert-scene";
-import { Label, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
+import { Label, cn } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
-import { deleteKeyframeCommand, stopwatchOffCommand, stopwatchOnCommand, writePropCommand, type Command } from "../commands";
-import { keyframeAt, nextKeyframeTime, prevKeyframeTime } from "../keyframe-nav";
+import { stopwatchOffCommand, stopwatchOnCommand, writePropCommand, type Command } from "../commands";
+import { KeyframeNavigator, NavIconButton } from "../keyframe-navigator";
 import { hasTrack, keyframeTime, valueAt } from "../prop-writer";
-import { useTimeline, useTimelineStoreApi, useTimelineView } from "../timeline-context";
-import { visibleScene, type TimelineState } from "../timeline-store";
+import { useTimeline, useTimelineStoreApi } from "../timeline-context";
+import { visibleScene } from "../timeline-store";
 import { Unit } from "./field-chrome";
 
 export interface AnimatableFieldProps {
@@ -29,61 +29,6 @@ export interface AnimatableFieldProps {
   trailing?: ReactNode;
   /** How a new model value becomes a command; defaults to the auto-keyframe rule. */
   buildCommand?: (scene: AlertScene, value: number, playheadMs: number, coalesceKey: string) => Command | null;
-}
-
-function Tip({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top">{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-/** Buttons keep focus where it was so Space and arrows still hit the timeline. */
-const keepFocus = (e: React.MouseEvent) => e.preventDefault();
-
-function IconButton({
-  label,
-  active,
-  disabled,
-  onClick,
-  className,
-  children,
-}: {
-  label: string;
-  active?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Tip label={label}>
-      <button
-        type="button"
-        aria-label={label}
-        aria-pressed={active}
-        disabled={disabled}
-        onMouseDown={keepFocus}
-        onClick={onClick}
-        className={cn(
-          "flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors",
-          "hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-40",
-          active && "text-primary hover:text-primary",
-          className
-        )}
-      >
-        {children}
-      </button>
-    </Tip>
-  );
-}
-
-function trackTimes(state: TimelineState, clipId: string, prop: PropName): number[] {
-  const loc = findClip(state.scene, clipId);
-  return loc?.clip.tracks[prop]?.keyframes.map((k) => k.time) ?? [];
 }
 
 function roundTo(value: number, digits: number): number {
@@ -111,7 +56,6 @@ export function AnimatableField({
   buildCommand,
 }: AnimatableFieldProps) {
   const api = useTimelineStoreApi();
-  const view = useTimelineView();
 
   const animated = useTimeline((s) => {
     const loc = findClip(s.scene, clipId);
@@ -121,12 +65,6 @@ export function AnimatableField({
     const loc = findClip(visibleScene(s), clipId);
     return loc ? valueAt(loc.clip, prop, s.playhead) : 0;
   });
-  const atKeyframe = useTimeline((s) => {
-    const loc = findClip(s.scene, clipId);
-    return !!loc && keyframeAt(loc.clip.tracks[prop], s.playhead) !== null;
-  });
-  const prev = useTimeline((s) => prevKeyframeTime(trackTimes(s, clipId, prop), s.playhead));
-  const next = useTimeline((s) => nextKeyframeTime(trackTimes(s, clipId, prop), s.playhead));
 
   const commit = (fieldValue: number) => {
     const s = api.getState();
@@ -138,50 +76,30 @@ export function AnimatableField({
 
   const toggleStopwatch = () => {
     const s = api.getState();
-    const cmd = animated ? stopwatchOffCommand(s.scene, clipId, prop, s.playhead) : stopwatchOnCommand(s.scene, clipId, prop, s.playhead);
-    if (cmd) s.execute(cmd);
-  };
-
-  const jump = (t: number | null) => {
-    if (t === null) return;
-    const s = api.getState();
-    s.setPlaying(false);
-    s.setPlayhead(t);
-    view.scrollToTime(t);
-    const kf = keyframeAt(findClip(s.scene, clipId)?.clip.tracks[prop], t);
-    if (kf) s.selectKeyframe(clipId, prop, kf.id);
-  };
-
-  const toggleKeyframe = () => {
-    const s = api.getState();
-    const loc = findClip(s.scene, clipId);
-    if (!loc) return;
-    const kf = keyframeAt(loc.clip.tracks[prop], s.playhead);
-    const cmd = kf
-      ? deleteKeyframeCommand(s.scene, clipId, prop, kf.id, s.playhead)
-      : writePropCommand(s.scene, clipId, prop, valueAt(loc.clip, prop, s.playhead), s.playhead);
-    if (cmd) s.execute(cmd);
+    if (animated) {
+      const cmd = stopwatchOffCommand(s.scene, clipId, prop, s.playhead);
+      if (cmd) s.execute(cmd);
+      return;
+    }
+    const cmd = stopwatchOnCommand(s.scene, clipId, prop, s.playhead);
+    if (!cmd) return;
+    s.execute(cmd);
+    // The new row should be visible on the timeline, not hidden behind a chevron.
+    const layerId = findClip(s.scene, clipId)?.layer.id;
+    if (layerId) s.setLayerExpanded(layerId, true);
   };
 
   return (
     <div className="space-y-1" data-animatable-field={prop}>
       <div className="flex h-5 items-center gap-1">
-        <IconButton label={animated ? `Stop animating ${label}` : `Animate ${label}`} active={animated} disabled={disabled} onClick={toggleStopwatch} className="-ml-1">
+        <NavIconButton label={animated ? `Stop animating ${label}` : `Animate ${label}`} active={animated} disabled={disabled} onClick={toggleStopwatch} className="-ml-1">
           <Timer className="size-3.5" />
-        </IconButton>
+        </NavIconButton>
         <Label className="text-[11px] text-muted-foreground">{label}</Label>
         {trailing}
         {animated && (
-          <div className="ml-auto flex items-center" data-keyframe-nav={prop}>
-            <IconButton label="Previous keyframe" disabled={disabled || prev === null} onClick={() => jump(prev)}>
-              <ChevronLeft className="size-3.5" />
-            </IconButton>
-            <IconButton label={atKeyframe ? "Remove keyframe here" : "Add keyframe here"} active={atKeyframe} disabled={disabled} onClick={toggleKeyframe}>
-              <Diamond className={cn("size-3", atKeyframe && "fill-current")} />
-            </IconButton>
-            <IconButton label="Next keyframe" disabled={disabled || next === null} onClick={() => jump(next)}>
-              <ChevronRight className="size-3.5" />
-            </IconButton>
+          <div className="ml-auto">
+            <KeyframeNavigator clipId={clipId} prop={prop} disabled={disabled} />
           </div>
         )}
       </div>

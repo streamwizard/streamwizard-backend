@@ -3,6 +3,7 @@
 import { moveClip, trimClip, type AlertScene, type Clip, type Layer } from "@repo/alert-scene";
 import { cn } from "@repo/ui";
 import { moveClipCommand, trimClipCommand } from "../commands";
+import { keyframeTimesForClip } from "../keyframe-nav";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { usePointerDrag } from "../use-pointer-drag";
 import { LAYER_CLIP_CLASSES } from "./layer-colors";
@@ -43,7 +44,10 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
   const api = useTimelineStoreApi();
   const pxPerMs = useTimeline((s) => s.pxPerMs);
   const selected = useTimeline((s) => s.selection.clipId === clip.id);
+  const expanded = useTimeline((s) => !!s.expandedLayerIds[layer.id]);
   const left = msToPx(clip.start, pxPerMs);
+  // Folded clips still hint at their keyframes along the bottom edge.
+  const keyframeTimes = expanded ? [] : keyframeTimesForClip(clip);
   const width = Math.max(2, msToPx(clip.end - clip.start, pxPerMs));
 
   const drag = usePointerDrag<Gesture>({
@@ -133,6 +137,15 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
       style={{ left, width, height: ROW_HEIGHT_PX - 8 }}
     >
       <span className="pointer-events-none truncate px-2 font-medium">{clipLabel(clip, layer)}</span>
+      {keyframeTimes.map((t) => (
+        <span
+          key={t}
+          aria-hidden
+          data-mini-keyframe=""
+          className="pointer-events-none absolute bottom-0.5 block size-1.5 -translate-x-1/2 rotate-45 bg-current opacity-80"
+          style={{ left: msToPx(t - clip.start, pxPerMs) }}
+        />
+      ))}
       {!layer.locked && (
         <>
           <div data-trim="start" className="absolute inset-y-0 left-0 cursor-ew-resize hover:bg-white/20" style={{ width: TRIM_HANDLE_PX }} />

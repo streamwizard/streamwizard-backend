@@ -11,6 +11,7 @@ import {
   removeLayerCommand,
   splitClipCommand,
 } from "./commands";
+import { keyframeTimesForClip, nextKeyframeTime, prevKeyframeTime } from "./keyframe-nav";
 import { usePlayback, useTimelineStoreApi, useTimelineView } from "./timeline-context";
 import { clampClipMove, frameMs, neighboursOf } from "./timeline/timeline-math";
 
@@ -144,6 +145,23 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
           handled();
           state.setLoop(!state.loop);
           return;
+        case "j":
+        case "J":
+        case "k":
+        case "K": {
+          if (mod) return;
+          handled();
+          if (!selection.clipId) return;
+          const loc = findClip(scene, selection.clipId);
+          if (!loc) return;
+          const times = keyframeTimesForClip(loc.clip);
+          const t = e.key.toLowerCase() === "j" ? prevKeyframeTime(times, state.playhead) : nextKeyframeTime(times, state.playhead);
+          if (t === null) return;
+          state.setPlaying(false);
+          state.setPlayhead(t);
+          view.scrollToTime(t);
+          return;
+        }
         case "=":
         case "+":
           handled();
