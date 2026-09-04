@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clapperboard } from "lucide-react";
 import { toast } from "sonner";
 import type { AlertScene } from "@repo/alert-scene";
 import { useDemoFire } from "@/hooks/overlays/use-demo-fire";
 import { formatSeconds } from "@/components/overlays/alert-timeline/format-time";
+import { loadMediaInfo } from "@/components/overlays/alert-timeline/media-info";
 import { createTimelineFromVariant } from "@/components/overlays/alert-timeline/scene-from-variant";
 import {
   Accordion,
@@ -90,6 +91,9 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
   // Mounted only while open, so the editor's store, clock and media are created
   // on open and destroyed on close.
   const [timelineSession, setTimelineSession] = useState<TimelineSession | null>(null);
+  // Seeding a video-length alert waits on the file; only the newest click counts.
+  const [timelineBusy, setTimelineBusy] = useState<AlertEventType | null>(null);
+  const openRequest = useRef(0);
   const { mode, fire } = useDemoFire();
 
   function patchConfig(updates: Partial<AlertWidgetItemConfig>) {
@@ -105,13 +109,25 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
     });
   }
 
-  function openTimeline(event: AlertEventType) {
+  async function openTimeline(event: AlertEventType) {
     const variant = cfg.variants[event];
+    if (variant.timeline) {
+      setTimelineSession({ event, scene: variant.timeline, saved: true });
+      return;
+    }
     const design = getDesignSize(item);
-    const scene =
-      variant.timeline ??
-      createTimelineFromVariant(variant, { width: design.w, height: design.h, name: ALERT_EVENT_LABELS[event] });
-    setTimelineSession({ event, scene, saved: Boolean(variant.timeline) });
+    // An alert that plays the whole video seeds at the video's length, so ask the file first.
+    let mediaDurationMs: number | null = null;
+    if (variant.mediaKind === "video" && variant.durationMode === "media" && variant.mediaUrl) {
+      const request = ++openRequest.current;
+      setTimelineBusy(event);
+      const info = await loadMediaInfo(variant.mediaUrl, "video");
+      setTimelineBusy((busy) => (busy === event ? null : busy));
+      if (request !== openRequest.current) return;
+      mediaDurationMs = info?.durationMs ?? null;
+    }
+    const scene = createTimelineFromVariant(variant, { width: design.w, height: design.h, name: ALERT_EVENT_LABELS[event], mediaDurationMs });
+    setTimelineSession({ event, scene, saved: false });
   }
 
   async function fireTest(event: AlertEventType) {
@@ -212,7 +228,7 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button size="sm" className="flex-1" onClick={() => openTimeline(event)}>
+                              <Button size="sm" className="flex-1" onClick={() => void openTimeline(event)}>
                                 Edit timeline
                               </Button>
                               <Button
@@ -231,9 +247,9 @@ export function AlertWidgetSettings({ item, updateItem }: OverlayInspectorAppend
                             </p>
                           </div>
                         ) : (
-                          <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={() => openTimeline(event)}>
+                          <Button size="sm" variant="outline" className="w-full gap-1.5" disabled={timelineBusy !== null} onClick={() => void openTimeline(event)}>
                             <Clapperboard className="size-3.5" />
-                            Create timeline
+                            {timelineBusy === event ? "Reading the video…" : "Create timeline"}
                           </Button>
                         )}
 
