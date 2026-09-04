@@ -14,6 +14,7 @@ import {
 import {
   addClipCommand,
   addLayerCommand,
+  clearTrackCommand,
   compositeCommand,
   moveClipCommand,
   moveKeyframeCommand,
@@ -25,10 +26,15 @@ import {
   setKeyframeCommand,
   setKeyframeEasingCommand,
   setSceneMetaCommand,
+  setTrackCommand,
   splitClipCommand,
+  stopwatchOffCommand,
+  stopwatchOnCommand,
   trimClipCommand,
   updateClipCommand,
   updateLayerCommand,
+  writePropCommand,
+  writePropsCommand,
   type Command,
 } from "./commands";
 
@@ -108,6 +114,42 @@ describe("commands invert exactly", () => {
     roundTrips(scene, moveKeyframeCommand(scene, clip.id, "x", kfs[0]!.id, 2000)!);
     roundTrips(scene, moveKeyframeCommand(scene, clip.id, "x", kfs[0]!.id, 3000)!); // displaces the other
     roundTrips(scene, setKeyframeEasingCommand(scene, clip.id, "x", kfs[0]!.id, "hold")!);
+  });
+
+  it("tracks: clear, set and the stopwatch pair", () => {
+    const { scene, clip } = fixture();
+    roundTrips(scene, clearTrackCommand(scene, clip.id, "x")!);
+    roundTrips(scene, setTrackCommand(scene, clip.id, "x", [{ id: "n", time: 1500, value: 7, easing: "hold" }])!);
+    roundTrips(scene, setTrackCommand(scene, clip.id, "opacity", [{ id: "o", time: 1500, value: 0.5, easing: "linear" }])!);
+    roundTrips(scene, stopwatchOnCommand(scene, clip.id, "opacity", 1200)!);
+    roundTrips(scene, stopwatchOffCommand(scene, clip.id, "x", 2000)!);
+    expect(stopwatchOnCommand(scene, clip.id, "x", 0)).toBeNull();
+    expect(stopwatchOffCommand(scene, clip.id, "opacity", 0)).toBeNull();
+    expect(clearTrackCommand(scene, clip.id, "opacity")).toBeNull();
+  });
+
+  it("stopwatch off settles the value that was showing", () => {
+    const { scene, clip } = fixture();
+    const after = stopwatchOffCommand(scene, clip.id, "x", 2000)!.apply(scene);
+    const c = findClip(after, clip.id)!.clip;
+    expect(c.tracks.x).toBeUndefined();
+    expect(c.base.x).toBe(50);
+  });
+
+  it("writeProp goes to a keyframe when animated and to base when not", () => {
+    const { scene, clip } = fixture();
+    const kf = writePropCommand(scene, clip.id, "x", 25, 2000.4)!;
+    const afterKf = roundTrips(scene, kf);
+    expect(findClip(afterKf, clip.id)!.clip.tracks.x!.keyframes.map((k) => k.time)).toEqual([1000, 2000, 3000]);
+    const base = writePropCommand(scene, clip.id, "y", 25, 2000)!;
+    const afterBase = roundTrips(scene, base);
+    expect(findClip(afterBase, clip.id)!.clip.base.y).toBe(25);
+    expect(findClip(afterBase, clip.id)!.clip.tracks.y).toBeUndefined();
+    const both = writePropsCommand(scene, clip.id, { x: 1, y: 2 }, 2000, "Move")!;
+    const afterBoth = roundTrips(scene, both);
+    expect(findClip(afterBoth, clip.id)!.clip.base.y).toBe(2);
+    expect(findClip(afterBoth, clip.id)!.clip.tracks.x!.keyframes.length).toBe(3);
+    expect(writePropsCommand(scene, clip.id, {}, 0)).toBeNull();
   });
 
   it("composite applies in order and inverts in reverse", () => {

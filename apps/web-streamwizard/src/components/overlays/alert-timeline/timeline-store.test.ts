@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { addClip, addLayer, createClip, createDefaultBase, createDefaultSource, createEmptyScene, createLayer } from "@repo/alert-scene";
-import { moveClipCommand, removeLayerCommand, setSceneMetaCommand } from "./commands";
+import { moveClipCommand, removeLayerCommand, setKeyframeCommand, setSceneMetaCommand } from "./commands";
 import { COALESCE_WINDOW_MS, createTimelineStore, isDirty, visibleScene } from "./timeline-store";
 
 function fixture() {
@@ -99,6 +99,32 @@ describe("timeline store", () => {
     expect(isDirty(store.getState())).toBe(true);
     store.getState().markSaved();
     expect(isDirty(store.getState())).toBe(false);
+  });
+
+  it("selectKeyframe selects the clip and layer too, and pruning drops a vanished keyframe", () => {
+    const { scene, layer, clip } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    s().execute(setKeyframeCommand(s().scene, clip.id, "x", { time: 1500, value: 1 })!);
+    const kf = s().scene.layers[0]!.clips[0]!.tracks.x!.keyframes[0]!;
+    s().selectKeyframe(clip.id, "x", kf.id);
+    expect(s().selection).toEqual({ layerId: layer.id, clipId: clip.id, keyframe: { clipId: clip.id, prop: "x", keyframeId: kf.id } });
+    s().undo();
+    expect(s().selection.keyframe).toBeNull();
+    expect(s().selection.clipId).toBe(clip.id);
+  });
+
+  it("expands and collapses layers", () => {
+    const { scene, layer } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    s().toggleLayerExpanded(layer.id);
+    expect(s().expandedLayerIds).toEqual({ [layer.id]: true });
+    s().toggleLayerExpanded(layer.id);
+    expect(s().expandedLayerIds).toEqual({});
+    s().setLayerExpanded(layer.id, true);
+    s().setLayerExpanded(layer.id, true);
+    expect(s().expandedLayerIds).toEqual({ [layer.id]: true });
   });
 
   it("clamps the playhead to the scene", () => {

@@ -6,7 +6,7 @@
  */
 
 import { createStore, type StoreApi } from "zustand/vanilla";
-import { findClip, type AlertScene } from "@repo/alert-scene";
+import { findClip, type AlertScene, type PropName } from "@repo/alert-scene";
 import type { Command } from "./commands";
 import { DEFAULT_PX_PER_MS, clampPxPerMs } from "./timeline/timeline-math";
 
@@ -16,7 +16,7 @@ export const COALESCE_WINDOW_MS = 400;
 
 export interface KeyframeSelection {
   clipId: string;
-  prop: string;
+  prop: PropName;
   keyframeId: string;
 }
 
@@ -47,6 +47,10 @@ export interface TimelineState {
   loop: boolean;
   pxPerMs: number;
   snap: boolean;
+  /** Layers whose animated properties are unfolded in the timeline. Session only. */
+  expandedLayerIds: Record<string, true>;
+  /** Inspector: one scale field drives both axes. Session only. */
+  uniformScale: boolean;
 
   execute(command: Command): void;
   undo(): void;
@@ -55,7 +59,12 @@ export interface TimelineState {
   /** Ends a gesture: drops the draft and records its one command. */
   commitDraft(command: Command | null): void;
   select(selection: Partial<Selection>): void;
+  /** Selects a keyframe together with its clip and layer. */
+  selectKeyframe(clipId: string, prop: PropName, keyframeId: string): void;
   clearSelection(): void;
+  toggleLayerExpanded(layerId: string): void;
+  setLayerExpanded(layerId: string, expanded: boolean): void;
+  setUniformScale(uniform: boolean): void;
   setPlayhead(ms: number): void;
   setPlaying(playing: boolean): void;
   setLoop(loop: boolean): void;
@@ -75,7 +84,7 @@ function pruneSelection(scene: AlertScene, selection: Selection): Selection {
   if (next.layerId && !scene.layers.some((l) => l.id === next.layerId)) next = { ...next, layerId: null };
   if (next.keyframe) {
     const loc = findClip(scene, next.keyframe.clipId);
-    const track = loc?.clip.tracks[next.keyframe.prop as keyof typeof loc.clip.tracks];
+    const track = loc?.clip.tracks[next.keyframe.prop];
     if (!track?.keyframes.some((k) => k.id === next.keyframe!.keyframeId)) next = { ...next, keyframe: null };
   }
   return next;
@@ -130,6 +139,8 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
     loop: false,
     pxPerMs: DEFAULT_PX_PER_MS,
     snap: true,
+    expandedLayerIds: {},
+    uniformScale: false,
 
     execute: (command) => {
       const { scene, past, selection } = get();
@@ -190,7 +201,27 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
     },
 
     select: (partial) => set((s) => ({ selection: { ...s.selection, ...partial } })),
+    selectKeyframe: (clipId, prop, keyframeId) => {
+      const loc = findClip(get().scene, clipId);
+      if (!loc) return;
+      set({ selection: { layerId: loc.layer.id, clipId, keyframe: { clipId, prop, keyframeId } } });
+    },
     clearSelection: () => set({ selection: EMPTY_SELECTION }),
+    toggleLayerExpanded: (layerId) =>
+      set((s) => {
+        const next = { ...s.expandedLayerIds };
+        if (next[layerId]) delete next[layerId];
+        else next[layerId] = true;
+        return { expandedLayerIds: next };
+      }),
+    setLayerExpanded: (layerId, expanded) =>
+      set((s) => {
+        const next = { ...s.expandedLayerIds };
+        if (expanded) next[layerId] = true;
+        else delete next[layerId];
+        return { expandedLayerIds: next };
+      }),
+    setUniformScale: (uniformScale) => set({ uniformScale }),
 
     setPlayhead: (ms) => {
       const { scene } = get();

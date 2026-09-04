@@ -16,6 +16,7 @@ import {
   sceneContentEnd,
   setKeyframe,
   setKeyframeEasing,
+  setTrack,
   splitClip,
   trimClip,
   updateLayer,
@@ -198,6 +199,23 @@ describe("keyframes", () => {
     scene = setKeyframeEasing(scene, clip.id, "x", id, { x1: 0, y1: 0, x2: 1, y2: 1 });
     expect(findClip(scene, clip.id)!.clip.tracks.x!.keyframes[0]!.easing).toEqual({ x1: 0, y1: 0, x2: 1, y2: 1 });
     scene = clearTrack(scene, clip.id, "x");
+    expect(findClip(scene, clip.id)!.clip.tracks.x).toBeUndefined();
+  });
+
+  it("setTrack replaces a track, sorts, dedupes and removes when empty", () => {
+    let { scene, clip } = fixture();
+    scene = setKeyframe(scene, clip.id, "x", { time: 2500, value: 9 });
+    scene = setTrack(scene, clip.id, "x", [
+      { id: "b", time: 2000, value: 2, easing: "linear" },
+      { id: "a", time: 1000, value: 1, easing: "hold" },
+      { id: "dup", time: 2000, value: 3, easing: "linear" },
+    ]);
+    const kfs = findClip(scene, clip.id)!.clip.tracks.x!.keyframes;
+    expect(kfs.map((k) => [k.id, k.time, k.value])).toEqual([
+      ["a", 1000, 1],
+      ["dup", 2000, 3],
+    ]);
+    scene = setTrack(scene, clip.id, "x", []);
     expect(findClip(scene, clip.id)!.clip.tracks.x).toBeUndefined();
   });
 

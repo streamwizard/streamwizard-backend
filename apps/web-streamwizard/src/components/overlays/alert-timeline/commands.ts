@@ -4,9 +4,11 @@
  * DOM snapshots. Everything delegates to scene-ops.
  */
 
+import { hasTrack, keyframeTime, valueAt } from "./prop-writer";
 import {
   addClip,
   addLayer,
+  clearTrack,
   createId,
   findClip,
   findLayer,
@@ -20,6 +22,7 @@ import {
   setKeyframe,
   setKeyframeEasing,
   setSceneMeta,
+  setTrack,
   splitClip,
   trimClip,
   updateClip,
@@ -267,4 +270,88 @@ export function setKeyframeEasingCommand(scene: AlertScene, clipId: string, prop
     apply: (s) => setKeyframeEasing(s, clipId, prop, keyframeId, easing),
     invert: (s) => setKeyframeEasing(s, clipId, prop, keyframeId, prev),
   };
+}
+
+// ── Tracks and the auto-keyframe rule ───────────────────────────────────
+
+export function clearTrackCommand(scene: AlertScene, clipId: string, prop: PropName): Command | null {
+  const loc = findClip(scene, clipId);
+  const track = loc?.clip.tracks[prop];
+  if (!loc || !track || track.keyframes.length === 0) return null;
+  const keyframes = track.keyframes;
+  return {
+    label: `Stop animating ${prop}`,
+    apply: (s) => clearTrack(s, clipId, prop),
+    invert: (s) => setTrack(s, clipId, prop, keyframes),
+  };
+}
+
+/** Replaces every keyframe on a track (easing applied to all, pasted tracks). */
+export function setTrackCommand(scene: AlertScene, clipId: string, prop: PropName, keyframes: Keyframe[]): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc) return null;
+  const prev = loc.clip.tracks[prop]?.keyframes ?? [];
+  return {
+    label: `Edit ${prop} keyframes`,
+    apply: (s) => setTrack(s, clipId, prop, keyframes),
+    invert: (s) => setTrack(s, clipId, prop, prev),
+  };
+}
+
+/**
+ * The auto-keyframe rule as a command: a keyframe at the playhead when the
+ * property is animated, a base change when it is not.
+ */
+export function writePropCommand(
+  scene: AlertScene,
+  clipId: string,
+  prop: PropName,
+  value: number,
+  timeMs: number,
+  coalesceKey?: string
+): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc) return null;
+  if (hasTrack(loc.clip, prop)) return setKeyframeCommand(scene, clipId, prop, { time: keyframeTime(timeMs), value }, coalesceKey);
+  return setBasePropCommand(scene, clipId, prop, value, coalesceKey);
+}
+
+/** Several properties at once (a drag that moves x and y) as one undo step. */
+export function writePropsCommand(
+  scene: AlertScene,
+  clipId: string,
+  values: Partial<Record<PropName, number>>,
+  timeMs: number,
+  label = "Edit clip",
+  coalesceKey?: string
+): Command | null {
+  const commands: Command[] = [];
+  let working = scene;
+  for (const key in values) {
+    const prop = key as PropName;
+    const value = values[prop];
+    if (typeof value !== "number") continue;
+    const cmd = writePropCommand(working, clipId, prop, value, timeMs);
+    if (!cmd) return null;
+    commands.push(cmd);
+    working = cmd.apply(working);
+  }
+  if (commands.length === 0) return null;
+  return { ...compositeCommand(label, commands), coalesceKey };
+}
+
+export function stopwatchOnCommand(scene: AlertScene, clipId: string, prop: PropName, timeMs: number): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc || hasTrack(loc.clip, prop)) return null;
+  const cmd = setKeyframeCommand(scene, clipId, prop, { time: keyframeTime(timeMs), value: loc.clip.base[prop] });
+  return cmd ? { ...cmd, label: `Animate ${prop}` } : null;
+}
+
+export function stopwatchOffCommand(scene: AlertScene, clipId: string, prop: PropName, timeMs: number): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc || !hasTrack(loc.clip, prop)) return null;
+  const clear = clearTrackCommand(scene, clipId, prop);
+  const settle = setBasePropCommand(scene, clipId, prop, valueAt(loc.clip, prop, timeMs));
+  if (!clear || !settle) return null;
+  return compositeCommand(`Stop animating ${prop}`, [clear, settle]);
 }

@@ -348,6 +348,15 @@ export function setKeyframeEasing(
   );
 }
 
+/** Replaces a whole track. Later entries win on duplicate times; empty removes the track. */
+export function setTrack(scene: AlertScene, clipId: string, prop: PropName, keyframes: Keyframe[]): AlertScene {
+  const loc = findClip(scene, clipId);
+  if (!loc) return scene;
+  const byTime = new Map<number, Keyframe>();
+  for (const k of keyframes) byTime.set(k.time, k);
+  return replaceClip(scene, loc, withTrack(loc.clip, prop, [...byTime.values()]));
+}
+
 /** Removes the whole track so the property falls back to `base`. */
 export function clearTrack(scene: AlertScene, clipId: string, prop: PropName): AlertScene {
   const loc = findClip(scene, clipId);
