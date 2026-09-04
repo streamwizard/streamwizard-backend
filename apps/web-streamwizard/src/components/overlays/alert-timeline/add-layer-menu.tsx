@@ -2,29 +2,13 @@
 
 import { useState } from "react";
 import { ImagePlus, Plus, Type } from "lucide-react";
-import {
-  createClip,
-  createDefaultBase,
-  createDefaultSource,
-  createLayer,
-  MIN_CLIP_MS,
-  type AlertScene,
-  type ClipSource,
-  type LayerType,
-} from "@repo/alert-scene";
+import { createClip, createDefaultBase, createDefaultSource, createLayer, type ClipSource, type LayerType } from "@repo/alert-scene";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui";
 import { AssetPickerDialog } from "@/components/media/asset-picker-dialog";
 import { addClipCommand, addLayerCommand, compositeCommand } from "./commands";
+import { fitBox } from "./media-math";
 import { useTimelineStoreApi } from "./timeline-context";
-
-const DEFAULT_CLIP_MS = 3000;
-
-/** New clips land at the playhead, or at the start when the playhead sits at the end. */
-export function newClipRange(scene: Pick<AlertScene, "duration">, playhead: number): { start: number; end: number } {
-  const start = playhead >= scene.duration - MIN_CLIP_MS ? 0 : Math.max(0, playhead);
-  const end = Math.max(start + MIN_CLIP_MS, Math.min(scene.duration, start + DEFAULT_CLIP_MS));
-  return { start, end };
-}
+import { newClipRange } from "./timeline/timeline-math";
 
 function probeImage(url: string): Promise<{ width: number; height: number } | null> {
   return new Promise((resolve) => {
@@ -58,13 +42,9 @@ export function AddLayerMenu() {
   const addImage = async (url: string) => {
     const { scene } = api.getState();
     const natural = await probeImage(url);
-    const maxW = scene.width * 0.6;
-    const maxH = scene.height * 0.6;
-    let box = { width: Math.round(Math.min(maxW, maxH)), height: Math.round(Math.min(maxW, maxH)) };
-    if (natural) {
-      const scale = Math.min(maxW / natural.width, maxH / natural.height, 1);
-      box = { width: Math.round(natural.width * scale), height: Math.round(natural.height * scale) };
-    }
+    const max = { width: scene.width * 0.6, height: scene.height * 0.6 };
+    const side = Math.round(Math.min(max.width, max.height));
+    const box = natural ? fitBox(natural, max) : { width: side, height: side };
     add("image", { kind: "image", url, fit: "contain" }, box, "Image");
   };
 

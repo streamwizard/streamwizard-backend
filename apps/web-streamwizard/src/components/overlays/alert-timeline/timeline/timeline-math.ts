@@ -3,7 +3,7 @@
  * and the clamps that keep a drag legal before it ever reaches scene-ops.
  */
 
-import { MIN_CLIP_MS } from "@repo/alert-scene";
+import { MIN_CLIP_MS, type AlertScene } from "@repo/alert-scene";
 import { WHEEL_NOTCH_PX, WHEEL_ZOOM_STEP } from "@/components/overlays/editor/canvas-zoom";
 
 /** 200 s across 1000 px … 1 ms = 2 px. */
@@ -128,16 +128,44 @@ export function clampClipMove(clip: { start: number; end: number }, wanted: numb
   return start - clip.start;
 }
 
-/** Where the edge may land: never past the other edge minus MIN_CLIP_MS, never into a neighbour. */
-export function clampClipTrim(clip: { start: number; end: number }, edge: "start" | "end", wanted: number, n: Neighbours): number {
+/** Extra bounds on a trim, from the clip's source footage (see media-math). */
+export interface TrimLimits {
+  /** Earliest the start edge may go: a media clip has no footage before its source starts. */
+  minStart?: number;
+  /** Latest the end edge may go: no footage past the source end unless it loops. */
+  maxEnd?: number;
+}
+
+/**
+ * Where the edge may land: never past the other edge minus MIN_CLIP_MS, never
+ * into a neighbour, never outside `limits`. The minimum length wins over a
+ * source shorter than that.
+ */
+export function clampClipTrim(
+  clip: { start: number; end: number },
+  edge: "start" | "end",
+  wanted: number,
+  n: Neighbours,
+  limits: TrimLimits = {}
+): number {
   if (edge === "start") {
-    const min = n.prevEnd ?? 0;
+    const min = Math.max(n.prevEnd ?? 0, limits.minStart ?? -Infinity);
     const max = clip.end - MIN_CLIP_MS;
     return Math.min(max, Math.max(min, wanted));
   }
   const min = clip.start + MIN_CLIP_MS;
-  const max = n.nextStart ?? Infinity;
-  return Math.min(max, Math.max(min, wanted));
+  const max = Math.min(n.nextStart ?? Infinity, limits.maxEnd ?? Infinity);
+  return Math.max(min, Math.min(max, wanted));
+}
+
+export const DEFAULT_CLIP_MS = 3000;
+
+/** New clips land at the playhead, or at the start when the playhead sits at the end. */
+export function newClipRange(scene: Pick<AlertScene, "duration">, playhead: number, wantedMs = DEFAULT_CLIP_MS): { start: number; end: number } {
+  const start = playhead >= scene.duration - MIN_CLIP_MS ? 0 : Math.max(0, playhead);
+  const length = Math.max(MIN_CLIP_MS, Math.round(wantedMs));
+  const end = Math.max(start + MIN_CLIP_MS, Math.min(scene.duration, start + length));
+  return { start, end };
 }
 
 /** Every time worth snapping to while dragging `excludeClipId`. */

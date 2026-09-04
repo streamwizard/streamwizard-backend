@@ -54,11 +54,30 @@ export function createMediaSyncState(el: HTMLMediaElement): MediaSyncState {
   return state;
 }
 
-function targetSeconds(el: HTMLMediaElement, mediaTimeMs: number, loop: boolean): number {
-  let t = Math.max(0, mediaTimeMs / 1000);
+function sourceDuration(el: HTMLMediaElement): number | null {
   const d = el.duration;
-  if (loop && Number.isFinite(d) && d > 0) t = t % d;
-  return t;
+  return Number.isFinite(d) && d > 0 ? d : null;
+}
+
+function targetSeconds(el: HTMLMediaElement, mediaTimeMs: number, loop: boolean): number {
+  const t = Math.max(0, mediaTimeMs / 1000);
+  const d = sourceDuration(el);
+  if (d === null) return t;
+  return loop ? t % d : Math.min(t, d);
+}
+
+/**
+ * Past the end of a non-looping source there is nothing to play, so the
+ * element holds its last frame instead. An element that already ended
+ * reports `paused`, and play() on it restarts from 0; asking it to play
+ * again within drift of the end would loop the tail forever.
+ */
+function holdAtEnd(el: HTMLMediaElement, mediaTimeMs: number, loop: boolean): boolean {
+  if (loop) return false;
+  const d = sourceDuration(el);
+  if (d === null) return false;
+  const t = mediaTimeMs / 1000;
+  return t >= d || (el.ended && d - t <= PLAYING_DRIFT_S);
 }
 
 function seek(el: HTMLMediaElement, state: MediaSyncState, seconds: number, now: number): void {
@@ -86,7 +105,7 @@ export function syncMedia(el: HTMLMediaElement, state: MediaSyncState, opts: Med
   const target = targetSeconds(el, opts.mediaTimeMs, opts.loop);
   const current = el.currentTime;
 
-  if (opts.playing) {
+  if (opts.playing && !holdAtEnd(el, opts.mediaTimeMs, opts.loop)) {
     if (el.paused) {
       // Autoplay policy can reject this; the clock keeps going regardless.
       void el.play()?.catch?.(() => {});

@@ -6,6 +6,7 @@ import {
   addLayer,
   canPlaceClip,
   clearTrack,
+  cloneClip,
   findClip,
   moveClip,
   moveKeyframe,
@@ -217,6 +218,25 @@ describe("keyframes", () => {
     ]);
     scene = setTrack(scene, clip.id, "x", []);
     expect(findClip(scene, clip.id)!.clip.tracks.x).toBeUndefined();
+  });
+
+  it("cloneClip gives fresh ids, keeps values and slides keyframes with the clip", () => {
+    let { scene, clip } = fixture("video");
+    scene = setKeyframe(scene, clip.id, "x", { time: 1000, value: 0 });
+    scene = setKeyframe(scene, clip.id, "x", { time: 3000, value: 100, easing: "hold" });
+    const source = findClip(scene, clip.id)!.clip;
+    const copy = cloneClip(source, { deltaMs: 2000 });
+    expect(copy.id).not.toBe(source.id);
+    expect([copy.start, copy.end, copy.trimIn]).toEqual([3000, 5000, 500]);
+    expect(copy.tracks.x!.keyframes.map((k) => [k.time, k.value, k.easing])).toEqual([
+      [3000, 0, "linear"],
+      [5000, 100, "hold"],
+    ]);
+    const ids = new Set(source.tracks.x!.keyframes.map((k) => k.id));
+    expect(copy.tracks.x!.keyframes.some((k) => ids.has(k.id))).toBe(false);
+    expect(copy.source).toBe(source.source);
+    expect(cloneClip(source).start).toBe(1000);
+    expect(kfTimes(scene, clip.id)).toEqual([1000, 3000]);
   });
 
   it("never mutates the input scene", () => {

@@ -175,6 +175,24 @@ function shiftTracks(tracks: Clip["tracks"], delta: number): Clip["tracks"] {
   return out;
 }
 
+/**
+ * A copy with fresh clip and keyframe ids, slid by `deltaMs` like moveClip.
+ * Not placed on any layer; the caller adds it where it fits.
+ */
+export function cloneClip(clip: Clip, opts: { deltaMs?: number } = {}): Clip {
+  const delta = opts.deltaMs ?? 0;
+  const tracks: Clip["tracks"] = {};
+  for (const key in clip.tracks) {
+    const track = clip.tracks[key as PropName];
+    if (!track) continue;
+    tracks[track.property] = {
+      property: track.property,
+      keyframes: track.keyframes.map((k) => ({ ...k, id: createId("kf"), time: k.time + delta })),
+    };
+  }
+  return { ...clip, id: createId("clip"), start: clip.start + delta, end: clip.end + delta, tracks };
+}
+
 /** Slides the clip and its keyframes by `deltaMs`. */
 export function moveClip(scene: AlertScene, clipId: string, deltaMs: number): AlertScene {
   if (deltaMs === 0) return scene;

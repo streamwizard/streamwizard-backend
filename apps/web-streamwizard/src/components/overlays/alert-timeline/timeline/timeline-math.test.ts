@@ -5,6 +5,7 @@ import {
   clampPxPerMs,
   fitPxPerMs,
   neighboursOf,
+  newClipRange,
   niceTickMs,
   PX_PER_MS_MAX,
   PX_PER_MS_MIN,
@@ -100,6 +101,28 @@ describe("neighbours and clamps", () => {
     expect(clampClipTrim(b, "start", 2990, n)).toBe(2950);
     expect(clampClipTrim(b, "end", 9000, n)).toBe(5000);
     expect(clampClipTrim(b, "end", 2010, n)).toBe(2050);
+  });
+
+  it("clampClipTrim honours footage limits without yanking an edge or going under the minimum", () => {
+    const b = clips[1]!;
+    const n = neighboursOf(clips, "b");
+    expect(clampClipTrim(b, "start", 500, n, { minStart: 1500 })).toBe(1500);
+    expect(clampClipTrim(b, "start", 1600, n, { minStart: 1500 })).toBe(1600);
+    expect(clampClipTrim(b, "end", 9000, n, { maxEnd: 4000 })).toBe(4000);
+    expect(clampClipTrim(b, "end", 3500, n, { maxEnd: 4000 })).toBe(3500);
+    // A source shorter than the minimum clip length never produces a sliver.
+    expect(clampClipTrim(b, "end", 9000, n, { maxEnd: 2010 })).toBe(2050);
+    expect(clampClipTrim(b, "end", 9000, n, {})).toBe(5000);
+  });
+
+  it("newClipRange lands at the playhead, wraps at the end and honours a wanted length", () => {
+    const scene = { duration: 5000 };
+    expect(newClipRange(scene, 1000)).toEqual({ start: 1000, end: 4000 });
+    expect(newClipRange(scene, 4000)).toEqual({ start: 4000, end: 5000 });
+    expect(newClipRange(scene, 4990)).toEqual({ start: 0, end: 3000 });
+    expect(newClipRange(scene, 1000, 1234.6)).toEqual({ start: 1000, end: 2235 });
+    expect(newClipRange(scene, 1000, 10)).toEqual({ start: 1000, end: 1050 });
+    expect(newClipRange(scene, 1000, 60_000)).toEqual({ start: 1000, end: 5000 });
   });
 
   it("snapCandidates gathers edges, ends, playhead and ticks minus the dragged clip", () => {
