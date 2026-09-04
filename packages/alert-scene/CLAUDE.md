@@ -54,3 +54,26 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
 - Tests: co-located `*.test.ts`, `import { describe, it, expect } from "bun:test"`. Core only; the renderer has no
   DOM test harness.
 - Media URLs are plain CDN strings from the media library. No asset ids, no signing at read time.
+
+## Editor conventions (keyframes)
+
+- **Auto-keyframe rule.** Every value edit goes through `prop-writer.ts` (`writeProp`/`writeProps`, and the
+  `writePropCommand`/`writePropsCommand` wrappers): a property with a track gets a keyframe at the playhead
+  (added or updated, whole-ms times via `keyframeTime`), a property without one changes `base`. Inspector
+  fields, the anchor picker and the stage overlay all use it, so they cannot disagree.
+- **Stopwatch.** On = one keyframe at the playhead holding the current value (`stopwatchOnCommand`, also
+  unfolds the layer). Off = drop the track and settle the value evaluated at the playhead into `base`
+  (`stopwatchOffCommand`, one undo step). Deleting the last keyframe (`deleteKeyframeCommand`) is the
+  stopwatch going off, so the value never snaps back to a stale base.
+- **Drafts.** A gesture calls `setDraft(fn(committedScene))` on every move and `commitDraft(command)` on
+  release; Escape (`drag-registry`) commits `null`. Gesture context must capture what it needs at pointer-down
+  (`from`, the committed scene, the box) because props re-render with the draft mid-drag.
+- **Selectors return stable slices.** `useTimeline` is `useSyncExternalStore`; a selector that builds a new
+  object per read loops forever. Select the scene/playhead/ids and derive with `useMemo` in render.
+- **Rows.** `timeline-rows.ts` builds one flat list that both timeline columns render; an expanded layer adds a
+  26px row per animated property. Folded clips draw mini diamonds instead.
+- **Stage overlay.** `preview/stage-geometry.ts` mirrors the renderer's transform (origin at the anchor, then
+  rotate, then scale): hit-test in local space, resize with the opposite corner pinned, rotate around the anchor.
+  The hit layer covers the whole preview pane because content may sit outside the scene box.
+- **Anchor changes keep the box still**: `reanchorNode` compensates `x`/`y` in local space (`anchor-math.ts`).
+
