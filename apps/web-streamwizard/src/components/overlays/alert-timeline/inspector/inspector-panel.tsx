@@ -10,12 +10,14 @@ import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlign
 import { AnchorPicker } from "@/components/overlays/editor/anchor-picker";
 import { anchorIsOnCell, anchorToCell, cellToAnchor, nodeBoxAt, reanchorNode } from "../anchor-math";
 import { setBasePropCommand, setSceneMetaCommand, trimClipCommand, updateClipCommand, writePropsCommand, type Command } from "../commands";
-import { isMediaClip } from "../media-math";
+import { formatSeconds } from "../format-time";
+import { useMediaInfo } from "../media-info";
+import { clampTrimIn, footageEndMs, isMediaClip, mediaTrimLimits } from "../media-math";
 import { valueAt } from "../prop-writer";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { visibleScene } from "../timeline-store";
 import { clampClipTrim, neighboursOf } from "../timeline/timeline-math";
-import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
+import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_CLIP_MS, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
 import { AnimatableField } from "./animatable-field";
 import { Field, Unit } from "./field-chrome";
 import { KeyframeSection } from "./keyframe-section";
@@ -196,24 +198,64 @@ function AnchorSection({ clip }: { clip: Clip }) {
 
 function TimingSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
+  const media = isMediaClip(clip);
+  const mediaUrl = clip.source.kind === "video" || clip.source.kind === "audio" ? clip.source.url : "";
+  const info = useMediaInfo(mediaUrl, clip.source.kind === "audio" ? "audio" : "video");
+  const sourceMs = info?.durationMs ?? null;
+
   const trim = (edge: "start" | "end", seconds: number) => {
     const s = api.getState();
     const loc = findClip(s.scene, clip.id);
     if (!loc) return;
-    const t = clampClipTrim(loc.clip, edge, Math.round(seconds * 1000), neighboursOf(loc.layer.clips, clip.id));
+    const t = clampClipTrim(loc.clip, edge, Math.round(seconds * 1000), neighboursOf(loc.layer.clips, clip.id), mediaTrimLimits(loc.clip, sourceMs));
     if (t === loc.clip[edge]) return;
     const cmd = trimClipCommand(s.scene, clip.id, edge, t);
     if (cmd) s.execute({ ...cmd, coalesceKey: `trim:${clip.id}:${edge}` });
   };
+
+  // Where in the file the clip starts. The clip stays put; the footage slides.
+  const setOffset = (seconds: number) => {
+    const s = api.getState();
+    const loc = findClip(s.scene, clip.id);
+    if (!loc) return;
+    const trimIn = clampTrimIn(loc.clip, seconds * 1000, sourceMs);
+    if (trimIn === loc.clip.trimIn) return;
+    const cmd = updateClipCommand(s.scene, clip.id, { trimIn }, `trimin:${clip.id}`);
+    if (cmd) s.execute(cmd);
+  };
+
+  const length = clip.end - clip.start;
+  const runsOut = footageEndMs(clip, sourceMs) !== null;
+  const sourceNote = !media
+    ? null
+    : info === undefined
+      ? "Reading the file…"
+      : sourceMs === null
+        ? "The file did not say how long it is."
+        : runsOut
+          ? `The file is ${formatSeconds(sourceMs)} long and runs out before the clip ends.`
+          : `The file is ${formatSeconds(sourceMs)} long.`;
+
   return (
     <InspectorSection title="Timing" defaultOpen>
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Start">
-          <NumberField value={clip.start / 1000} min={0} onCommit={(v) => trim("start", v)} className="pr-8" adornment={<Unit>s</Unit>} />
-        </Field>
-        <Field label="End">
-          <NumberField value={clip.end / 1000} min={0} onCommit={(v) => trim("end", v)} className="pr-8" adornment={<Unit>s</Unit>} />
-        </Field>
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Start">
+            <NumberField value={clip.start / 1000} min={0} onCommit={(v) => trim("start", v)} className="pr-8" adornment={<Unit>s</Unit>} />
+          </Field>
+          <Field label="End">
+            <NumberField value={clip.end / 1000} min={0} onCommit={(v) => trim("end", v)} className="pr-8" adornment={<Unit>s</Unit>} />
+          </Field>
+          <Field label="Duration">
+            <NumberField value={length / 1000} min={MIN_CLIP_MS / 1000} onCommit={(v) => trim("end", clip.start / 1000 + v)} className="pr-8" adornment={<Unit>s</Unit>} />
+          </Field>
+          {media && (
+            <Field label="Source offset">
+              <NumberField value={clip.trimIn / 1000} min={0} onCommit={setOffset} className="pr-8" adornment={<Unit>s</Unit>} />
+            </Field>
+          )}
+        </div>
+        {sourceNote && <p className="text-[11px] leading-snug text-muted-foreground">{sourceNote}</p>}
       </div>
     </InspectorSection>
   );

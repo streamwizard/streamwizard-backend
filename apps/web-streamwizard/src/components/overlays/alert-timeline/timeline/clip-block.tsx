@@ -4,6 +4,8 @@ import { moveClip, trimClip, type AlertScene, type Clip, type Layer } from "@rep
 import { cn } from "@repo/ui";
 import { moveClipCommand, trimClipCommand } from "../commands";
 import { keyframeTimesForClip } from "../keyframe-nav";
+import { useMediaInfo } from "../media-info";
+import { footageEndMs, mediaTrimLimits } from "../media-math";
 import { fileNameFromUrl } from "../media-url";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { usePointerDrag } from "../use-pointer-drag";
@@ -19,6 +21,7 @@ import {
   snapCandidates,
   snapTime,
   type Neighbours,
+  type TrimLimits,
 } from "./timeline-math";
 
 type Mode = "move" | "start" | "end";
@@ -30,6 +33,8 @@ interface Gesture {
   clip: Clip;
   pxPerMs: number;
   neighbours: Neighbours;
+  /** Footage bounds as known at pointer-down; a probe landing mid-drag does not move the goalposts. */
+  limits: TrimLimits;
   candidates: number[];
   /** Result of the last move, committed on release. */
   delta: number;
@@ -52,6 +57,10 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
   // Folded clips still hint at their keyframes along the bottom edge.
   const keyframeTimes = expanded ? [] : keyframeTimesForClip(clip);
   const width = Math.max(2, msToPx(clip.end - clip.start, pxPerMs));
+  const mediaUrl = clip.source.kind === "video" || clip.source.kind === "audio" ? clip.source.url : "";
+  const info = useMediaInfo(mediaUrl, clip.source.kind === "audio" ? "audio" : "video");
+  const sourceMs = info?.durationMs ?? null;
+  const footageEnd = footageEndMs(clip, sourceMs);
 
   const drag = usePointerDrag<Gesture>({
     onStart: (e) => {
@@ -68,6 +77,7 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
         clip,
         pxPerMs: s.pxPerMs,
         neighbours: neighboursOf(liveLayer.clips, clip.id),
+        limits: mediaTrimLimits(clip, sourceMs),
         candidates: snapCandidates(committed.layers, {
           playhead: s.playhead,
           duration: committed.duration,
@@ -98,10 +108,10 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
           return;
         }
         const edge = g.mode;
-        let t = clampClipTrim(g.clip, edge, g.clip[edge] + dt, g.neighbours);
+        let t = clampClipTrim(g.clip, edge, g.clip[edge] + dt, g.neighbours, g.limits);
         if (snapOn) {
           const snapped = snapTime(t, g.candidates, g.pxPerMs);
-          if (snapped.snapped) t = clampClipTrim(g.clip, edge, snapped.time, g.neighbours);
+          if (snapped.snapped) t = clampClipTrim(g.clip, edge, snapped.time, g.neighbours, g.limits);
         }
         g.time = t;
         s.setDraft(t === g.clip[edge] ? null : trimClip(g.scene, g.clip.id, edge, t));
@@ -140,6 +150,18 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
       style={{ left, width, height: ROW_HEIGHT_PX - 8 }}
     >
       <span className="pointer-events-none truncate px-2 font-medium">{clipLabel(clip, layer)}</span>
+      {footageEnd !== null && (
+        // The file ends here; the rest of the clip holds its last frame.
+        <div
+          aria-hidden
+          data-no-footage=""
+          className="pointer-events-none absolute inset-y-0 right-0"
+          style={{
+            left: msToPx(footageEnd - clip.start, pxPerMs),
+            backgroundImage: "repeating-linear-gradient(135deg, transparent 0 4px, rgba(0, 0, 0, 0.35) 4px 6px)",
+          }}
+        />
+      )}
       {keyframeTimes.map((t) => (
         <span
           key={t}
