@@ -292,7 +292,8 @@ function SourceSection({ clip }: { clip: Clip }) {
 
 export function InspectorPanel() {
   const clipId = useTimeline((s) => s.selection.clipId);
-  const clip = useTimeline((s) => (s.selection.clipId ? findClip(s.scene, s.selection.clipId)?.clip ?? null : null));
+  // Draft included, so a stage drag shows its numbers while it happens.
+  const clip = useTimeline((s) => (s.selection.clipId ? findClip(visibleScene(s), s.selection.clipId)?.clip ?? null : null));
   const keyframeSelection = useTimeline((s) => s.selection.keyframe);
 
   return (

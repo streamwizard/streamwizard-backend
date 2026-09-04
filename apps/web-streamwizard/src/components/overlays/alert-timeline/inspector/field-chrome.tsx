@@ -9,7 +9,7 @@ export function Unit({ children }: { children: React.ReactNode }) {
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" data-field={label.toLowerCase()}>
       <Label className="text-[11px] text-muted-foreground">{label}</Label>
       {children}
     </div>
