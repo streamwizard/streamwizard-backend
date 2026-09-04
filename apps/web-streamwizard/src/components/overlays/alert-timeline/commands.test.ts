@@ -16,6 +16,7 @@ import {
   addLayerCommand,
   clearTrackCommand,
   compositeCommand,
+  deleteKeyframeCommand,
   moveClipCommand,
   moveKeyframeCommand,
   moveLayerCommand,
@@ -134,6 +135,19 @@ describe("commands invert exactly", () => {
     const c = findClip(after, clip.id)!.clip;
     expect(c.tracks.x).toBeUndefined();
     expect(c.base.x).toBe(50);
+  });
+
+  it("deleting the last keyframe settles its value into base", () => {
+    const { scene, clip } = fixture();
+    const [first, second] = findClip(scene, clip.id)!.clip.tracks.x!.keyframes;
+    const one = roundTrips(scene, deleteKeyframeCommand(scene, clip.id, "x", first!.id, 1000)!);
+    expect(findClip(one, clip.id)!.clip.tracks.x!.keyframes.length).toBe(1);
+    const none = roundTrips(one, deleteKeyframeCommand(one, clip.id, "x", second!.id, 0)!);
+    const c = findClip(none, clip.id)!.clip;
+    expect(c.tracks.x).toBeUndefined();
+    expect(c.base.x).toBe(100);
+    expect(deleteKeyframeCommand(scene, clip.id, "x", "nope", 0)).toBeNull();
+    expect(deleteKeyframeCommand(scene, clip.id, "opacity", "nope", 0)).toBeNull();
   });
 
   it("writeProp goes to a keyframe when animated and to base when not", () => {

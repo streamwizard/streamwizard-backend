@@ -4,7 +4,9 @@
  * amount in world space, or the whole node jumps.
  */
 
+import type { Clip, PropName } from "@repo/alert-scene";
 import type { Anchor, AnchorX, AnchorY } from "@repo/ui/overlay";
+import { valueAt } from "./prop-writer";
 
 export interface NodeBox {
   x: number;
@@ -62,4 +64,20 @@ export function anchorIsOnCell(anchorX: number, anchorY: number): boolean {
 
 export function cellToAnchor(cell: Anchor): { anchorX: number; anchorY: number } {
   return { anchorX: X_CELLS[cell.x], anchorY: Y_CELLS[cell.y] };
+}
+
+/** The box as it stands at `timeMs`, tracks included, for compensation maths. */
+export function nodeBoxAt(clip: Clip, timeMs: number): NodeBox {
+  const at = (prop: PropName) => valueAt(clip, prop, timeMs);
+  return {
+    x: at("x"),
+    y: at("y"),
+    width: at("width"),
+    height: at("height"),
+    scaleX: at("scaleX"),
+    scaleY: at("scaleY"),
+    rotation: at("rotation"),
+    anchorX: at("anchorX"),
+    anchorY: at("anchorY"),
+  };
 }

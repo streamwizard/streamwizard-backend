@@ -355,3 +355,16 @@ export function stopwatchOffCommand(scene: AlertScene, clipId: string, prop: Pro
   if (!clear || !settle) return null;
   return compositeCommand(`Stop animating ${prop}`, [clear, settle]);
 }
+
+/**
+ * Deleting a keyframe. Taking away the last one is the stopwatch going off:
+ * the value it held settles into base instead of snapping back to whatever
+ * base was before the property was animated.
+ */
+export function deleteKeyframeCommand(scene: AlertScene, clipId: string, prop: PropName, keyframeId: string, timeMs: number): Command | null {
+  const loc = findClip(scene, clipId);
+  const track = loc?.clip.tracks[prop];
+  if (!loc || !track) return null;
+  if (track.keyframes.length === 1 && track.keyframes[0]!.id === keyframeId) return stopwatchOffCommand(scene, clipId, prop, timeMs);
+  return removeKeyframeCommand(scene, clipId, prop, keyframeId);
+}

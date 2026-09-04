@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback } from "react";
-import { findClip, type PropName } from "@repo/alert-scene";
+import { findClip } from "@repo/alert-scene";
 import { activatableControl } from "@/components/overlays/editor/space-activation";
 import {
   compositeCommand,
+  deleteKeyframeCommand,
   moveClipCommand,
   removeClipCommand,
-  removeKeyframeCommand,
   removeLayerCommand,
   splitClipCommand,
 } from "./commands";
@@ -108,7 +108,8 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
         case "Backspace": {
           handled();
           if (selection.keyframe) {
-            const cmd = removeKeyframeCommand(scene, selection.keyframe.clipId, selection.keyframe.prop as PropName, selection.keyframe.keyframeId);
+            const k = selection.keyframe;
+            const cmd = deleteKeyframeCommand(scene, k.clipId, k.prop, k.keyframeId, state.playhead);
             if (cmd) state.execute(cmd);
             return;
           }

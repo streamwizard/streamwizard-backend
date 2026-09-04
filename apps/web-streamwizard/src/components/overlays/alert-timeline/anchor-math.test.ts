@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { anchorIsOnCell, anchorToCell, cellToAnchor, reanchorNode, type NodeBox } from "./anchor-math";
+import { createClip, createDefaultBase, createDefaultSource, createEmptyScene, setKeyframe, addLayer, addClip, createLayer, findClip } from "@repo/alert-scene";
+import { anchorIsOnCell, anchorToCell, cellToAnchor, nodeBoxAt, reanchorNode, type NodeBox } from "./anchor-math";
 
 /** World position of the box's top-left, the thing reanchoring must keep still. */
 function topLeft(b: NodeBox): { x: number; y: number } {
@@ -41,5 +42,19 @@ describe("picker adapter", () => {
     expect(anchorToCell(0.4, 0.9)).toEqual({ x: "center", y: "bottom" });
     expect(anchorIsOnCell(0.5, 0.5)).toBe(true);
     expect(anchorIsOnCell(0.4, 0.5)).toBe(false);
+  });
+});
+
+describe("nodeBoxAt", () => {
+  it("reads every transform property through its track", () => {
+    let scene = createEmptyScene({ duration: 4000 });
+    const layer = createLayer("text", "T");
+    scene = addLayer(scene, layer);
+    const clip = createClip({ start: 0, end: 4000, source: createDefaultSource("text"), base: { ...createDefaultBase(scene, { width: 200, height: 100 }), x: 10, y: 20, rotation: 30 } });
+    scene = addClip(scene, layer.id, clip);
+    scene = setKeyframe(scene, clip.id, "x", { time: 0, value: 0 });
+    scene = setKeyframe(scene, clip.id, "x", { time: 2000, value: 100 });
+    const box = nodeBoxAt(findClip(scene, clip.id)!.clip, 1000);
+    expect(box).toMatchObject({ x: 50, y: 20, width: 200, height: 100, scaleX: 1, scaleY: 1, rotation: 30, anchorX: 0.5, anchorY: 0.5 });
   });
 });

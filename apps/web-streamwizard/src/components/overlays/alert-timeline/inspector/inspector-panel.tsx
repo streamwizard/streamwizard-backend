@@ -2,28 +2,21 @@
 
 import { findClip, type Clip, type ClipSource, type PropName } from "@repo/alert-scene";
 import { ALERT_TEMPLATE_TOKENS } from "@repo/ui/overlay";
-import { Button, ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@repo/ui";
+import { Link2, Unlink2 } from "lucide-react";
+import { Button, ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
 import { InspectorSection } from "@/components/overlays/editor/inspector-section";
 import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlignSelect } from "@/components/overlays/inspector-fields";
-import { setBasePropCommand, setSceneMetaCommand, trimClipCommand, updateClipCommand } from "../commands";
+import { AnchorPicker } from "@/components/overlays/editor/anchor-picker";
+import { anchorIsOnCell, anchorToCell, cellToAnchor, nodeBoxAt, reanchorNode } from "../anchor-math";
+import { setBasePropCommand, setSceneMetaCommand, trimClipCommand, updateClipCommand, writePropsCommand, type Command } from "../commands";
+import { valueAt } from "../prop-writer";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
+import { visibleScene } from "../timeline-store";
 import { clampClipTrim, neighboursOf } from "../timeline/timeline-math";
 import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
-
-/** Unit suffix inside a NumberField, same placement the overlay inspector uses. */
-function Unit({ children }: { children: React.ReactNode }) {
-  return <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{children}</span>;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-[11px] text-muted-foreground">{label}</Label>
-      {children}
-    </div>
-  );
-}
+import { AnimatableField } from "./animatable-field";
+import { Field, Unit } from "./field-chrome";
 
 function SceneSection() {
   const api = useTimelineStoreApi();
@@ -60,35 +53,140 @@ function SceneSection() {
   );
 }
 
+/** Keeps focus where it was so Space and arrows still hit the timeline. */
+const keepFocus = (e: React.MouseEvent) => e.preventDefault();
+
+function UniformScaleLock() {
+  const api = useTimelineStoreApi();
+  const uniform = useTimeline((s) => s.uniformScale);
+  const label = uniform ? "Scale both axes together" : "Scale each axis on its own";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          aria-pressed={uniform}
+          onMouseDown={keepFocus}
+          onClick={() => api.getState().setUniformScale(!uniform)}
+          className={cn(
+            "flex size-5 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            uniform && "text-primary hover:text-primary"
+          )}
+        >
+          {uniform ? <Link2 className="size-3.5" /> : <Unlink2 className="size-3.5" />}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function TransformSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
-  const set = (prop: PropName, value: number) => {
+  const uniform = useTimeline((s) => s.uniformScale);
+  const setStatic = (prop: PropName, value: number) => {
     const s = api.getState();
     const cmd = setBasePropCommand(s.scene, clip.id, prop, value, `base:${clip.id}:${prop}`);
     if (cmd) s.execute(cmd);
   };
+  const scaleBoth = uniform
+    ? (scene: Parameters<typeof writePropsCommand>[0], value: number, playhead: number, key: string) =>
+        writePropsCommand(scene, clip.id, { scaleX: value, scaleY: value }, playhead, "Set scale", key)
+    : undefined;
   const b = clip.base;
   return (
     <InspectorSection title="Transform" defaultOpen>
       <div className="grid grid-cols-2 gap-2">
-        <Field label="X">
-          <NumberField value={Math.round(b.x)} onCommit={(v) => set("x", v)} className="pr-8" adornment={<Unit>px</Unit>} />
-        </Field>
-        <Field label="Y">
-          <NumberField value={Math.round(b.y)} onCommit={(v) => set("y", v)} className="pr-8" adornment={<Unit>px</Unit>} />
-        </Field>
+        <AnimatableField clipId={clip.id} prop="x" label="X" unit="px" />
+        <AnimatableField clipId={clip.id} prop="y" label="Y" unit="px" />
         <Field label="Width">
-          <NumberField value={Math.round(b.width)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => set("width", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+          <NumberField value={Math.round(b.width)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => setStatic("width", v)} className="pr-8" adornment={<Unit>px</Unit>} />
         </Field>
         <Field label="Height">
-          <NumberField value={Math.round(b.height)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => set("height", v)} className="pr-8" adornment={<Unit>px</Unit>} />
+          <NumberField value={Math.round(b.height)} min={0} max={MAX_SCENE_SIZE} onCommit={(v) => setStatic("height", v)} className="pr-8" adornment={<Unit>px</Unit>} />
         </Field>
-        <Field label="Rotation">
-          <NumberField value={Math.round(b.rotation)} min={-3600} max={3600} onCommit={(v) => set("rotation", v)} className="pr-8" adornment={<Unit>°</Unit>} />
-        </Field>
-        <Field label="Opacity">
-          <NumberField value={Math.round(b.opacity * 100)} min={0} max={100} onCommit={(v) => set("opacity", v / 100)} className="pr-8" adornment={<Unit>%</Unit>} />
-        </Field>
+        <AnimatableField clipId={clip.id} prop="scaleX" label="Scale X" unit="%" scale={100} min={0} trailing={<UniformScaleLock />} buildCommand={scaleBoth} />
+        <AnimatableField clipId={clip.id} prop="scaleY" label="Scale Y" unit="%" scale={100} min={0} buildCommand={scaleBoth} />
+        <AnimatableField clipId={clip.id} prop="rotation" label="Rotation" unit="°" min={-3600} max={3600} digits={1} />
+        <AnimatableField clipId={clip.id} prop="opacity" label="Opacity" unit="%" scale={100} min={0} max={100} />
+      </div>
+    </InspectorSection>
+  );
+}
+
+/**
+ * Where inside the box X and Y point at, and what rotation and scale turn
+ * around. Moving it compensates X and Y so the box stays put on screen.
+ */
+function AnchorSection({ clip }: { clip: Clip }) {
+  const api = useTimelineStoreApi();
+  const ax = useTimeline((s) => {
+    const loc = findClip(visibleScene(s), clip.id);
+    return loc ? valueAt(loc.clip, "anchorX", s.playhead) : 0.5;
+  });
+  const ay = useTimeline((s) => {
+    const loc = findClip(visibleScene(s), clip.id);
+    return loc ? valueAt(loc.clip, "anchorY", s.playhead) : 0.5;
+  });
+
+  const reanchor = (scene: Parameters<typeof writePropsCommand>[0], anchorX: number, anchorY: number, playhead: number, key?: string): Command | null => {
+    const loc = findClip(scene, clip.id);
+    if (!loc) return null;
+    const next = reanchorNode(nodeBoxAt(loc.clip, playhead), anchorX, anchorY);
+    return writePropsCommand(scene, clip.id, next, playhead, "Move anchor", key);
+  };
+  const pick = (anchorX: number, anchorY: number) => {
+    const s = api.getState();
+    const cmd = reanchor(s.scene, anchorX, anchorY, s.playhead);
+    if (cmd) s.execute(cmd);
+  };
+  const onCell = anchorIsOnCell(ax, ay);
+
+  return (
+    <InspectorSection title="Anchor" defaultOpen={false}>
+      <div className="flex items-start gap-3">
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground">Point</Label>
+          <div className={cn(!onCell && "opacity-50")}>
+            <AnchorPicker
+              value={anchorToCell(ax, ay)}
+              onChange={(cell) => {
+                const a = cellToAnchor(cell);
+                pick(a.anchorX, a.anchorY);
+              }}
+            />
+          </div>
+        </div>
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+          <AnimatableField
+            clipId={clip.id}
+            prop="anchorX"
+            label="Anchor X"
+            unit="%"
+            scale={100}
+            min={0}
+            max={100}
+            buildCommand={(scene, value, playhead, key) => {
+              const loc = findClip(scene, clip.id);
+              return loc ? reanchor(scene, value, valueAt(loc.clip, "anchorY", playhead), playhead, key) : null;
+            }}
+          />
+          <AnimatableField
+            clipId={clip.id}
+            prop="anchorY"
+            label="Anchor Y"
+            unit="%"
+            scale={100}
+            min={0}
+            max={100}
+            buildCommand={(scene, value, playhead, key) => {
+              const loc = findClip(scene, clip.id);
+              return loc ? reanchor(scene, valueAt(loc.clip, "anchorX", playhead), value, playhead, key) : null;
+            }}
+          />
+        </div>
       </div>
     </InspectorSection>
   );
@@ -203,6 +301,7 @@ export function InspectorPanel() {
           <SourceSection clip={clip} />
           <TimingSection clip={clip} />
           <TransformSection clip={clip} />
+          <AnchorSection clip={clip} />
         </div>
       ) : (
         <div className="space-y-5">
