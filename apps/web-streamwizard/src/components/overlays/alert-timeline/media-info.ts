@@ -7,8 +7,8 @@
  * length would go stale the moment the file changed.
  */
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { releaseMedia } from "@repo/alert-scene/renderer";
+import { createUrlCache, useUrlCache } from "./url-cache";
 
 export interface MediaInfo {
   /** null when the file never reported a finite length. */
@@ -20,23 +20,6 @@ export interface MediaInfo {
 export type MediaKind = "video" | "audio";
 
 const PROBE_TIMEOUT_MS = 8000;
-const CACHE_LIMIT = 64;
-
-/** undefined = still probing, null = failed or empty. */
-type Entry = { value: MediaInfo | null | undefined };
-const cache = new Map<string, Entry>();
-const listeners = new Set<() => void>();
-
-function notify(): void {
-  for (const listener of listeners) listener();
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
 
 export function probeMediaInfo(url: string, opts: { kind?: MediaKind; timeoutMs?: number } = {}): Promise<MediaInfo | null> {
   if (typeof document === "undefined" || !url) return Promise.resolve(null);
@@ -85,54 +68,19 @@ export function probeMediaInfo(url: string, opts: { kind?: MediaKind; timeoutMs?
   });
 }
 
-function trimCache(): void {
-  if (cache.size <= CACHE_LIMIT) return;
-  for (const [key, entry] of cache) {
-    if (entry.value === undefined) continue;
-    cache.delete(key);
-    if (cache.size <= CACHE_LIMIT) return;
-  }
-}
+const mediaInfoCache = createUrlCache<MediaInfo, MediaKind>((url, kind) => probeMediaInfo(url, { kind }));
 
 /** Probes once per URL; later calls share the answer. */
 export function loadMediaInfo(url: string, kind: MediaKind = "video"): Promise<MediaInfo | null> {
-  if (!url) return Promise.resolve(null);
-  const hit = cache.get(url);
-  if (hit && hit.value !== undefined) return Promise.resolve(hit.value);
-  if (hit) return waitFor(url);
-  const entry: Entry = { value: undefined };
-  cache.set(url, entry);
-  trimCache();
-  return probeMediaInfo(url, { kind }).then((info) => {
-    entry.value = info;
-    notify();
-    return info;
-  });
-}
-
-function waitFor(url: string): Promise<MediaInfo | null> {
-  return new Promise((resolve) => {
-    const check = () => {
-      const entry = cache.get(url);
-      if (!entry || entry.value === undefined) return;
-      listeners.delete(check);
-      resolve(entry.value);
-    };
-    listeners.add(check);
-  });
+  return mediaInfoCache.load(url, kind);
 }
 
 /** Synchronous view of the cache: undefined while probing (or never asked), null when it failed. */
 export function readMediaInfo(url: string): MediaInfo | null | undefined {
-  if (!url) return null;
-  return cache.get(url)?.value;
+  return mediaInfoCache.read(url);
 }
 
 /** Same contract as readMediaInfo, and starts the probe on first use. */
 export function useMediaInfo(url: string, kind: MediaKind = "video"): MediaInfo | null | undefined {
-  useEffect(() => {
-    if (url) void loadMediaInfo(url, kind);
-  }, [url, kind]);
-  const get = useCallback(() => readMediaInfo(url), [url]);
-  return useSyncExternalStore(subscribe, get, () => undefined);
+  return useUrlCache(mediaInfoCache, url, kind);
 }

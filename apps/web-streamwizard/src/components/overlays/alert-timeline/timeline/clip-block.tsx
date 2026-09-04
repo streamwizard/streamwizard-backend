@@ -9,8 +9,10 @@ import { footageEndMs, mediaTrimLimits } from "../media-math";
 import { fileNameFromUrl } from "../media-url";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { usePointerDrag } from "../use-pointer-drag";
+import { useWaveform } from "../waveform/waveform-cache";
 import { LAYER_CLIP_CLASSES, LAYER_TYPE_LABELS } from "./layer-colors";
 import { ROW_HEIGHT_PX, TRIM_HANDLE_PX } from "./timeline-constants";
+import { WaveformCanvas } from "./waveform-canvas";
 import {
   clampClipMove,
   clampClipTrim,
@@ -59,6 +61,7 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
   const width = Math.max(2, msToPx(clip.end - clip.start, pxPerMs));
   const mediaUrl = clip.source.kind === "video" || clip.source.kind === "audio" ? clip.source.url : "";
   const info = useMediaInfo(mediaUrl, clip.source.kind === "audio" ? "audio" : "video");
+  const waveform = useWaveform(mediaUrl);
   const sourceMs = info?.durationMs ?? null;
   const footageEnd = footageEndMs(clip, sourceMs);
 
@@ -149,7 +152,8 @@ export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {
       )}
       style={{ left, width, height: ROW_HEIGHT_PX - 8 }}
     >
-      <span className="pointer-events-none truncate px-2 font-medium">{clipLabel(clip, layer)}</span>
+      {mediaUrl && <WaveformCanvas peaks={waveform} clipStart={clip.start} clipEnd={clip.end} trimIn={clip.trimIn} />}
+      <span className="pointer-events-none relative truncate px-2 font-medium">{clipLabel(clip, layer)}</span>
       {footageEnd !== null && (
         // The file ends here; the rest of the clip holds its last frame.
         <div
