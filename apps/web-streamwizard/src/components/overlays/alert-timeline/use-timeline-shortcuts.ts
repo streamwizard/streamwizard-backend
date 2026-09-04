@@ -26,6 +26,8 @@ function isTyping(target: EventTarget | null): boolean {
 
 export interface TimelineShortcutOptions {
   onSave: () => void;
+  /** Opens (or closes) the shortcut reference; `?` does nothing without it. */
+  onToggleShortcuts?: () => void;
 }
 
 /** What the handler reads; satisfied by React's synthetic event and by a picked native one. */
@@ -46,7 +48,7 @@ export interface ShortcutKeyEvent {
  * anywhere inside it, and every handled key stops propagating so the overlay
  * editor's window listener (Mod+S, ?) never sees it.
  */
-export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
+export function useTimelineShortcuts({ onSave, onToggleShortcuts }: TimelineShortcutOptions) {
   const api = useTimelineStoreApi();
   const { controls } = usePlayback();
   const view = useTimelineView();
@@ -74,6 +76,11 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
       const { scene, selection } = state;
 
       switch (e.key) {
+        case "?":
+          if (!onToggleShortcuts) return;
+          handled();
+          onToggleShortcuts();
+          return;
         case " ": {
           handled();
           // A clicked transport button would otherwise fire again on Space.
@@ -216,6 +223,6 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
           return;
       }
     },
-    [api, controls, onSave, view]
+    [api, controls, onSave, onToggleShortcuts, view]
   );
 }

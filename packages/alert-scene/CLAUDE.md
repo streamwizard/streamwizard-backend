@@ -77,3 +77,27 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
   The hit layer covers the whole preview pane because content may sit outside the scene box.
 - **Anchor changes keep the box still**: `reanchorNode` compensates `x`/`y` in local space (`anchor-math.ts`).
 
+## Media
+
+- **`trimIn` is the source offset**: the clip shows its file from `trimIn` ms onward, so `mediaTime = trimIn +
+  (t − start)`. Trimming a media clip's start edge shifts `trimIn` by the same amount (the footage stays put);
+  `splitClip` gives the right half `trimIn + (cut − start)`; the inspector's "Source offset" field slides the
+  footage under a clip that stays put. **`trimOut` is reserved**: parsed, defaulted to 0, read by nothing. Clip
+  length is `end − start`. Do not "fix" it without a schema decision.
+- **Source length is probed, never stored.** The editor asks a throwaway element (`media-info.ts`, cached per URL
+  for the session) and derives trim limits from it (`media-math.ts`): the start edge cannot reveal footage before
+  the file starts, the end edge cannot reach past it unless the video loops, and an edge already over the line is
+  never yanked back. Unknown length = no end limit. The renderer needs none of this; it reads its own element.
+- **Past the end of a non-looping file the stage holds the last frame.** `media-sync` clamps the target to
+  `el.duration` and takes the paused path there; an element that ended reports `paused`, and calling `play()` on
+  it would restart from 0. The editor hatches that tail on the clip.
+- **Volume** is a normal keyframable prop (`base.volume`, 0..1), multiplied by the host's master volume
+  (`SceneStage volume`, the alert box's slider × the widget's master) and zeroed by `Layer.muted` inside
+  `evaluate`. `previewMuted` in the editor store is session state and never reaches the scene.
+- **Waveforms are editor-only** (`waveform/`): fetched with CORS, decoded through an 8 kHz `OfflineAudioContext`,
+  folded to 500 peaks/s and cached per URL. A file with no audio, one over 30 MB or a CDN without a CORS
+  allowlist entry for the app origin draws a quiet centre line, not an error.
+- **Seeding** (`scene-from-variant.ts`): the legacy variant's video lands on the bottom layer (looping for a
+  fixed-length alert, played once for a video-length one, `volume` 0 when a separate sound exists), the sound on a
+  top layer at full volume, both over the whole scene.
+

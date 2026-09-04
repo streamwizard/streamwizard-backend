@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Keyboard } from "lucide-react";
 import type { AlertScene } from "@repo/alert-scene";
 import type { AlertEventType } from "@repo/ui/overlay";
 import {
@@ -12,8 +13,12 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
+  Tooltip,
+  TooltipContent,
   TooltipProvider,
+  TooltipTrigger,
 } from "@repo/ui";
+import { ShortcutsDialog } from "@/components/overlays/editor/shortcuts-dialog";
 import { DiscardChangesDialog } from "./discard-changes-dialog";
 import { cancelActiveDrag } from "./drag-registry";
 import { InspectorPanel } from "./inspector/inspector-panel";
@@ -21,6 +26,7 @@ import { loadTimelineLayout, saveTimelineLayout, type PanelLayout } from "./layo
 import { PreviewPane } from "./preview/preview-pane";
 import { PlaybackProvider, TimelineStoreProvider, TimelineViewProvider, useTimeline, useTimelineStoreApi } from "./timeline-context";
 import { TimelineSection } from "./timeline-section";
+import { TIMELINE_SHORTCUT_GROUPS } from "./timeline-shortcuts";
 import { createTimelineStore } from "./timeline-store";
 import { useEditorPlayback } from "./use-editor-playback";
 import { useTimelineShortcuts, type ShortcutKeyEvent } from "./use-timeline-shortcuts";
@@ -106,7 +112,9 @@ function EditorDialog({
     else onClose();
   }, [api, onClose]);
 
-  const onKeyDown = useTimelineShortcuts({ onSave: save });
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const toggleShortcuts = useCallback(() => setShortcutsOpen((open) => !open), []);
+  const onKeyDown = useTimelineShortcuts({ onSave: save, onToggleShortcuts: toggleShortcuts });
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Focus can still land on <body> (a closed popover, a blurred control). The
@@ -154,6 +162,14 @@ function EditorDialog({
               Compose the {eventLabel} alert on a timeline. Space plays, Escape closes, Ctrl+S saves to the alert box.
             </DialogDescription>
             <div className="flex-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts" onMouseDown={(e) => e.preventDefault()} onClick={toggleShortcuts}>
+                  <Keyboard />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Keyboard shortcuts (?)</TooltipContent>
+            </Tooltip>
             <Button variant="ghost" size="sm" onClick={requestClose}>
               Cancel
             </Button>
@@ -183,6 +199,16 @@ function EditorDialog({
           </div>
         </DialogContent>
       </Dialog>
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+        groups={TIMELINE_SHORTCUT_GROUPS}
+        description="Everything the timeline listens for, in one place."
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          paneRef.current?.focus({ preventScroll: true });
+        }}
+      />
       <DiscardChangesDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
