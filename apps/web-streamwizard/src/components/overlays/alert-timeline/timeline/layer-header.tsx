@@ -122,7 +122,10 @@ export function LayerHeader({ layer }: { layer: Layer }) {
       )}
       {/* Hidden until hover, unless a toggle is already off: a hidden or locked layer must announce itself. */}
       <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 has-[[aria-pressed=false]]:opacity-100">
-        <Toggle on={layer.visible} onLabel="Hide layer" offLabel="Show layer" OnIcon={Eye} OffIcon={EyeOff} onClick={() => patch({ visible: !layer.visible })} />
+        {/* A sound layer has nothing to hide; mute is its switch. */}
+        {layer.type !== "audio" && (
+          <Toggle on={layer.visible} onLabel="Hide layer" offLabel="Show layer" OnIcon={Eye} OffIcon={EyeOff} onClick={() => patch({ visible: !layer.visible })} />
+        )}
         <Toggle on={!layer.locked} onLabel="Lock layer" offLabel="Unlock layer" OnIcon={LockOpen} OffIcon={Lock} onClick={() => patch({ locked: !layer.locked })} />
         {hasSound && <Toggle on={!layer.muted} onLabel="Mute layer" offLabel="Unmute layer" OnIcon={Volume2} OffIcon={VolumeX} onClick={() => patch({ muted: !layer.muted })} />}
         <Button

@@ -21,6 +21,6 @@ export const LAYER_TYPE_LABELS: Record<LayerType, string> = {
   text: "Text",
   image: "Image",
   video: "Video",
-  audio: "Audio",
+  audio: "Sound",
   shape: "Shape",
 };

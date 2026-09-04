@@ -1,6 +1,6 @@
 "use client";
 
-import { findClip, type Clip, type ClipSource, type PropName } from "@repo/alert-scene";
+import { findClip, type Clip, type ClipSource, type MediaFit, type PropName, type ShapeKind } from "@repo/alert-scene";
 import { ALERT_TEMPLATE_TOKENS } from "@repo/ui/overlay";
 import { Link2, Unlink2 } from "lucide-react";
 import { Button, ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
@@ -10,6 +10,7 @@ import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlign
 import { AnchorPicker } from "@/components/overlays/editor/anchor-picker";
 import { anchorIsOnCell, anchorToCell, cellToAnchor, nodeBoxAt, reanchorNode } from "../anchor-math";
 import { setBasePropCommand, setSceneMetaCommand, trimClipCommand, updateClipCommand, writePropsCommand, type Command } from "../commands";
+import { isMediaClip } from "../media-math";
 import { valueAt } from "../prop-writer";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { visibleScene } from "../timeline-store";
@@ -218,6 +219,61 @@ function TimingSection({ clip }: { clip: Clip }) {
   );
 }
 
+function FitSelect({ value, onValueChange }: { value: MediaFit; onValueChange: (v: MediaFit) => void }) {
+  return (
+    <Field label="Fit">
+      <Select value={value} onValueChange={(v) => onValueChange(v as MediaFit)}>
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="contain">Fit inside</SelectItem>
+          <SelectItem value="cover">Fill and crop</SelectItem>
+          <SelectItem value="fill">Stretch</SelectItem>
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+}
+
+function SwitchRow({ id, label, checked, onCheckedChange, helper }: { id: string; label: string; checked: boolean; onCheckedChange: (v: boolean) => void; helper?: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id} className="text-[11px] text-muted-foreground">
+          {label}
+        </Label>
+        <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+      </div>
+      {helper && <p className="text-[11px] leading-snug text-muted-foreground/80">{helper}</p>}
+    </div>
+  );
+}
+
+function ColourRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      <ColorPicker value={value} onChange={onChange} aria-label={`${label} colour`} />
+    </div>
+  );
+}
+
+const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
+
+/** Volume for a video or sound clip; the layer's mute switch lives on the timeline. */
+function SoundSection({ clip }: { clip: Clip }) {
+  const muted = useTimeline((s) => findClip(s.scene, clip.id)?.layer.muted ?? false);
+  return (
+    <InspectorSection title="Sound" defaultOpen>
+      <div className="space-y-2">
+        <AnimatableField clipId={clip.id} prop="volume" label="Volume" unit="%" scale={100} min={0} max={100} />
+        {muted && <p className="text-[11px] leading-snug text-muted-foreground">This layer is muted. Unmute it on the timeline to hear it.</p>}
+      </div>
+    </InspectorSection>
+  );
+}
+
 function SourceSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
   const src = clip.source;
@@ -226,6 +282,74 @@ function SourceSection({ clip }: { clip: Clip }) {
     const cmd = updateClipCommand(s.scene, clip.id, { source: next }, `src:${clip.id}:${key}`);
     if (cmd) s.execute(cmd);
   };
+
+  if (src.kind === "video") {
+    return (
+      <InspectorSection title="Video" defaultOpen>
+        <div className="space-y-3">
+          <MediaField label="Video" kinds={["video"]} value={src.url} helper="Transparent WebM keeps its alpha." onChange={(url) => setSource({ ...src, url }, "url")} />
+          <FitSelect value={src.fit} onValueChange={(fit) => setSource({ ...src, fit }, "fit")} />
+          <SwitchRow
+            id={`loop-${clip.id}`}
+            label="Loop"
+            checked={src.loop}
+            onCheckedChange={(loop) => setSource({ ...src, loop }, "loop")}
+            helper={src.loop ? "Starts over when the video ends." : "Holds the last frame when the video ends."}
+          />
+        </div>
+      </InspectorSection>
+    );
+  }
+
+  if (src.kind === "audio") {
+    return (
+      <InspectorSection title="Audio" defaultOpen>
+        <MediaField label="File" kinds={["audio"]} value={src.url} onChange={(url) => setSource({ ...src, url }, "url")} />
+      </InspectorSection>
+    );
+  }
+
+  if (src.kind === "shape") {
+    const patch = (p: Partial<Extract<ClipSource, { kind: "shape" }>>, key: string) => setSource({ ...src, ...p }, key);
+    return (
+      <InspectorSection title="Shape" defaultOpen>
+        <div className="space-y-3">
+          <Field label="Shape">
+            <Select value={src.shape} onValueChange={(v) => patch({ shape: v as ShapeKind }, "shape")}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rect">Rectangle</SelectItem>
+                <SelectItem value="ellipse">Ellipse</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <ColourRow label="Fill" value={src.fill} onChange={(v) => patch({ fill: v }, "fill")} />
+          {src.shape === "rect" && (
+            <Field label="Corner radius">
+              <NumberField value={src.radius} min={0} max={1000} onCommit={(v) => patch({ radius: Math.round(v) }, "radius")} className="pr-8" adornment={<Unit>px</Unit>} />
+            </Field>
+          )}
+          <Field label="Stroke width">
+            <NumberField
+              value={src.strokeWidth}
+              min={0}
+              max={100}
+              onCommit={(v) => {
+                const strokeWidth = Math.round(v);
+                // The picker is hex-only; a stroke that just appeared needs a real colour.
+                patch(strokeWidth > 0 && !HEX_COLOUR.test(src.stroke) ? { strokeWidth, stroke: "#ffffff" } : { strokeWidth }, "strokeWidth");
+              }}
+              className="pr-8"
+              adornment={<Unit>px</Unit>}
+            />
+          </Field>
+          {src.strokeWidth > 0 && <ColourRow label="Stroke" value={src.stroke} onChange={(v) => patch({ stroke: v }, "stroke")} />}
+        </div>
+      </InspectorSection>
+    );
+  }
 
   if (src.kind === "text") {
     const patch = (p: Partial<Extract<ClipSource, { kind: "text" }>>, key: string) => setSource({ ...src, ...p }, key);
@@ -250,44 +374,21 @@ function SourceSection({ clip }: { clip: Clip }) {
             <FontWeightSelect value={src.fontWeight} onValueChange={(v) => patch({ fontWeight: v }, "weight")} />
           </div>
           <TextAlignSelect value={src.align} onValueChange={(v) => patch({ align: v }, "align")} />
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-[11px] text-muted-foreground">Colour</Label>
-            <ColorPicker value={src.color} onChange={(v) => patch({ color: v }, "color")} aria-label="Text colour" />
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor={`shadow-${clip.id}`} className="text-[11px] text-muted-foreground">
-              Shadow
-            </Label>
-            <Switch id={`shadow-${clip.id}`} checked={src.shadow} onCheckedChange={(v) => patch({ shadow: v }, "shadow")} />
-          </div>
+          <ColourRow label="Text" value={src.color} onChange={(v) => patch({ color: v }, "color")} />
+          <SwitchRow id={`shadow-${clip.id}`} label="Shadow" checked={src.shadow} onCheckedChange={(v) => patch({ shadow: v }, "shadow")} />
         </div>
       </InspectorSection>
     );
   }
 
-  if (src.kind === "image") {
-    return (
-      <InspectorSection title="Image" defaultOpen>
-        <div className="space-y-3">
-          <MediaField label="Image" kinds={["image"]} value={src.url} onChange={(url) => setSource({ ...src, url }, "url")} />
-          <Field label="Fit">
-            <Select value={src.fit} onValueChange={(v) => setSource({ ...src, fit: v as typeof src.fit }, "fit")}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contain">Fit inside</SelectItem>
-                <SelectItem value="cover">Fill and crop</SelectItem>
-                <SelectItem value="fill">Stretch</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-      </InspectorSection>
-    );
-  }
-
-  return null;
+  return (
+    <InspectorSection title="Image" defaultOpen>
+      <div className="space-y-3">
+        <MediaField label="Image" kinds={["image"]} value={src.url} onChange={(url) => setSource({ ...src, url }, "url")} />
+        <FitSelect value={src.fit} onValueChange={(fit) => setSource({ ...src, fit }, "fit")} />
+      </div>
+    </InspectorSection>
+  );
 }
 
 export function InspectorPanel() {
@@ -296,6 +397,10 @@ export function InspectorPanel() {
   const clip = useTimeline((s) => (s.selection.clipId ? findClip(visibleScene(s), s.selection.clipId)?.clip ?? null : null));
   const keyframeSelection = useTimeline((s) => s.selection.keyframe);
 
+  const hasSound = clip ? isMediaClip(clip) : false;
+  // A sound clip has no box on the stage, so nothing to place or anchor.
+  const hasPicture = clip ? clip.source.kind !== "audio" : false;
+
   return (
     <div className="h-full overflow-y-auto p-3">
       {clip ? (
@@ -303,9 +408,10 @@ export function InspectorPanel() {
           {keyframeSelection && <KeyframeSection key={keyframeSelection.keyframeId} selection={keyframeSelection} />}
           <SectionTitle>Selected clip</SectionTitle>
           <SourceSection clip={clip} />
+          {hasSound && <SoundSection clip={clip} />}
           <TimingSection clip={clip} />
-          <TransformSection clip={clip} />
-          <AnchorSection clip={clip} />
+          {hasPicture && <TransformSection clip={clip} />}
+          {hasPicture && <AnchorSection clip={clip} />}
         </div>
       ) : (
         <div className="space-y-5">

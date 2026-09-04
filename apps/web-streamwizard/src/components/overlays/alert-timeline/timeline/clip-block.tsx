@@ -4,9 +4,10 @@ import { moveClip, trimClip, type AlertScene, type Clip, type Layer } from "@rep
 import { cn } from "@repo/ui";
 import { moveClipCommand, trimClipCommand } from "../commands";
 import { keyframeTimesForClip } from "../keyframe-nav";
+import { fileNameFromUrl } from "../media-url";
 import { useTimeline, useTimelineStoreApi } from "../timeline-context";
 import { usePointerDrag } from "../use-pointer-drag";
-import { LAYER_CLIP_CLASSES } from "./layer-colors";
+import { LAYER_CLIP_CLASSES, LAYER_TYPE_LABELS } from "./layer-colors";
 import { ROW_HEIGHT_PX, TRIM_HANDLE_PX } from "./timeline-constants";
 import {
   clampClipMove,
@@ -36,8 +37,10 @@ interface Gesture {
 }
 
 function clipLabel(clip: Clip, layer: Layer): string {
-  if (clip.source.kind === "text") return clip.source.text.trim() || layer.name || "Text";
-  return layer.name || clip.source.kind;
+  const src = clip.source;
+  if (src.kind === "text") return src.text.trim() || layer.name || "Text";
+  if (src.kind === "shape") return layer.name || LAYER_TYPE_LABELS.shape;
+  return layer.name || fileNameFromUrl(src.url) || LAYER_TYPE_LABELS[layer.type];
 }
 
 export function ClipBlock({ clip, layer }: { clip: Clip; layer: Layer }) {

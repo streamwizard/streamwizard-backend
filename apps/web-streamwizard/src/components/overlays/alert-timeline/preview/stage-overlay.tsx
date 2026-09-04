@@ -60,7 +60,11 @@ export function StageOverlay({ scale, offset }: { scale: number; offset: Point }
   // fresh object per read.
   const scene = useTimeline(visibleScene);
   const playhead = useTimeline((s) => s.playhead);
-  const node = useMemo(() => (clipId ? evaluate(scene, playhead).nodes.find((n) => n.clipId === clipId) ?? null : null), [scene, playhead, clipId]);
+  // A sound clip has no picture, so it gets no chrome either.
+  const node = useMemo(
+    () => (clipId ? evaluate(scene, playhead).nodes.find((n) => n.clipId === clipId && n.type !== "audio") ?? null : null),
+    [scene, playhead, clipId]
+  );
 
   const toScene = (clientX: number, clientY: number, g: Pick<Gesture, "left" | "top" | "frame">): Point => ({
     x: (clientX - g.left - g.frame.offset.x) / g.frame.scale,
@@ -96,7 +100,7 @@ export function StageOverlay({ scale, offset }: { scale: number; offset: Point }
       // Hit layer: pick what is under the pointer.
       const rect = host.getBoundingClientRect();
       const p = { x: (e.clientX - rect.left - offset.x) / scale, y: (e.clientY - rect.top - offset.y) / scale };
-      const nodes = evaluate(visibleScene(s), s.playhead).nodes;
+      const nodes = evaluate(visibleScene(s), s.playhead).nodes.filter((n) => n.type !== "audio");
       const hit = hitTest(nodes, p);
       if (!hit) {
         s.clearSelection();

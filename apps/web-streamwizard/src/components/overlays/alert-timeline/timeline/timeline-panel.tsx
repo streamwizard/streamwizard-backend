@@ -70,7 +70,7 @@ export function TimelinePanel() {
           )}
           {scene.layers.length === 0 && (
             <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 px-6 text-center text-sm text-muted-foreground">
-              No layers yet. Add text or an image and it lands at the playhead.
+              No layers yet. Add text, a picture, a video, a sound or a shape and it lands at the playhead.
             </div>
           )}
           <Playhead />
