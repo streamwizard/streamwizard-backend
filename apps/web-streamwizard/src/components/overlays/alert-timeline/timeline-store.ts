@@ -51,6 +51,8 @@ export interface TimelineState {
   expandedLayerIds: Record<string, true>;
   /** Inspector: one scale field drives both axes. Session only. */
   uniformScale: boolean;
+  /** Silences the preview stage; never part of the scene. Session only. */
+  previewMuted: boolean;
 
   execute(command: Command): void;
   undo(): void;
@@ -65,6 +67,7 @@ export interface TimelineState {
   toggleLayerExpanded(layerId: string): void;
   setLayerExpanded(layerId: string, expanded: boolean): void;
   setUniformScale(uniform: boolean): void;
+  setPreviewMuted(muted: boolean): void;
   setPlayhead(ms: number): void;
   setPlaying(playing: boolean): void;
   setLoop(loop: boolean): void;
@@ -141,6 +144,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
     snap: true,
     expandedLayerIds: {},
     uniformScale: false,
+    previewMuted: false,
 
     execute: (command) => {
       const { scene, past, selection } = get();
@@ -222,6 +226,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
         return { expandedLayerIds: next };
       }),
     setUniformScale: (uniformScale) => set({ uniformScale }),
+    setPreviewMuted: (previewMuted) => set({ previewMuted }),
 
     setPlayhead: (ms) => {
       const { scene } = get();

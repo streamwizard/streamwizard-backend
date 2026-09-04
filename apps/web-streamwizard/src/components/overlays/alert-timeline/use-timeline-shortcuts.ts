@@ -4,11 +4,13 @@ import { useCallback } from "react";
 import { findClip } from "@repo/alert-scene";
 import { activatableControl } from "@/components/overlays/editor/space-activation";
 import {
-  compositeCommand,
+  deleteClipCommand,
   deleteKeyframeCommand,
+  duplicateClipCommand,
+  duplicateLayerCommand,
   moveClipCommand,
-  removeClipCommand,
   removeLayerCommand,
+  rippleDeleteCommand,
   splitClipCommand,
 } from "./commands";
 import { keyframeTimesForClip, nextKeyframeTime, prevKeyframeTime } from "./keyframe-nav";
@@ -117,11 +119,9 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
           if (selection.clipId) {
             const loc = findClip(scene, selection.clipId);
             if (!loc || loc.layer.locked) return;
-            const remove = removeClipCommand(scene, loc.clip.id);
-            if (!remove) return;
-            // An alert layer is its clip: emptying it deletes the row too.
-            const layerGone = loc.layer.clips.length === 1 ? removeLayerCommand(scene, loc.layer.id) : null;
-            state.execute(layerGone ? compositeCommand("Delete layer", [remove, layerGone]) : remove);
+            // Shift closes the gap the clip leaves behind.
+            const cmd = e.shiftKey ? rippleDeleteCommand(scene, loc.clip.id) : deleteClipCommand(scene, loc.clip.id);
+            if (cmd) state.execute(cmd);
             return;
           }
           if (selection.layerId) {
@@ -137,6 +137,28 @@ export function useTimelineShortcuts({ onSave }: TimelineShortcutOptions) {
           if (!selection.clipId) return;
           const cmd = splitClipCommand(scene, selection.clipId, state.playhead);
           if (cmd) state.execute(cmd);
+          return;
+        }
+        case "d":
+        case "D": {
+          if (!mod) return;
+          // Handled even when nothing is selected: the browser's bookmark dialog must never open.
+          handled();
+          if (selection.clipId) {
+            const loc = findClip(scene, selection.clipId);
+            if (!loc || loc.layer.locked) return;
+            const res = duplicateClipCommand(scene, loc.clip.id);
+            if (!res) return;
+            state.execute(res.command);
+            state.select({ layerId: res.layerId, clipId: res.clipId, keyframe: null });
+            return;
+          }
+          if (selection.layerId) {
+            const res = duplicateLayerCommand(scene, selection.layerId);
+            if (!res) return;
+            state.execute(res.command);
+            state.select({ layerId: res.layerId, clipId: null, keyframe: null });
+          }
           return;
         }
         case "l":

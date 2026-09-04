@@ -8,7 +8,9 @@ import { hasTrack, keyframeTime, valueAt } from "./prop-writer";
 import {
   addClip,
   addLayer,
+  canPlaceClip,
   clearTrack,
+  cloneClip,
   createId,
   findClip,
   findLayer,
@@ -208,6 +210,73 @@ export function splitClipCommand(scene: AlertScene, clipId: string, atMs: number
     apply: (s) => addClip(addClip(removeClip(s, original.id), layerId, left), layerId, right),
     invert: (s) => addClip(removeClip(removeClip(s, left.id), right.id), layerId, original),
   };
+}
+
+/**
+ * An alert layer is its clip: emptying a layer deletes the row too. That is
+ * one layer command rather than clip + layer, because a layer command carries
+ * its clips through undo and re-adding the clip on top would overlap.
+ */
+export function deleteClipCommand(scene: AlertScene, clipId: string): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc) return null;
+  if (loc.layer.clips.length === 1) return removeLayerCommand(scene, loc.layer.id);
+  return removeClipCommand(scene, clipId);
+}
+
+/** Deletes a clip and closes the gap: every later clip on the layer slides left by its length. */
+export function rippleDeleteCommand(scene: AlertScene, clipId: string): Command | null {
+  const loc = findClip(scene, clipId);
+  if (!loc) return null;
+  const remove = deleteClipCommand(scene, clipId);
+  if (!remove) return null;
+  const length = loc.clip.end - loc.clip.start;
+  const later = loc.layer.clips.filter((c) => c.start >= loc.clip.end).sort((a, b) => a.start - b.start);
+  if (later.length === 0) return { ...remove, label: "Ripple delete" };
+  // Leftmost first, so each move lands in the room the previous one freed.
+  return compositeCommand("Ripple delete", [remove, ...later.map((c) => moveClipCommand(c.id, -length))]);
+}
+
+export interface DuplicateResult {
+  command: Command;
+  clipId: string;
+  layerId: string;
+}
+
+function copyName(name: string): string {
+  return name ? `${name} copy` : "";
+}
+
+/**
+ * A copy right after the clip on its own layer when it fits before the next
+ * clip and inside the scene; otherwise on a new layer directly above with
+ * the same range. Precomputed so redo yields the same ids.
+ */
+export function duplicateClipCommand(scene: AlertScene, clipId: string): DuplicateResult | null {
+  const loc = findClip(scene, clipId);
+  if (!loc) return null;
+  const { clip, layer, layerIndex } = loc;
+  const length = clip.end - clip.start;
+  if (clip.end + length <= scene.duration && canPlaceClip(layer, clip.end, clip.end + length)) {
+    const clone = cloneClip(clip, { deltaMs: length });
+    return { command: { ...addClipCommand(layer.id, clone), label: "Duplicate clip" }, clipId: clone.id, layerId: layer.id };
+  }
+  const clone = cloneClip(clip);
+  const above: Layer = { ...layer, id: createId("layer"), name: copyName(layer.name), clips: [clone] };
+  return { command: { ...addLayerCommand(above, layerIndex + 1), label: "Duplicate clip" }, clipId: clone.id, layerId: above.id };
+}
+
+/** A copy of the whole layer, clips and keyframes included, directly above. */
+export function duplicateLayerCommand(scene: AlertScene, layerId: string): Pick<DuplicateResult, "command" | "layerId"> | null {
+  const found = findLayer(scene, layerId);
+  if (!found) return null;
+  const above: Layer = {
+    ...found.layer,
+    id: createId("layer"),
+    name: copyName(found.layer.name),
+    clips: found.layer.clips.map((c) => cloneClip(c)),
+  };
+  return { command: { ...addLayerCommand(above, found.index + 1), label: "Duplicate layer" }, layerId: above.id };
 }
 
 // ── Keyframes ───────────────────────────────────────────────────────────

@@ -24,10 +24,17 @@ const MAX_SCALE = 2;
  * the checkerboard marks the scene bounds.
  */
 export function PreviewPane({ event }: { event: AlertEventType }) {
-  const { stageRef } = usePlayback();
+  const { stageRef, controls } = usePlayback();
   const scene = useTimeline(visibleScene);
+  const previewMuted = useTimeline((s) => s.previewMuted);
   const hostRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+
+  // Mute lands on the media elements with the next frame; paused there is
+  // none, so paint one.
+  useEffect(() => {
+    stageRef.current?.render(controls.getTime(), { playing: controls.isPlaying() });
+  }, [previewMuted, stageRef, controls]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -61,7 +68,7 @@ export function PreviewPane({ event }: { event: AlertEventType }) {
     <div ref={hostRef} className="relative flex h-full w-full items-center justify-center overflow-hidden bg-muted/30">
       {scale > 0 && (
         <div className="bg-checkerboard relative rounded-sm shadow-md ring-1 ring-border" style={{ width: fit.width, height: fit.height }}>
-          <SceneStage ref={stageRef} scene={scene} tokens={tokens} fit={fit} />
+          <SceneStage ref={stageRef} scene={scene} tokens={tokens} fit={fit} muted={previewMuted} />
         </div>
       )}
       {scale > 0 && <StageOverlay scale={scale} offset={offset} />}

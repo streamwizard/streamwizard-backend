@@ -16,13 +16,17 @@ import {
   addLayerCommand,
   clearTrackCommand,
   compositeCommand,
+  deleteClipCommand,
   deleteKeyframeCommand,
+  duplicateClipCommand,
+  duplicateLayerCommand,
   moveClipCommand,
   moveKeyframeCommand,
   moveLayerCommand,
   removeClipCommand,
   removeKeyframeCommand,
   removeLayerCommand,
+  rippleDeleteCommand,
   setBasePropCommand,
   setKeyframeCommand,
   setKeyframeEasingCommand,
@@ -172,10 +176,87 @@ describe("commands invert exactly", () => {
     roundTrips(scene, cmd);
   });
 
+  it("deleting a layer's last clip removes the row and undo brings both back", () => {
+    const { scene, clip, b } = fixture();
+    const cmd = deleteClipCommand(scene, clip.id)!;
+    const after = roundTrips(scene, cmd);
+    expect(after.layers.some((l) => l.id === b.id)).toBe(false);
+    // With a sibling left the layer stays.
+    const sibling = createClip({ start: 5000, end: 6000, source: createDefaultSource("video"), base: createDefaultBase(scene, { width: 1, height: 1 }) });
+    const two = addClip(scene, b.id, sibling);
+    const afterOne = roundTrips(two, deleteClipCommand(two, clip.id)!);
+    expect(afterOne.layers.find((l) => l.id === b.id)!.clips.map((c) => c.id)).toEqual([sibling.id]);
+  });
+
+  it("ripple delete closes the gap for every later clip on the layer", () => {
+    const { scene: base, clip, b } = fixture();
+    const c1 = createClip({ start: 4000, end: 5000, source: createDefaultSource("video"), base: createDefaultBase(base, { width: 1, height: 1 }) });
+    const c2 = createClip({ start: 6000, end: 7000, source: createDefaultSource("video"), base: createDefaultBase(base, { width: 1, height: 1 }) });
+    let scene = addClip(base, b.id, c1);
+    scene = addClip(scene, b.id, c2);
+    scene = setKeyframe(scene, c2.id, "opacity", { time: 6500, value: 0.5 });
+    const after = roundTrips(scene, rippleDeleteCommand(scene, clip.id)!);
+    const clips = after.layers.find((l) => l.id === b.id)!.clips;
+    expect(clips.map((c) => [c.id, c.start, c.end])).toEqual([
+      [c1.id, 2000, 3000],
+      [c2.id, 4000, 5000],
+    ]);
+    expect(findClip(after, c2.id)!.clip.tracks.opacity!.keyframes[0]!.time).toBe(4500);
+    // The only clip on a layer: the layer goes, nothing to slide.
+    const alone = roundTrips(base, rippleDeleteCommand(base, clip.id)!);
+    expect(alone.layers.some((l) => l.id === b.id)).toBe(false);
+  });
+
+  it("duplicate lands after the clip when there is room", () => {
+    const { scene, clip, b } = fixture();
+    const res = duplicateClipCommand(scene, clip.id)!;
+    expect(res.layerId).toBe(b.id);
+    const after = roundTrips(scene, res.command);
+    const copy = findClip(after, res.clipId)!.clip;
+    expect([copy.start, copy.end, copy.trimIn]).toEqual([3000, 5000, 200]);
+    expect(copy.tracks.x!.keyframes.map((k) => [k.time, k.value])).toEqual([
+      [3000, 0],
+      [5000, 100],
+    ]);
+    expect(after.layers.find((l) => l.id === b.id)!.clips.map((c) => c.id)).toEqual([clip.id, res.clipId]);
+  });
+
+  it("duplicate goes to a new layer above when the slot after is taken or past the end", () => {
+    const { scene: base, clip, b } = fixture();
+    const blocker = createClip({ start: 3000, end: 3500, source: createDefaultSource("video"), base: createDefaultBase(base, { width: 1, height: 1 }) });
+    const blocked = addClip(base, b.id, blocker);
+    const res = duplicateClipCommand(blocked, clip.id)!;
+    expect(res.layerId).not.toBe(b.id);
+    const after = roundTrips(blocked, res.command);
+    const idx = after.layers.findIndex((l) => l.id === res.layerId);
+    expect(idx).toBe(after.layers.findIndex((l) => l.id === b.id) + 1);
+    const above = after.layers[idx]!;
+    expect([above.type, above.name, above.clips.length]).toEqual(["video", "B copy", 1]);
+    expect([above.clips[0]!.start, above.clips[0]!.end]).toEqual([1000, 3000]);
+
+    const late = moveClipCommand(clip.id, 6000).apply(base); // 7000..9000 in a 10 s scene
+    expect(duplicateClipCommand(late, clip.id)!.layerId).not.toBe(b.id);
+  });
+
+  it("duplicate layer copies every clip with fresh ids directly above", () => {
+    const { scene, clip, b } = fixture();
+    const res = duplicateLayerCommand(scene, b.id)!;
+    const after = roundTrips(scene, res.command);
+    const above = after.layers[after.layers.findIndex((l) => l.id === b.id) + 1]!;
+    expect(above.id).toBe(res.layerId);
+    expect(above.clips.length).toBe(1);
+    expect(above.clips[0]!.id).not.toBe(clip.id);
+    expect(above.clips[0]!.tracks.x!.keyframes.map((k) => k.time)).toEqual([1000, 3000]);
+  });
+
   it("returns null for unknown targets", () => {
     const { scene } = fixture();
     expect(removeClipCommand(scene, "nope")).toBeNull();
     expect(removeLayerCommand(scene, "nope")).toBeNull();
     expect(splitClipCommand(scene, "nope", 10)).toBeNull();
+    expect(deleteClipCommand(scene, "nope")).toBeNull();
+    expect(rippleDeleteCommand(scene, "nope")).toBeNull();
+    expect(duplicateClipCommand(scene, "nope")).toBeNull();
+    expect(duplicateLayerCommand(scene, "nope")).toBeNull();
   });
 });

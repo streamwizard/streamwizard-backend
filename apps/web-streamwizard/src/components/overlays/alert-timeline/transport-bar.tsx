@@ -1,11 +1,22 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Magnet, Maximize2, Pause, Play, Redo2, Repeat, SkipBack, SkipForward, Undo2, ZoomIn, ZoomOut } from "lucide-react";
+import { findClip, MIN_CLIP_MS } from "@repo/alert-scene";
+import { Magnet, Maximize2, Pause, Play, Redo2, Repeat, Scissors, SkipBack, SkipForward, Undo2, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { Button, Kbd, KbdGroup, Separator, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { AddLayerMenu } from "./add-layer-menu";
+import { splitClipCommand } from "./commands";
 import { formatTimecode } from "./format-time";
 import { usePlayback, useTimeline, useTimelineStoreApi, useTimelineView } from "./timeline-context";
+import type { TimelineState } from "./timeline-store";
+
+/** The playhead sits inside the selected clip with room for a clip on either side. */
+function canSplit(s: TimelineState): boolean {
+  if (!s.selection.clipId) return false;
+  const loc = findClip(s.scene, s.selection.clipId);
+  if (!loc || loc.layer.locked) return false;
+  return s.playhead - loc.clip.start >= MIN_CLIP_MS && loc.clip.end - s.playhead >= MIN_CLIP_MS;
+}
 
 function Tip({ label, keys, children }: { label: string; keys?: string[]; children: ReactNode }) {
   return (
@@ -47,10 +58,19 @@ export function TransportBar() {
   const snap = useTimeline((s) => s.snap);
   const canUndo = useTimeline((s) => s.past.length > 0);
   const canRedo = useTimeline((s) => s.future.length > 0);
+  const splittable = useTimeline(canSplit);
+  const previewMuted = useTimeline((s) => s.previewMuted);
 
   const toggle = () => {
     controls.toggle();
     api.getState().setPlaying(controls.isPlaying());
+  };
+
+  const split = () => {
+    const s = api.getState();
+    if (!s.selection.clipId) return;
+    const cmd = splitClipCommand(s.scene, s.selection.clipId, s.playhead);
+    if (cmd) s.execute(cmd);
   };
 
   return (
@@ -85,8 +105,26 @@ export function TransportBar() {
           <Repeat />
         </Button>
       </Tip>
+      <Tip label={previewMuted ? "Unmute preview" : "Mute preview"}>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={previewMuted ? "Unmute preview" : "Mute preview"}
+          aria-pressed={previewMuted}
+          onMouseDown={keepFocus}
+          onClick={() => api.getState().setPreviewMuted(!previewMuted)}
+          className={cn(previewMuted && "bg-accent text-accent-foreground")}
+        >
+          {previewMuted ? <VolumeX /> : <Volume2 />}
+        </Button>
+      </Tip>
       <TimeReadout />
       <Separator orientation="vertical" className="mx-1 h-5" />
+      <Tip label="Split at playhead" keys={["S"]}>
+        <Button size="icon-sm" variant="ghost" aria-label="Split at playhead" disabled={!splittable} onMouseDown={keepFocus} onClick={split}>
+          <Scissors />
+        </Button>
+      </Tip>
       <Tip label="Undo" keys={["Ctrl", "Z"]}>
         <Button size="icon-sm" variant="ghost" aria-label="Undo" disabled={!canUndo} onMouseDown={keepFocus} onClick={() => api.getState().undo()}>
           <Undo2 />

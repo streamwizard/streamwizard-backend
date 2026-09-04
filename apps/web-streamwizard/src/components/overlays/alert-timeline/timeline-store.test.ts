@@ -127,6 +127,16 @@ describe("timeline store", () => {
     expect(s().expandedLayerIds).toEqual({ [layer.id]: true });
   });
 
+  it("preview mute is session state, not an edit", () => {
+    const { scene } = fixture();
+    const store = createTimelineStore(scene);
+    expect(store.getState().previewMuted).toBe(false);
+    store.getState().setPreviewMuted(true);
+    expect(store.getState().previewMuted).toBe(true);
+    expect(isDirty(store.getState())).toBe(false);
+    expect(store.getState().past.length).toBe(0);
+  });
+
   it("clamps the playhead to the scene", () => {
     const { scene } = fixture();
     const store = createTimelineStore(scene);
