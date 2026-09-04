@@ -17,6 +17,7 @@ import { clampClipTrim, neighboursOf } from "../timeline/timeline-math";
 import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
 import { AnimatableField } from "./animatable-field";
 import { Field, Unit } from "./field-chrome";
+import { KeyframeSection } from "./keyframe-section";
 
 function SceneSection() {
   const api = useTimelineStoreApi();
@@ -292,11 +293,13 @@ function SourceSection({ clip }: { clip: Clip }) {
 export function InspectorPanel() {
   const clipId = useTimeline((s) => s.selection.clipId);
   const clip = useTimeline((s) => (s.selection.clipId ? findClip(s.scene, s.selection.clipId)?.clip ?? null : null));
+  const keyframeSelection = useTimeline((s) => s.selection.keyframe);
 
   return (
     <div className="h-full overflow-y-auto p-3">
       {clip ? (
         <div key={clipId} className="space-y-5">
+          {keyframeSelection && <KeyframeSection key={keyframeSelection.keyframeId} selection={keyframeSelection} />}
           <SectionTitle>Selected clip</SectionTitle>
           <SourceSection clip={clip} />
           <TimingSection clip={clip} />

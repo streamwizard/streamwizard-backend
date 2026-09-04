@@ -17,9 +17,9 @@ export interface DragMove {
   moved: boolean;
 }
 
-export interface PointerDragHandlers<T> {
+export interface PointerDragHandlers<T, E extends Element = HTMLElement> {
   /** Return the gesture context, or null to let the event go. */
-  onStart(e: ReactPointerEvent<HTMLElement>): T | null | undefined;
+  onStart(e: ReactPointerEvent<E>): T | null | undefined;
   onMove?(move: DragMove, ctx: T): void;
   onEnd?(move: DragMove, ctx: T): void;
   /** Escape, pointercancel, lost capture, window blur. */
@@ -36,7 +36,7 @@ const DEFAULT_MIN_DISTANCE = 3;
  * a clip dragged past the dialog edge keeps tracking. Registers with the drag
  * registry so Escape can cancel it from anywhere.
  */
-export function usePointerDrag<T>(handlers: PointerDragHandlers<T>) {
+export function usePointerDrag<T, E extends Element = HTMLElement>(handlers: PointerDragHandlers<T, E>) {
   const handlersRef = useRef(handlers);
   useLayoutEffect(() => {
     handlersRef.current = handlers;
@@ -46,7 +46,7 @@ export function usePointerDrag<T>(handlers: PointerDragHandlers<T>) {
 
   useEffect(() => () => activeRef.current?.teardown(), []);
 
-  const onPointerDown = useCallback((e: ReactPointerEvent<HTMLElement>) => {
+  const onPointerDown = useCallback((e: ReactPointerEvent<E>) => {
     const h = handlersRef.current;
     if (e.button !== (h.button ?? 0)) return;
     if (activeRef.current) return;
@@ -55,7 +55,8 @@ export function usePointerDrag<T>(handlers: PointerDragHandlers<T>) {
     e.preventDefault();
     e.stopPropagation();
 
-    const el = e.currentTarget;
+    // SVG handles drag too; the pointer-capture and listener API is the same on both.
+    const el = e.currentTarget as unknown as HTMLElement;
     const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
