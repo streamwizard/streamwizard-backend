@@ -56,6 +56,28 @@ function fixture() {
   return { scene, a, b, clip };
 }
 
+describe("undo labels", () => {
+  it("say what changed", () => {
+    const { scene, a, clip } = fixture();
+    expect(setSceneMetaCommand(scene, { name: "x" }).label).toBe("Rename scene");
+    expect(setSceneMetaCommand(scene, { duration: 1 }).label).toBe("Set duration");
+    expect(setSceneMetaCommand(scene, { width: 1 }).label).toBe("Resize scene");
+    expect(setSceneMetaCommand(scene, { width: 1, name: "x" }).label).toBe("Edit scene");
+    expect(updateLayerCommand(scene, a.id, { visible: false })!.label).toBe("Hide layer");
+    expect(updateLayerCommand(scene, a.id, { muted: true })!.label).toBe("Mute layer");
+    expect(updateLayerCommand(scene, a.id, { name: "n" })!.label).toBe("Rename layer");
+    expect(updateClipCommand(scene, clip.id, { trimIn: 0 }, undefined, "Set source offset")!.label).toBe("Set source offset");
+    expect(updateClipCommand(scene, clip.id, { trimIn: 0 })!.label).toBe("Edit clip");
+    expect(setBasePropCommand(scene, clip.id, "scaleX", 1)!.label).toBe("Set scale X");
+    expect(setKeyframeCommand(scene, clip.id, "x", { time: 1000, value: 5 })!.label).toBe("Change X keyframe");
+    expect(setKeyframeCommand(scene, clip.id, "x", { time: 1500, value: 5 })!.label).toBe("Add X keyframe");
+    expect(stopwatchOnCommand(scene, clip.id, "opacity", 1000)!.label).toBe("Animate opacity");
+    expect(stopwatchOffCommand(scene, clip.id, "x", 1000)!.label).toBe("Stop animating X");
+    // Deleting a layer's only clip removes the layer, but the person deleted a clip.
+    expect(deleteClipCommand(scene, clip.id)!.label).toBe("Delete clip");
+  });
+});
+
 function roundTrips(scene: AlertScene, cmd: Command) {
   const after = cmd.apply(scene);
   expect(after).not.toEqual(scene);

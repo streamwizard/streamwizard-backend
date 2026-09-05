@@ -221,7 +221,7 @@ function TimingSection({ clip }: { clip: Clip }) {
     if (!loc) return;
     const trimIn = clampTrimIn(loc.clip, seconds * 1000, sourceMs);
     if (trimIn === loc.clip.trimIn) return;
-    const cmd = updateClipCommand(s.scene, clip.id, { trimIn }, `trimin:${clip.id}`);
+    const cmd = updateClipCommand(s.scene, clip.id, { trimIn }, `trimin:${clip.id}`, "Set source offset");
     if (cmd) s.execute(cmd);
   };
 
@@ -317,13 +317,32 @@ function SoundSection({ clip }: { clip: Clip }) {
   );
 }
 
+/** Undo labels per source field, keyed the way `setSource` is called. */
+const SOURCE_LABELS: Record<string, string> = {
+  url: "Change file",
+  fit: "Set fit",
+  loop: "Toggle loop",
+  shape: "Set shape",
+  fill: "Set fill",
+  radius: "Set corner radius",
+  strokeWidth: "Set stroke",
+  stroke: "Set stroke colour",
+  text: "Edit text",
+  font: "Change font",
+  size: "Set text size",
+  weight: "Set weight",
+  align: "Set alignment",
+  color: "Set text colour",
+  shadow: "Toggle text shadow",
+};
+
 function SourceSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const src = clip.source;
   const setSource = (next: ClipSource, key: string) => {
     const s = api.getState();
-    const cmd = updateClipCommand(s.scene, clip.id, { source: next }, `src:${clip.id}:${key}`);
+    const cmd = updateClipCommand(s.scene, clip.id, { source: next }, `src:${clip.id}:${key}`, SOURCE_LABELS[key] ?? "Edit clip");
     if (cmd) s.execute(cmd);
   };
 

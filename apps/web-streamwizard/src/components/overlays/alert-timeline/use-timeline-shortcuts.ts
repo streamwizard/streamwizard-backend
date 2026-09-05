@@ -108,7 +108,7 @@ export function useTimelineShortcuts({ onSave, onToggleShortcuts }: TimelineShor
             const loc = findClip(scene, selection.clipId);
             if (!loc || loc.layer.locked) return;
             const delta = clampClipMove(loc.clip, dir * step, neighboursOf(loc.layer.clips, loc.clip.id));
-            if (delta !== 0) state.execute({ ...moveClipCommand(loc.clip.id, delta), coalesceKey: `nudge:${loc.clip.id}` });
+            if (delta !== 0) state.execute({ ...moveClipCommand(loc.clip.id, delta), label: "Nudge clip", coalesceKey: `nudge:${loc.clip.id}` });
             return;
           }
           state.setPlayhead(state.playhead + dir * step);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { addClip, addLayer, createClip, createDefaultBase, createDefaultSource, createEmptyScene, createLayer } from "@repo/alert-scene";
-import { moveClipCommand, removeLayerCommand, setKeyframeCommand, setSceneMetaCommand } from "./commands";
-import { COALESCE_WINDOW_MS, createTimelineStore, isDirty, visibleScene } from "./timeline-store";
+import { deleteClipCommand, duplicateClipCommand, moveClipCommand, removeLayerCommand, setBasePropCommand, setKeyframeCommand, setSceneMetaCommand } from "./commands";
+import { COALESCE_WINDOW_MS, HISTORY_LIMIT, createTimelineStore, isDirty, visibleScene } from "./timeline-store";
 
 function fixture() {
   let scene = createEmptyScene({ duration: 10_000 });
@@ -59,6 +59,95 @@ describe("timeline store", () => {
     t += COALESCE_WINDOW_MS + 1;
     s().execute(setSceneMetaCommand(s().scene, { duration: 6000 }, "duration"));
     expect(s().past.length).toBe(2);
+  });
+
+  it("merges on the window's last millisecond and not one later", () => {
+    const { scene } = fixture();
+    let t = 0;
+    const store = createTimelineStore(scene, { now: () => t });
+    const s = () => store.getState();
+    s().execute(setSceneMetaCommand(s().scene, { duration: 5000 }, "duration"));
+    t += COALESCE_WINDOW_MS;
+    s().execute(setSceneMetaCommand(s().scene, { duration: 5100 }, "duration"));
+    expect(s().past.length).toBe(1);
+    t += COALESCE_WINDOW_MS + 1;
+    s().execute(setSceneMetaCommand(s().scene, { duration: 5200 }, "duration"));
+    expect(s().past.length).toBe(2);
+  });
+
+  it("never merges edits to different props or different clips", () => {
+    let { scene } = fixture();
+    const { clip } = fixture();
+    const other = createClip({ start: 4000, end: 5000, source: createDefaultSource("text"), base: createDefaultBase(scene, { width: 1, height: 1 }) });
+    scene = addClip(scene, scene.layers[0]!.id, other);
+    const a = scene.layers[0]!.clips[0]!;
+    let t = 0;
+    const store = createTimelineStore(scene, { now: () => t });
+    const s = () => store.getState();
+    s().execute(setBasePropCommand(s().scene, a.id, "x", 1, `base:${a.id}:x`)!);
+    t += 10;
+    s().execute(setBasePropCommand(s().scene, a.id, "y", 1, `base:${a.id}:y`)!);
+    t += 10;
+    s().execute(setBasePropCommand(s().scene, other.id, "x", 1, `base:${other.id}:x`)!);
+    expect(s().past.length).toBe(3);
+    expect(s().past.map((e) => e.command.label)).toEqual(["Set X", "Set Y", "Set X"]);
+    void clip;
+  });
+
+  it("caps the history and still reads dirty once the saved state has fallen off", () => {
+    const { scene, clip } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    for (let i = 0; i < HISTORY_LIMIT + 5; i++) s().execute(moveClipCommand(clip.id, i % 2 === 0 ? 1 : -1));
+    expect(s().past.length).toBe(HISTORY_LIMIT);
+    for (let i = 0; i < HISTORY_LIMIT; i++) s().undo();
+    expect(s().past.length).toBe(0);
+    // Five moves of ±1 that can no longer be undone: net +1 from the saved scene.
+    expect(s().scene.layers[0]!.clips[0]!.start).toBe(1001);
+    expect(isDirty(s())).toBe(true);
+  });
+
+  it("undo of a delete reselects the clip; redo drops the selection again", () => {
+    const { scene, layer, clip } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    s().select({ layerId: layer.id, clipId: clip.id });
+    s().execute(deleteClipCommand(s().scene, clip.id)!);
+    expect(s().selection.clipId).toBeNull();
+    s().undo();
+    expect(s().selection).toEqual({ layerId: layer.id, clipId: clip.id, keyframe: null });
+    s().redo();
+    expect(s().selection).toEqual({ layerId: null, clipId: null, keyframe: null });
+  });
+
+  it("undo of a duplicate goes back to the original; redo returns to the copy", () => {
+    const { scene, layer, clip } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    s().select({ layerId: layer.id, clipId: clip.id });
+    const dup = duplicateClipCommand(s().scene, clip.id)!;
+    s().execute(dup.command);
+    s().select({ layerId: dup.layerId, clipId: dup.clipId, keyframe: null });
+    s().undo();
+    expect(s().selection.clipId).toBe(clip.id);
+    s().redo();
+    expect(s().selection.clipId).toBe(dup.clipId);
+  });
+
+  it("undoing a value edit keeps the clip picked since, and a coalesced run remembers its first start", () => {
+    const { scene, layer, clip } = fixture();
+    let t = 0;
+    const store = createTimelineStore(scene, { now: () => t });
+    const s = () => store.getState();
+    s().select({ layerId: layer.id, clipId: null });
+    s().execute(setBasePropCommand(s().scene, clip.id, "x", 1, "k")!);
+    s().select({ layerId: layer.id, clipId: clip.id });
+    t += 10;
+    s().execute(setBasePropCommand(s().scene, clip.id, "x", 2, "k")!);
+    expect(s().past.length).toBe(1);
+    expect(s().past[0]!.before.clipId).toBeNull();
+    s().undo();
+    expect(s().selection.clipId).toBe(clip.id);
   });
 
   it("drafts preview a gesture and commit as one command", () => {

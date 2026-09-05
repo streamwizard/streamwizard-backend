@@ -57,8 +57,10 @@ export function TransportBar() {
   const playing = useTimeline((s) => s.playing);
   const loop = useTimeline((s) => s.loop);
   const snap = useTimeline((s) => s.snap);
-  const canUndo = useTimeline((s) => s.past.length > 0);
-  const canRedo = useTimeline((s) => s.future.length > 0);
+  const undoLabel = useTimeline((s) => s.past[s.past.length - 1]?.command.label ?? null);
+  const redoLabel = useTimeline((s) => s.future[s.future.length - 1]?.command.label ?? null);
+  const undoText = undoLabel ? `Undo ${undoLabel}` : "Undo";
+  const redoText = redoLabel ? `Redo ${redoLabel}` : "Redo";
   const splittable = useTimeline(canSplit);
   const previewMuted = useTimeline((s) => s.previewMuted);
 
@@ -134,13 +136,13 @@ export function TransportBar() {
           <Scissors />
         </Button>
       </Tip>
-      <Tip label="Undo" keys={["Ctrl", "Z"]}>
-        <Button size="icon-sm" variant="ghost" aria-label="Undo" disabled={!canUndo} onMouseDown={keepFocus} onClick={() => api.getState().undo()}>
+      <Tip label={undoText} keys={["Ctrl", "Z"]}>
+        <Button size="icon-sm" variant="ghost" aria-label={undoText} data-undo-label={undoLabel ?? ""} disabled={!undoLabel} onMouseDown={keepFocus} onClick={() => api.getState().undo()}>
           <Undo2 />
         </Button>
       </Tip>
-      <Tip label="Redo" keys={["Ctrl", "Shift", "Z"]}>
-        <Button size="icon-sm" variant="ghost" aria-label="Redo" disabled={!canRedo} onMouseDown={keepFocus} onClick={() => api.getState().redo()}>
+      <Tip label={redoText} keys={["Ctrl", "Shift", "Z"]}>
+        <Button size="icon-sm" variant="ghost" aria-label={redoText} data-redo-label={redoLabel ?? ""} disabled={!redoLabel} onMouseDown={keepFocus} onClick={() => api.getState().redo()}>
           <Redo2 />
         </Button>
       </Tip>

@@ -12,7 +12,7 @@ import type { Command } from "./commands";
 import { DEFAULT_SAMPLE_ID } from "./sample-payloads";
 import { DEFAULT_PX_PER_MS, clampPxPerMs } from "./timeline/timeline-math";
 
-export const HISTORY_LIMIT = 100;
+export const HISTORY_LIMIT = 200;
 /** Commands sharing a coalesceKey inside this window become one undo step. */
 export const COALESCE_WINDOW_MS = 400;
 
@@ -31,6 +31,10 @@ export interface Selection {
 interface HistoryEntry {
   command: Command;
   at: number;
+  /** Selection when the command ran; undo brings it back (pruned to what exists). */
+  before: Selection;
+  /** Selection when it was undone; redo brings that back. */
+  after?: Selection;
 }
 
 export interface TimelineState {
@@ -103,6 +107,24 @@ function pruneSelection(scene: AlertScene, selection: Selection): Selection {
   return next;
 }
 
+/**
+ * Selection after undo/redo: `primary` where it still exists, holes filled
+ * from `fallback`. A clip that was deleted and comes back is reselected; a
+ * value edit undone under a clip you picked since leaves that clip selected.
+ * Layer follows the clip, and a keyframe only stays with its own clip.
+ */
+function restoreSelection(scene: AlertScene, primary: Selection, fallback: Selection): Selection {
+  const p = pruneSelection(scene, primary);
+  const f = pruneSelection(scene, fallback);
+  const clipId = p.clipId ?? f.clipId;
+  if (clipId) {
+    const loc = findClip(scene, clipId);
+    const keyframe = p.keyframe?.clipId === clipId ? p.keyframe : f.keyframe?.clipId === clipId ? f.keyframe : null;
+    return { layerId: loc?.layer.id ?? null, clipId, keyframe };
+  }
+  return { layerId: p.layerId ?? f.layerId, clipId: null, keyframe: null };
+}
+
 function mergeCommands(older: Command, newer: Command): Command {
   return {
     label: newer.label,
@@ -167,9 +189,10 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
       const last = past[past.length - 1];
       let nextPast: HistoryEntry[];
       if (last && command.coalesceKey && last.command.coalesceKey === command.coalesceKey && at - last.at <= COALESCE_WINDOW_MS) {
-        nextPast = [...past.slice(0, -1), { command: mergeCommands(last.command, command), at }];
+        // One step: undoing it lands where the first edit of the run started.
+        nextPast = [...past.slice(0, -1), { command: mergeCommands(last.command, command), at, before: last.before }];
       } else {
-        nextPast = [...past, { command, at }].slice(-HISTORY_LIMIT);
+        nextPast = [...past, { command, at, before: selection }].slice(-HISTORY_LIMIT);
       }
       set({
         scene: next,
@@ -191,8 +214,9 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
         dirty: computeDirty(next, get().savedScene),
         draft: null,
         past: past.slice(0, -1),
-        future: [...future, entry],
-        selection: pruneSelection(next, selection),
+        // Whatever was selected when undo was pressed is what redo should show again.
+        future: [...future, { ...entry, after: selection }],
+        selection: restoreSelection(next, selection, entry.before),
       });
     },
 
@@ -205,9 +229,9 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
         scene: next,
         dirty: computeDirty(next, get().savedScene),
         draft: null,
-        past: [...past, { ...entry, at: now() }],
+        past: [...past, { ...entry, at: now(), before: selection }],
         future: future.slice(0, -1),
-        selection: pruneSelection(next, selection),
+        selection: restoreSelection(next, entry.after ?? selection, selection),
       });
     },
 

@@ -48,6 +48,21 @@ export interface Command {
   coalesceKey?: string;
 }
 
+/** How a property reads in an undo label: "Set opacity", "Animate scale X". */
+export const PROP_LABELS: Record<PropName, string> = {
+  x: "X",
+  y: "Y",
+  width: "width",
+  height: "height",
+  scaleX: "scale X",
+  scaleY: "scale Y",
+  rotation: "rotation",
+  opacity: "opacity",
+  anchorX: "anchor X",
+  anchorY: "anchor Y",
+  volume: "volume",
+};
+
 export function compositeCommand(label: string, commands: Command[]): Command {
   return {
     label,
@@ -64,9 +79,13 @@ export function setSceneMetaCommand(
   coalesceKey?: string
 ): Command {
   const prev: typeof patch = {};
-  for (const key of Object.keys(patch) as (keyof typeof patch)[]) (prev as Record<string, unknown>)[key] = scene[key];
+  const keys = Object.keys(patch) as (keyof typeof patch)[];
+  for (const key of keys) (prev as Record<string, unknown>)[key] = scene[key];
+  const only = keys.length === 1 ? keys[0] : null;
+  const label =
+    only === "name" ? "Rename scene" : only === "duration" ? "Set duration" : only === "width" || only === "height" ? "Resize scene" : only === "fps" ? "Set frame rate" : "Edit scene";
   return {
-    label: "Edit scene",
+    label,
     apply: (s) => setSceneMeta(s, patch),
     invert: (s) => setSceneMeta(s, prev),
     coalesceKey,
@@ -114,9 +133,21 @@ export function updateLayerCommand(
   const found = findLayer(scene, layerId);
   if (!found) return null;
   const prev: typeof patch = {};
-  for (const key of Object.keys(patch) as (keyof typeof patch)[]) (prev as Record<string, unknown>)[key] = found.layer[key];
+  const keys = Object.keys(patch) as (keyof typeof patch)[];
+  for (const key of keys) (prev as Record<string, unknown>)[key] = found.layer[key];
+  const only = keys.length === 1 ? keys[0] : null;
+  const label =
+    only === "name"
+      ? "Rename layer"
+      : only === "visible"
+        ? patch.visible ? "Show layer" : "Hide layer"
+        : only === "locked"
+          ? patch.locked ? "Lock layer" : "Unlock layer"
+          : only === "muted"
+            ? patch.muted ? "Mute layer" : "Unmute layer"
+            : "Edit layer";
   return {
-    label: "Edit layer",
+    label,
     apply: (s) => updateLayer(s, layerId, patch),
     invert: (s) => updateLayer(s, layerId, prev),
     coalesceKey,
@@ -169,14 +200,15 @@ export function updateClipCommand(
   scene: AlertScene,
   clipId: string,
   patch: Partial<Pick<Clip, "source" | "base" | "effects" | "trimIn" | "trimOut">>,
-  coalesceKey?: string
+  coalesceKey?: string,
+  label = "Edit clip"
 ): Command | null {
   const loc = findClip(scene, clipId);
   if (!loc) return null;
   const prev: typeof patch = {};
   for (const key of Object.keys(patch) as (keyof typeof patch)[]) (prev as Record<string, unknown>)[key] = loc.clip[key];
   return {
-    label: "Edit clip",
+    label,
     apply: (s) => updateClip(s, clipId, patch),
     invert: (s) => updateClip(s, clipId, prev),
     coalesceKey,
@@ -188,7 +220,7 @@ export function setBasePropCommand(scene: AlertScene, clipId: string, prop: Prop
   if (!loc) return null;
   const prev = loc.clip.base[prop];
   return {
-    label: `Set ${prop}`,
+    label: `Set ${PROP_LABELS[prop]}`,
     apply: (s) => setBaseProp(s, clipId, prop, value),
     invert: (s) => setBaseProp(s, clipId, prop, prev),
     coalesceKey,
@@ -220,7 +252,10 @@ export function splitClipCommand(scene: AlertScene, clipId: string, atMs: number
 export function deleteClipCommand(scene: AlertScene, clipId: string): Command | null {
   const loc = findClip(scene, clipId);
   if (!loc) return null;
-  if (loc.layer.clips.length === 1) return removeLayerCommand(scene, loc.layer.id);
+  if (loc.layer.clips.length === 1) {
+    const cmd = removeLayerCommand(scene, loc.layer.id);
+    return cmd ? { ...cmd, label: "Delete clip" } : null;
+  }
   return removeClipCommand(scene, clipId);
 }
 
@@ -294,7 +329,7 @@ export function setKeyframeCommand(
   const id = prior?.id ?? createId("kf");
   const next: Keyframe = { id, time: keyframe.time, value: keyframe.value, easing: keyframe.easing ?? prior?.easing ?? "linear" };
   return {
-    label: prior ? "Change keyframe" : "Add keyframe",
+    label: prior ? `Change ${PROP_LABELS[prop]} keyframe` : `Add ${PROP_LABELS[prop]} keyframe`,
     apply: (s) => setKeyframe(s, clipId, prop, next),
     invert: (s) => (prior ? setKeyframe(s, clipId, prop, prior) : removeKeyframe(s, clipId, prop, id)),
     coalesceKey,
@@ -306,7 +341,7 @@ export function removeKeyframeCommand(scene: AlertScene, clipId: string, prop: P
   const kf = loc?.clip.tracks[prop]?.keyframes.find((k) => k.id === keyframeId);
   if (!loc || !kf) return null;
   return {
-    label: "Delete keyframe",
+    label: `Delete ${PROP_LABELS[prop]} keyframe`,
     apply: (s) => removeKeyframe(s, clipId, prop, keyframeId),
     invert: (s) => setKeyframe(s, clipId, prop, kf),
   };
@@ -320,7 +355,7 @@ export function moveKeyframeCommand(scene: AlertScene, clipId: string, prop: Pro
   const from = kf.time;
   const displaced = track.keyframes.find((k) => k.id !== keyframeId && k.time === timeMs) ?? null;
   return {
-    label: "Move keyframe",
+    label: `Move ${PROP_LABELS[prop]} keyframe`,
     apply: (s) => moveKeyframe(s, clipId, prop, keyframeId, timeMs),
     invert: (s) => {
       const back = moveKeyframe(s, clipId, prop, keyframeId, from);
@@ -349,7 +384,7 @@ export function clearTrackCommand(scene: AlertScene, clipId: string, prop: PropN
   if (!loc || !track || track.keyframes.length === 0) return null;
   const keyframes = track.keyframes;
   return {
-    label: `Stop animating ${prop}`,
+    label: `Stop animating ${PROP_LABELS[prop]}`,
     apply: (s) => clearTrack(s, clipId, prop),
     invert: (s) => setTrack(s, clipId, prop, keyframes),
   };
@@ -361,7 +396,7 @@ export function setTrackCommand(scene: AlertScene, clipId: string, prop: PropNam
   if (!loc) return null;
   const prev = loc.clip.tracks[prop]?.keyframes ?? [];
   return {
-    label: `Edit ${prop} keyframes`,
+    label: `Edit ${PROP_LABELS[prop]} keyframes`,
     apply: (s) => setTrack(s, clipId, prop, keyframes),
     invert: (s) => setTrack(s, clipId, prop, prev),
   };
@@ -413,7 +448,7 @@ export function stopwatchOnCommand(scene: AlertScene, clipId: string, prop: Prop
   const loc = findClip(scene, clipId);
   if (!loc || hasTrack(loc.clip, prop)) return null;
   const cmd = setKeyframeCommand(scene, clipId, prop, { time: keyframeTime(timeMs), value: loc.clip.base[prop] });
-  return cmd ? { ...cmd, label: `Animate ${prop}` } : null;
+  return cmd ? { ...cmd, label: `Animate ${PROP_LABELS[prop]}` } : null;
 }
 
 export function stopwatchOffCommand(scene: AlertScene, clipId: string, prop: PropName, timeMs: number): Command | null {
@@ -422,7 +457,7 @@ export function stopwatchOffCommand(scene: AlertScene, clipId: string, prop: Pro
   const clear = clearTrackCommand(scene, clipId, prop);
   const settle = setBasePropCommand(scene, clipId, prop, valueAt(loc.clip, prop, timeMs));
   if (!clear || !settle) return null;
-  return compositeCommand(`Stop animating ${prop}`, [clear, settle]);
+  return compositeCommand(`Stop animating ${PROP_LABELS[prop]}`, [clear, settle]);
 }
 
 /**
