@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Play, Square } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Play, Square, Zap } from "lucide-react";
 import {
   DEMO_EVENTS,
   DEMO_EVENT_DEFS,
@@ -11,6 +11,7 @@ import {
   type DemoEventType,
 } from "@repo/schemas";
 import type { DemoFireRequest, FireMode } from "./demo-fire";
+import { simulatorItemState } from "./simulator-availability";
 import {
   ALERT_EVENT_CATEGORIES,
   ALERT_EVENT_LABELS,
@@ -19,15 +20,31 @@ import {
   scanWidgetListeners,
   type AlertEventCategoryId,
 } from "@repo/ui/overlay";
-import { Button, Separator, Textarea, ToggleGroup, ToggleGroupItem } from "@repo/ui";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+  Button,
+  ButtonGroup,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Separator,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "@repo/ui";
 
 /**
@@ -60,14 +77,21 @@ const ALERT_BUTTON_GROUPS = ALERT_EVENT_CATEGORIES.map((category) => ({
   }),
 }));
 
-/**
- * Below this, a Live simulator is more round trips than the server action
- * should take. Local has no such cost, so the cap only applies to Live.
- */
-const MIN_LIVE_INTERVAL_MS = 1000;
-
 /** Picker group holding the events the widget's own source references. */
 const USED_GROUP = "Used by this widget";
+
+/**
+ * cmdk's default scorer is fuzzy enough that "raid" matches "Reward redeemed"
+ * and half the catalogue. Substring on the type and label is what people
+ * expect from a list this small; a prefix hit sorts first.
+ */
+function filterEvent(value: string, search: string, keywords?: string[]): number {
+  const q = search.trim().toLowerCase();
+  if (!q) return 1;
+  const fields = [value, ...(keywords ?? [])].map((f) => f.toLowerCase());
+  if (fields.some((f) => f.startsWith(q))) return 2;
+  return fields.some((f) => f.includes(q)) ? 1 : 0;
+}
 
 function storageKey(storageId: string) {
   return `sw:demo-panel:${storageId}`;
@@ -105,7 +129,7 @@ function readSaved(storageId: string): {
       edited: Boolean(saved.payload),
     };
   } catch {
-    // corrupt or unavailable storage — start clean
+    // corrupt or unavailable storage -- start clean
     return fallback;
   }
 }
@@ -180,7 +204,7 @@ export function DemoEventPanel({
         JSON.stringify({ type: selected, payload: payloadEdited ? payloadText : undefined })
       );
     } catch {
-      // storage full or blocked — persistence is a nicety, not a requirement
+      // storage full or blocked -- persistence is a nicety, not a requirement
     }
   }, [storageId, selected, payloadEdited, payloadText]);
 
@@ -311,14 +335,22 @@ export function DemoEventPanel({
     setRunningIds((ids) => [...ids, id]);
   }
 
+  const eventLabel = DEMO_EVENTS[selected].label;
+  const runningCount = runningIds.length;
+
   return (
     <div className={`shrink-0 border-b bg-background ${className ?? ""}`}>
-      {/* Every alert the alert box can raise. Showing all 23 at once turned the
-          bar into a wall, so they sit behind the same three groups the alert
-          inspector uses -- one row at a time, and a streamer who learned the
-          grouping in the inspector already knows this one. */}
-      <div className="px-3 pt-1.5 pb-1.5 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-muted-foreground mr-0.5 shrink-0">Alerts</span>
+      {/* One row. The alert buttons are what a streamer reaches for most, so
+          they stay flat; the full event catalogue and the looping simulators
+          are the escape hatches, folded behind one trigger each so the bar
+          stays a bar instead of three of them. Wrapping is the fallback for
+          the widget editor's narrower pane. */}
+      <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5">
+        {/* Every alert the alert box can raise. Showing all 23 at once turned
+            the bar into a wall, so they sit behind the same three groups the
+            alert inspector uses -- one group at a time, and a streamer who
+            learned the grouping in the inspector already knows this one. */}
+        <span className="mr-0.5 shrink-0 text-[10px] text-muted-foreground">Alerts</span>
 
         <ToggleGroup
           type="single"
@@ -327,30 +359,23 @@ export function DemoEventPanel({
           // the current group beats emptying the row.
           onValueChange={(v) => v && setAlertCategory(v as AlertEventCategoryId)}
           variant="outline"
-          className="h-6"
+          className="h-7"
         >
           {ALERT_BUTTON_GROUPS.map((group) => (
-            <ToggleGroupItem
-              key={group.id}
-              value={group.id}
-              className="h-6 px-2 text-[11px]"
-            >
+            <ToggleGroupItem key={group.id} value={group.id} className="h-7 px-2 text-xs">
               {group.label}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
 
-        <Separator
-          orientation="vertical"
-          className="mx-0.5 data-[orientation=vertical]:h-4"
-        />
+        <Separator orientation="vertical" className="mx-0.5 data-[orientation=vertical]:h-4" />
 
         {alertGroup.events.map(({ type, variant, label, hint }) => (
           <Button
             key={label}
             size="sm"
             variant="outline"
-            className="h-6 text-[11px] px-2"
+            className="h-7 px-2 text-xs"
             disabled={isSending}
             title={hint}
             aria-label={`Test the ${label} alert`}
@@ -360,167 +385,273 @@ export function DemoEventPanel({
           </Button>
         ))}
 
+        <Separator orientation="vertical" className="mx-0.5 data-[orientation=vertical]:h-4" />
+
+        {/* Everything else Twitch and StreamWizard send. A split button: the
+            left half fires whatever was picked last, so a custom widget's one
+            event stays a single click; the chevron opens the picker, the
+            variants and the payload editor. Custom widgets are written against
+            the dedicated subscription types and need them reachable. */}
+        <span className="mr-0.5 shrink-0 text-[10px] text-muted-foreground">Any event</span>
+
+        <Popover>
+          <ButtonGroup aria-label="Any event">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              disabled={isSending}
+              title={
+                payloadEdited ? `Fire ${eventLabel} with your edited payload` : `Fire ${eventLabel}`
+              }
+              onClick={() => fire(selected)}
+            >
+              <Zap className="size-3" />
+              <span className="max-w-44 truncate">{eventLabel}</span>
+            </Button>
+            <PopoverTrigger asChild>
+              <Button
+                size="icon"
+                variant="outline"
+                className="relative h-7 w-7"
+                aria-label="Pick an event or edit its payload"
+                title="Pick an event or edit its payload"
+              >
+                <ChevronDown className="size-3" />
+                {payloadEdited && (
+                  <>
+                    <span
+                      aria-hidden
+                      className="absolute right-1 top-1 size-1.5 rounded-full bg-primary"
+                    />
+                    <span className="sr-only">Payload edited</span>
+                  </>
+                )}
+              </Button>
+            </PopoverTrigger>
+          </ButtonGroup>
+
+          {/* Edge to edge: the search input is the popover's top edge and the
+              actions sit in a footer, so it reads as one surface rather than
+              a list boxed inside a card. */}
+          <PopoverContent
+            align="start"
+            className="w-96 max-h-(--radix-popover-content-available-height) overflow-y-auto p-0"
+          >
+            {/* Search-first: seventy-odd events is too many to scroll. The
+                item value is the subscription type and the label is a keyword,
+                so "follow" and "channel.follow" both land. The popover remounts
+                this on every open, so defaultValue re-highlights the current
+                pick each time. */}
+            <Command defaultValue={selected} filter={filterEvent} className="rounded-none">
+              <CommandInput placeholder="Search events" className="h-8 text-xs" />
+              <CommandList className="max-h-56">
+                <CommandEmpty className="py-4 text-xs text-muted-foreground">
+                  No events match.
+                </CommandEmpty>
+                {grouped.map(([group, types]) => (
+                  <CommandGroup key={group} heading={group}>
+                    {types.map((type) => (
+                      <CommandItem
+                        key={type}
+                        value={type}
+                        keywords={[DEMO_EVENTS[type].label]}
+                        className="py-1 text-xs"
+                        // Re-picking the current event must not throw away an
+                        // edited payload.
+                        onSelect={() => type !== selected && selectType(type)}
+                      >
+                        <Check
+                          className={`size-3 ${type === selected ? "opacity-100" : "opacity-0"}`}
+                        />
+                        <span className="truncate">{DEMO_EVENTS[type].label}</span>
+                        <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
+                          {type}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ))}
+              </CommandList>
+            </Command>
+
+            <div className="space-y-3 border-t p-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  disabled={isSending}
+                  onClick={() => fire(selected)}
+                >
+                  <Zap className="size-3" />
+                  Fire {eventLabel}
+                </Button>
+                {variants.map(([key, variant]) => (
+                  <Button
+                    key={key}
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={isSending}
+                    onClick={() => fire(selected, key)}
+                  >
+                    {variant.label}
+                  </Button>
+                ))}
+              </div>
+
+              <Collapsible open={payloadOpen} onOpenChange={setPayloadOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="-ml-1.5 h-7 px-1.5 text-xs text-muted-foreground"
+                  >
+                    {payloadOpen ? (
+                      <ChevronDown className="size-3" />
+                    ) : (
+                      <ChevronRight className="size-3" />
+                    )}
+                    Payload{payloadEdited ? " (edited)" : ""}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1.5 pt-1.5">
+                  <Textarea
+                    value={payloadText}
+                    onChange={(e) => {
+                      setPayloadText(e.target.value);
+                      setPayloadEdited(true);
+                    }}
+                    rows={8}
+                    spellCheck={false}
+                    className="max-h-72 font-mono text-[11px] leading-relaxed"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() => selectType(selected)}
+                    >
+                      Reset payload
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">
+                      Edits apply to {eventLabel} only.
+                    </span>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Looping sources. A one-shot shows what an event looks like; these
+            show what the widget looks like while data keeps arriving. Items
+            toggle without closing the menu, so starting a second loop is one
+            more click, and the trigger carries the running count so a hidden
+            loop is never a mystery. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant={runningCount > 0 ? "secondary" : "outline"}
+              className="h-7 px-2 text-xs"
+              title="Loop fake data into your widgets"
+            >
+              <Play className="size-3" />
+              Simulate
+              {runningCount > 0 && (
+                <span className="rounded-full bg-primary/15 px-1.5 text-[10px] leading-4 text-primary">
+                  {runningCount}
+                </span>
+              )}
+              <ChevronDown className="size-3 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-80">
+            {Object.values(WIDGET_SIMULATORS).map((def) => {
+              const running = runningIds.includes(def.id);
+              const { disabled, hint } = simulatorItemState({
+                mode: effectiveMode,
+                running,
+                intervalMs: def.defaultIntervalMs,
+                description: def.description,
+              });
+              return (
+                <DropdownMenuItem
+                  key={def.id}
+                  disabled={disabled}
+                  className="items-start gap-2"
+                  title={hint}
+                  onSelect={(event) => {
+                    // Keep the menu open: a second simulator is one click away.
+                    event.preventDefault();
+                    if (running) stopSimulator(def.id);
+                    else startSimulator(def.id);
+                  }}
+                >
+                  {running ? (
+                    <Square className="mt-0.5 size-3.5" />
+                  ) : (
+                    <Play className="mt-0.5 size-3.5" />
+                  )}
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-xs">{def.label}</span>
+                    <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                      {hint}
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
+            {runningCount > 0 && effectiveMode === "live" && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+                  Going to every overlay you have open
+                </DropdownMenuLabel>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* The mode governs every test event in the editor, the alert box's own
-            Test buttons included, so it reads once at the top rather than
-            buried beside the picker.
+            Test buttons included, so it reads once at the end of the row rather
+            than buried beside the picker.
             Local posts straight into the canvas previews; Live goes out over
             ws-server, which the canvas listens to as well, so the preview and
             every open overlay show the same event from one delivery. */}
         {changeMode && (
-          <div className="ml-auto flex items-center rounded-md border border-border overflow-hidden">
-            <button
-              type="button"
-              onClick={() => changeMode("local")}
-              className={`text-[11px] px-2 py-0.5 transition-colors ${
-                effectiveMode === "local" ? "bg-accent text-foreground" : "text-muted-foreground"
-              }`}
+          <ToggleGroup
+            type="single"
+            value={effectiveMode}
+            onValueChange={(v) => v && changeMode(v as FireMode)}
+            variant="outline"
+            className="ml-auto h-7"
+            aria-label="Where test events go"
+          >
+            <ToggleGroupItem
+              value="local"
+              className="h-7 px-2 text-xs"
+              title="Stay in this tab. Events go straight into the canvas."
             >
               Local
-            </button>
-            <button
-              type="button"
-              onClick={() => changeMode("live")}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="live"
+              className="h-7 px-2 text-xs"
               disabled={!liveAvailable}
               title={
                 liveAvailable
                   ? "Send through the overlay server: this canvas and every overlay you have open"
                   : "Connect to live events first. Live sends through the overlay server."
               }
-              className={`text-[11px] px-2 py-0.5 transition-colors disabled:opacity-40 ${
-                effectiveMode === "live" ? "bg-accent text-foreground" : "text-muted-foreground"
-              }`}
             >
               Live
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         )}
       </div>
-
-      {/* Everything else Twitch sends. Separated because it's the escape hatch,
-          not the common path: custom widgets are written against the dedicated
-          subscription types and need them reachable. */}
-      <div className="px-3 py-1.5 flex items-center gap-1.5 flex-wrap border-t border-border/50">
-        <span className="text-[10px] text-muted-foreground mr-0.5 shrink-0">Any event</span>
-
-        <Select value={selected} onValueChange={(v) => selectType(v as DemoEventType)}>
-          <SelectTrigger className="h-6 text-[11px] w-[190px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {grouped.map(([group, types]) => (
-              <SelectGroup key={group}>
-                <SelectLabel className="text-[10px]">{group}</SelectLabel>
-                {types.map((type) => (
-                  <SelectItem key={type} value={type} className="text-xs">
-                    {DEMO_EVENTS[type].label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button
-          size="sm"
-          className="h-6 text-[11px] px-2"
-          disabled={isSending}
-          onClick={() => fire(selected)}
-        >
-          Fire
-        </Button>
-
-        {variants.map(([key, variant]) => (
-          <Button
-            key={key}
-            size="sm"
-            variant="outline"
-            className="h-6 text-[11px] px-2"
-            disabled={isSending}
-            onClick={() => fire(selected, key)}
-          >
-            {variant.label}
-          </Button>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => setPayloadOpen((v) => !v)}
-          className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground"
-        >
-          {payloadOpen ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-          Payload{payloadEdited ? " (edited)" : ""}
-        </button>
-      </div>
-
-      {/* Looping sources. A one-shot shows what an event looks like; these show
-          what the widget looks like while data keeps arriving. */}
-      <div className="px-3 py-1.5 flex items-center gap-1.5 flex-wrap border-t border-border/50">
-        <span className="text-[10px] text-muted-foreground mr-0.5 shrink-0">Simulate</span>
-        {Object.values(WIDGET_SIMULATORS).map((def) => {
-          const running = runningIds.includes(def.id);
-          const tooFastForLive =
-            effectiveMode === "live" && def.defaultIntervalMs < MIN_LIVE_INTERVAL_MS;
-          return (
-            <Button
-              key={def.id}
-              size="sm"
-              variant={running ? "secondary" : "outline"}
-              className="h-6 text-[11px] px-2"
-              disabled={tooFastForLive && !running}
-              title={
-                tooFastForLive
-                  ? "Too frequent to send live — switch to Local"
-                  : def.description
-              }
-              onClick={() => (running ? stopSimulator(def.id) : startSimulator(def.id))}
-            >
-              {running ? (
-                <Square className="mr-1 h-2.5 w-2.5" />
-              ) : (
-                <Play className="mr-1 h-2.5 w-2.5" />
-              )}
-              {def.label}
-            </Button>
-          );
-        })}
-        {runningIds.length > 0 && effectiveMode === "live" && (
-          <span className="text-[10px] text-muted-foreground">
-            Going to every overlay you have open
-          </span>
-        )}
-      </div>
-
-      {payloadOpen && (
-        <div className="px-3 pb-2 space-y-1.5">
-          <Textarea
-            value={payloadText}
-            onChange={(e) => {
-              setPayloadText(e.target.value);
-              setPayloadEdited(true);
-            }}
-            rows={8}
-            spellCheck={false}
-            className="font-mono text-[11px] leading-relaxed"
-          />
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 text-[11px]"
-              onClick={() => selectType(selected)}
-            >
-              Reset payload
-            </Button>
-            <span className="text-[10px] text-muted-foreground">
-              Edits apply to {DEMO_EVENTS[selected].label} only.
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

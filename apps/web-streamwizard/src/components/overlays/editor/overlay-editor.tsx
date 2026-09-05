@@ -52,6 +52,7 @@ import { useUnsavedChangesGuard } from "@/hooks/use-unsaved-changes-guard";
 import { UnsavedChangesDialog } from "@/components/modals/unsaved-changes-dialog";
 import { useOverlayDraft } from "@/hooks/overlays/use-overlay-draft";
 import { RestoreDraftDialog } from "./restore-draft-dialog";
+import { CLIP_VOLUME_HINT_KEY, claimOneTimeHint } from "./one-time-hints";
 import { centerPan, computeFitZoom } from "./canvas-zoom";
 import { ResolutionDialog } from "./resolution-dialog";
 import { CanvasViewPopover } from "./canvas-view-popover";
@@ -558,6 +559,8 @@ export function OverlayEditor({ initialScene, clipFolders, initialWidgets }: Ove
             variant={demoOpen ? "secondary" : "outline"}
             size="sm"
             onClick={() => setDemoOpen((v) => !v)}
+            aria-expanded={demoOpen}
+            aria-controls="overlay-demo-panel"
             title="Feed fake events to every widget on this canvas"
           >
             <FlaskConical className="mr-2 h-3 w-3" />
@@ -715,19 +718,35 @@ export function OverlayEditor({ initialScene, clipFolders, initialWidgets }: Ove
         </div>
       ) : null}
 
-      {/* Kept mounted and hidden with CSS rather than unmounted: collapsing the
-          panel must not stop a running simulator, and the payload editor keeps
-          its scroll position. Live needs no socket of our own -- the server
-          action broadcasts through ws-server -- so wsConnected stays undefined. */}
-      <div className={demoOpen ? undefined : "hidden"}>
-        <DemoEventPanel
-          storageId={scene.id}
-          sourceJs={canvasWidgetJs}
-          mode={demoFireMode}
-          onModeChange={setDemoFireMode}
-          onFire={fireDemo}
-          onRunningSimulatorsChange={setRunningSimulatorIds}
-        />
+      {/* Kept mounted and collapsed with CSS rather than unmounted: collapsing
+          the panel must not stop a running simulator, and the payload editor
+          keeps its scroll position. The bar pushes the canvas down, so it
+          slides open (grid row 0fr to 1fr, no height to measure) instead of
+          snapping; the viewport hook recentres the canvas every frame. While
+          collapsed it is inert, so nothing inside can take focus. Live needs
+          no socket of our own -- the server action broadcasts through
+          ws-server -- so wsConnected stays undefined. */}
+      <div
+        id="overlay-demo-panel"
+        inert={!demoOpen}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out-strong motion-reduce:transition-none ${
+          demoOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div
+          className={`min-h-0 overflow-hidden transition-opacity duration-200 ease-out-strong ${
+            demoOpen ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <DemoEventPanel
+            storageId={scene.id}
+            sourceJs={canvasWidgetJs}
+            mode={demoFireMode}
+            onModeChange={setDemoFireMode}
+            onFire={fireDemo}
+            onRunningSimulatorsChange={setRunningSimulatorIds}
+          />
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -755,6 +774,13 @@ export function OverlayEditor({ initialScene, clipFolders, initialWidgets }: Ove
         onAddWidget={(type) => {
           captureEvent("widget_added", { widget: type, custom: false });
           addItem(type);
+          if (type === "clips_widget" && claimOneTimeHint(CLIP_VOLUME_HINT_KEY)) {
+            toast("Clips start at 50% volume", {
+              description:
+                "So your own clips don't jumpscare you. Ask us how we know. Volume lives under Playback.",
+              id: CLIP_VOLUME_HINT_KEY,
+            });
+          }
         }}
         onOpenLibrary={() => setWidgetLibraryOpen(true)}
       />

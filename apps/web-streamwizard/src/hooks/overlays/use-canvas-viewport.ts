@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOverlayStore } from "@/stores/overlay-editor-store";
 import {
+  activatableControl,
+  keepsSpace,
+  movesFocus,
+} from "@/components/overlays/editor/space-activation";
+import {
   centerPan,
   clampPan,
   wheelZoom,
@@ -30,14 +35,6 @@ function wheelDeltaPx(event: WheelEvent, pane: HTMLElement) {
 function isTyping(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
-}
-
-/** Controls that Space activates on its own; they keep their key. */
-function activatesWithSpace(target: EventTarget | null) {
-  const el = target as HTMLElement | null;
-  return !!el?.closest?.(
-    'button, a, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitem"], [role="slider"]'
-  );
 }
 
 /**
@@ -159,14 +156,43 @@ export function useCanvasViewport({ paneRef }: CanvasViewportOptions) {
     return () => pane.removeEventListener("wheel", onWheel);
   }, [paneRef, applyPan]);
 
+  // How focus last moved. Tracked by hand because :focus-visible is no help
+  // here: pressing Space is itself keyboard interaction, so the browser marks
+  // a mouse-clicked button as keyboard-focused before our listener runs.
+  const keyboardFocus = useRef(false);
+  useEffect(() => {
+    const onPointerDown = () => {
+      keyboardFocus.current = false;
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (movesFocus(e.key)) keyboardFocus.current = true;
+    };
+    // Capture: a control that stops these from bubbling still moved focus.
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, []);
+
   // Space pans, but not while it is being typed into something.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space" || isTyping(e.target)) return;
+      const target = e.target as HTMLElement | null;
+      // A button reached by keyboard keeps its own Space, so tabbing around
+      // the toolbar still works.
+      if (keepsSpace(target, keyboardFocus.current)) return;
       // With nothing focused, Space scrolls the page; hold it for panning
-      // instead. A focused button keeps its own Space so tabbing around the
-      // toolbar still works.
-      if (!activatesWithSpace(e.target)) e.preventDefault();
+      // instead.
+      e.preventDefault();
+      // A toolbar button clicked with the mouse stays focused, and the browser
+      // arms it on Space keydown and fires the click on keyup even though that
+      // keydown was cancelled. Dropping focus is what actually stops the last
+      // button pressed firing again when the pan ends: click zoom in, hold
+      // Space to move around, and releasing Space used to zoom a second time.
+      activatableControl(target)?.blur?.();
       if (!e.repeat) setSpaceHeld(true);
     };
     const onKeyUp = (e: KeyboardEvent) => {

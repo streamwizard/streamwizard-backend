@@ -90,7 +90,8 @@ export const DEFAULT_CLIPS_WIDGET_ITEM_CONFIG: ClipsWidgetItemConfig = {
   minViewCount: 0,
   isFeaturedOnly: false,
   clipMuted: false,
-  clipVolume: 1,
+  // Half volume: a fresh clip widget at 100% jumpscares whoever is building it.
+  clipVolume: 0.5,
   clipTransition: "cut",
   clipTransitionMs: 600,
 };

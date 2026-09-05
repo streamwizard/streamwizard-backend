@@ -20,6 +20,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* Easing. Tailwind's built-in ease-out is too gentle for UI reveals; this is
+     the strong curve used for anything entering or leaving the layout. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;

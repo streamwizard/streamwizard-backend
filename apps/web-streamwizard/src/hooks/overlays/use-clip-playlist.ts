@@ -42,7 +42,7 @@ export function useClipPlaylist({
 
   const persistedMuted =
     config.clipMuted ?? DEFAULT_CLIPS_WIDGET_CONFIG.clipMuted;
-  const volume = config.clipVolume ?? 1;
+  const volume = config.clipVolume ?? DEFAULT_CLIPS_WIDGET_CONFIG.clipVolume;
   // Outside the editor there is no mute control, so the widget's own setting wins.
   const muted = previewEditor
     ? editorClipPlayback.previewForceMute || persistedMuted
