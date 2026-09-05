@@ -1,7 +1,8 @@
 /**
  * Seeds a timeline from a legacy alert variant so "Create timeline" opens on
  * something that already looks like the streamer's alert, not a blank stage:
- * the picture or video, both text lines with a plain fade, and the sound.
+ * the picture or video, both text lines and the sound, with the variant's
+ * entrance and exit animations written out as keyframes.
  */
 
 import {
@@ -15,13 +16,86 @@ import {
   type AlertScene,
   type BaseProps,
   type ClipSource,
+  type Easing,
   type FontWeight,
+  type PropName,
 } from "@repo/alert-scene";
-import type { AlertVariantConfig } from "@repo/ui/overlay";
+import type { AlertAnimationIn, AlertAnimationOut, AlertVariantConfig } from "@repo/ui/overlay";
 
 /** Mirrors the legacy renderer's in/out timing so the seed feels familiar. */
 export const SEED_IN_MS = 500;
 export const SEED_OUT_MS = 350;
+/** The legacy CSS: `cubic-bezier(0.22, 1, 0.36, 1)` in, `ease-in` out. Applied per segment, as CSS keyframes do. */
+export const SEED_IN_EASING: Easing = { x1: 0.22, y1: 1, x2: 0.36, y2: 1 };
+export const SEED_OUT_EASING: Easing = { x1: 0.42, y1: 0, x2: 1, y2: 1 };
+
+interface SeedKeyframe {
+  time: number;
+  value: number;
+  easing?: Easing;
+}
+
+type SeedTracks = Partial<Record<PropName, SeedKeyframe[]>>;
+
+/**
+ * The legacy `animationIn` as keyframes over the first `SEED_IN_MS`. Slide
+ * offsets add to the clip's resting `y` (positions are anchor positions in
+ * scene px); scale runs on both axes. Percentages in the CSS bounce become
+ * absolute ms inside the in-window.
+ */
+export function entranceKeyframes(animation: AlertAnimationIn, rest: { y: number }): SeedTracks {
+  const e = SEED_IN_EASING;
+  const t = SEED_IN_MS;
+  const fade: SeedKeyframe[] = [
+    { time: 0, value: 0, easing: e },
+    { time: t, value: 1 },
+  ];
+  switch (animation) {
+    case "fade":
+      return { opacity: fade };
+    case "slide_up":
+      return { opacity: fade, y: [{ time: 0, value: rest.y + 32, easing: e }, { time: t, value: rest.y }] };
+    case "slide_down":
+      return { opacity: fade, y: [{ time: 0, value: rest.y - 32, easing: e }, { time: t, value: rest.y }] };
+    case "zoom": {
+      const scale: SeedKeyframe[] = [{ time: 0, value: 0.8, easing: e }, { time: t, value: 1 }];
+      return { opacity: fade, scaleX: scale, scaleY: scale };
+    }
+    case "bounce": {
+      const scale: SeedKeyframe[] = [
+        { time: 0, value: 0.6, easing: e },
+        { time: Math.round(t * 0.6), value: 1.08, easing: e },
+        { time: Math.round(t * 0.8), value: 0.97, easing: e },
+        { time: t, value: 1 },
+      ];
+      return {
+        opacity: [{ time: 0, value: 0, easing: e }, { time: Math.round(t * 0.6), value: 1 }],
+        scaleX: scale,
+        scaleY: scale,
+      };
+    }
+  }
+}
+
+/** The legacy `animationOut` as keyframes over the last `SEED_OUT_MS` before `end`. */
+export function exitKeyframes(animation: AlertAnimationOut, rest: { y: number }, end: number): SeedTracks {
+  const e = SEED_OUT_EASING;
+  const start = Math.max(SEED_IN_MS, end - SEED_OUT_MS);
+  const fade: SeedKeyframe[] = [
+    { time: start, value: 1, easing: e },
+    { time: end, value: 0 },
+  ];
+  switch (animation) {
+    case "fade":
+      return { opacity: fade };
+    case "slide_down":
+      return { opacity: fade, y: [{ time: start, value: rest.y, easing: e }, { time: end, value: rest.y + 24 }] };
+    case "zoom": {
+      const scale: SeedKeyframe[] = [{ time: start, value: 1, easing: e }, { time: end, value: 0.85 }];
+      return { opacity: fade, scaleX: scale, scaleY: scale };
+    }
+  }
+}
 
 export interface SeedOptions {
   width: number;
@@ -44,12 +118,21 @@ function seedDuration(variant: AlertVariantConfig, hasVideo: boolean, mediaDurat
   return Math.min(MAX_SCENE_DURATION_MS, Math.max(1000, Math.round(mediaDurationMs) + SEED_OUT_MS));
 }
 
-function fade(scene: AlertScene, clipId: string): AlertScene {
-  const end = scene.duration;
-  let s = setKeyframe(scene, clipId, "opacity", { time: 0, value: 0, easing: { x1: 0.22, y1: 1, x2: 0.36, y2: 1 } });
-  s = setKeyframe(s, clipId, "opacity", { time: SEED_IN_MS, value: 1, easing: "linear" });
-  s = setKeyframe(s, clipId, "opacity", { time: Math.max(SEED_IN_MS, end - SEED_OUT_MS), value: 1, easing: { x1: 0.42, y1: 0, x2: 1, y2: 1 } });
-  s = setKeyframe(s, clipId, "opacity", { time: end, value: 0, easing: "linear" });
+/**
+ * Writes the variant's entrance and exit onto a visual clip that spans the
+ * whole scene. A track both touch rests between them (the in's last and the
+ * out's first keyframe hold the same value); a track only one touches holds
+ * by `evaluate`'s clamping past its last keyframe.
+ */
+function animate(scene: AlertScene, clipId: string, rest: BaseProps, variant: AlertVariantConfig): AlertScene {
+  const parts = [entranceKeyframes(variant.animationIn, rest), exitKeyframes(variant.animationOut, rest, scene.duration)];
+  let s = scene;
+  for (const tracks of parts) {
+    for (const key in tracks) {
+      const prop = key as PropName;
+      for (const kf of tracks[prop] ?? []) s = setKeyframe(s, clipId, prop, { time: kf.time, value: kf.value, easing: kf.easing ?? "linear" });
+    }
+  }
   return s;
 }
 
@@ -89,7 +172,7 @@ export function createTimelineFromVariant(variant: AlertVariantConfig, opts: See
       source: { kind: "image", url: variant.mediaUrl, fit: "contain" },
       base: base(scene, w / 2, Math.round(h * 0.34), size, size),
     });
-    scene = fade(addClip(scene, layer.id, clip), clip.id);
+    scene = animate(addClip(scene, layer.id, clip), clip.id, clip.base, variant);
   }
 
   if (hasVideo) {
@@ -103,7 +186,7 @@ export function createTimelineFromVariant(variant: AlertVariantConfig, opts: See
       source: { kind: "video", url: variant.mediaUrl, loop: variant.durationMode !== "media", fit: "contain" },
       base: base(scene, w / 2, Math.round(h * 0.34), Math.round(w * 0.8), Math.round(h * 0.55), hasSound ? 0 : 1),
     });
-    scene = fade(addClip(scene, layer.id, clip), clip.id);
+    scene = animate(addClip(scene, layer.id, clip), clip.id, clip.base, variant);
   }
 
   const hasPicture = hasImage || hasVideo;
@@ -117,7 +200,7 @@ export function createTimelineFromVariant(variant: AlertVariantConfig, opts: See
     source: textSource(variant.titleTemplate, variant, variant.fontSize, variant.fontWeight, variant.titleColor),
     base: base(scene, w / 2, Math.round(titleY), Math.round(w * 0.9), titleH),
   });
-  scene = fade(addClip(scene, title.id, titleClip), titleClip.id);
+  scene = animate(addClip(scene, title.id, titleClip), titleClip.id, titleClip.base, variant);
 
   if (hasMessage) {
     const messageSize = Math.round(variant.fontSize * 0.6);
@@ -129,7 +212,7 @@ export function createTimelineFromVariant(variant: AlertVariantConfig, opts: See
       source: textSource(variant.messageTemplate, variant, messageSize, 400, variant.messageColor),
       base: base(scene, w / 2, Math.round(titleY + titleH / 2 + messageSize * 1.1), Math.round(w * 0.9), Math.round(messageSize * 2.6)),
     });
-    scene = fade(addClip(scene, message.id, messageClip), messageClip.id);
+    scene = animate(addClip(scene, message.id, messageClip), messageClip.id, messageClip.base, variant);
   }
 
   if (hasSound) {
