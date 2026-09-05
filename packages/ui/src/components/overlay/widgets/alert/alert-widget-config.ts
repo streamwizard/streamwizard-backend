@@ -204,6 +204,15 @@ export const ALERT_DETAIL_TOKENS: Partial<Record<AlertEventType, "reward" | "cha
   charity_donation: "charity",
 };
 
+/** Events whose payload names a sub plan, for `{tier}`. */
+export const ALERT_TIER_EVENTS: readonly AlertEventType[] = [
+  "sub",
+  "resub",
+  "gift_sub",
+  "community_gift",
+  "prime_upgrade",
+];
+
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 export const ALERT_MEDIA_KINDS = ["", "image", "video"] as const;
@@ -874,6 +883,22 @@ export const ALERT_TEMPLATE_TOKENS = [
   "tier",
 ] as const;
 export type AlertTemplateToken = (typeof ALERT_TEMPLATE_TOKENS)[number];
+
+/**
+ * The tokens an event can actually fill. `{name}` always; the rest follow the
+ * per-event lists above, so a `{gifter}` on a follow reads as the empty string
+ * it would be on stream and the editor can say so up front.
+ */
+export function alertTokensForEvent(event: AlertEventType): ReadonlySet<AlertTemplateToken> {
+  const out = new Set<AlertTemplateToken>(["name"]);
+  if (ALERT_AMOUNT_LABELS[event]) out.add("amount");
+  if (ALERT_MESSAGE_EVENTS.includes(event)) out.add("message");
+  if (ALERT_GIFTER_EVENTS.includes(event)) out.add("gifter");
+  const detail = ALERT_DETAIL_TOKENS[event];
+  if (detail) out.add(detail);
+  if (ALERT_TIER_EVENTS.includes(event)) out.add("tier");
+  return out;
+}
 
 /** Twitch's `sub_plan` / `tier` strings as a streamer would say them. */
 export function alertTierLabel(plan: unknown): string {

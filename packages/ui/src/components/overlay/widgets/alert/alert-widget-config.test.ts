@@ -7,7 +7,9 @@ import {
   ALERT_EVENT_SUBSCRIPTION_TYPES,
   ALERT_EVENT_TYPES,
   ALERT_NAME_LABELS,
+  ALERT_TIER_EVENTS,
   DEFAULT_ALERT_VARIANT_TITLES,
+  alertTokensForEvent,
   alertInstanceFromSocketMessage,
   alertSkipReason,
   buildTestAlertSocketMessage,
@@ -648,6 +650,27 @@ describe("sub tier", () => {
     expect(Object.keys(tokens).sort()).toEqual([...ALERT_TEMPLATE_TOKENS].sort());
     expect(tokens.tier).toBe("Tier 2");
     expect(tokens.name).toBe("ada");
+  });
+});
+
+describe("tokens per event", () => {
+  it("always offers {name} and only the tokens the payload can fill", () => {
+    expect([...alertTokensForEvent("follow")]).toEqual(["name"]);
+    expect([...alertTokensForEvent("cheer")].sort()).toEqual(["amount", "message", "name"]);
+    expect([...alertTokensForEvent("sub")].sort()).toEqual(["name", "tier"]);
+    expect([...alertTokensForEvent("resub")].sort()).toEqual(["amount", "message", "name", "tier"]);
+    expect([...alertTokensForEvent("gift_upgrade")].sort()).toEqual(["gifter", "name"]);
+    expect([...alertTokensForEvent("redemption")].sort()).toEqual(["amount", "message", "name", "reward"]);
+    expect([...alertTokensForEvent("charity_donation")].sort()).toEqual(["amount", "charity", "message", "name"]);
+    expect(alertTokensForEvent("raid").has("tier")).toBe(false);
+  });
+
+  it("the tier list matches what the socket mapping actually fills", () => {
+    for (const event of ALERT_EVENT_TYPES) {
+      const alert = alertInstanceFromSocketMessage(buildTestAlertSocketMessage(event));
+      expect(alert).not.toBeNull();
+      expect(alert!.tier !== "").toBe(ALERT_TIER_EVENTS.includes(event));
+    }
   });
 });
 

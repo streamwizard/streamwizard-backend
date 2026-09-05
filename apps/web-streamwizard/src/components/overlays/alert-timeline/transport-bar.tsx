@@ -7,6 +7,7 @@ import { Button, Kbd, KbdGroup, Separator, Tooltip, TooltipContent, TooltipTrigg
 import { AddLayerMenu } from "./add-layer-menu";
 import { splitClipCommand } from "./commands";
 import { formatTimecode } from "./format-time";
+import { SampleSelect } from "./sample-select";
 import { usePlayback, useTimeline, useTimelineStoreApi, useTimelineView } from "./timeline-context";
 import type { TimelineState } from "./timeline-store";
 
@@ -119,6 +120,8 @@ export function TransportBar() {
         </Button>
       </Tip>
       <TimeReadout />
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      <SampleSelect />
       <Separator orientation="vertical" className="mx-1 h-5" />
       <Tip label="Split at playhead" keys={["S"]}>
         <Button size="icon-sm" variant="ghost" aria-label="Split at playhead" disabled={!splittable} onMouseDown={keepFocus} onClick={split}>

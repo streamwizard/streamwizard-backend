@@ -3,13 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collectSceneFontFamilies } from "@repo/alert-scene";
 import { SceneStage } from "@repo/alert-scene/renderer";
-import {
-  alertInstanceFromSocketMessage,
-  alertTokensFromInstance,
-  buildTestAlertSocketMessage,
-  useGoogleFonts,
-  type AlertEventType,
-} from "@repo/ui/overlay";
+import { useGoogleFonts } from "@repo/ui/overlay";
+import { sampleTokens } from "../sample-payloads";
 import { usePlayback, useTimeline } from "../timeline-context";
 import { visibleScene } from "../timeline-store";
 import { StageOverlay } from "./stage-overlay";
@@ -23,10 +18,12 @@ const MAX_SCALE = 2;
  * animates outside the scene box stays visible, as it would on stream; only
  * the checkerboard marks the scene bounds.
  */
-export function PreviewPane({ event }: { event: AlertEventType }) {
+export function PreviewPane() {
   const { stageRef, controls } = usePlayback();
   const scene = useTimeline(visibleScene);
   const previewMuted = useTimeline((s) => s.previewMuted);
+  const event = useTimeline((s) => s.event);
+  const sampleId = useTimeline((s) => s.sampleId);
   const hostRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -46,11 +43,9 @@ export function PreviewPane({ event }: { event: AlertEventType }) {
     return () => observer.disconnect();
   }, []);
 
-  // A realistic alert while editing: the same fixture the Test button fires.
-  const tokens = useMemo(() => {
-    const alert = alertInstanceFromSocketMessage(buildTestAlertSocketMessage(event));
-    return alert ? alertTokensFromInstance(alert) : {};
-  }, [event]);
+  // A realistic alert while editing: the chosen sample, built through the
+  // same socket-message path a real alert takes.
+  const tokens = useMemo(() => sampleTokens(event, sampleId), [event, sampleId]);
 
   const fonts = useMemo(() => collectSceneFontFamilies(scene), [scene]);
   useGoogleFonts(fonts);

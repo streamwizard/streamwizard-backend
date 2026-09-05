@@ -1,9 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { findClip, type Clip, type ClipSource, type MediaFit, type PropName, type ShapeKind } from "@repo/alert-scene";
-import { ALERT_TEMPLATE_TOKENS } from "@repo/ui/overlay";
 import { Link2, Unlink2 } from "lucide-react";
-import { Button, ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
+import { ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
 import { InspectorSection } from "@/components/overlays/editor/inspector-section";
 import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlignSelect } from "@/components/overlays/inspector-fields";
@@ -21,6 +21,7 @@ import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_CLIP_MS, MIN_SCENE_DURATION_
 import { AnimatableField } from "./animatable-field";
 import { Field, Unit } from "./field-chrome";
 import { KeyframeSection } from "./keyframe-section";
+import { TokenChips } from "./token-chips";
 
 function SceneSection() {
   const api = useTimelineStoreApi();
@@ -318,6 +319,7 @@ function SoundSection({ clip }: { clip: Clip }) {
 
 function SourceSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const src = clip.source;
   const setSource = (next: ClipSource, key: string) => {
     const s = api.getState();
@@ -399,14 +401,8 @@ function SourceSection({ clip }: { clip: Clip }) {
       <InspectorSection title="Text" defaultOpen>
         <div className="space-y-3">
           <Field label="Text">
-            <Textarea value={src.text} rows={3} onChange={(e) => patch({ text: e.target.value.slice(0, 500) }, "text")} className="text-xs" />
-            <div className="flex flex-wrap gap-1 pt-1">
-              {ALERT_TEMPLATE_TOKENS.map((token) => (
-                <Button key={token} type="button" size="xs" variant="outline" className="font-mono" onClick={() => patch({ text: `${src.text}{${token}}` }, "text")}>
-                  {`{${token}}`}
-                </Button>
-              ))}
-            </div>
+            <Textarea ref={textareaRef} value={src.text} rows={3} onChange={(e) => patch({ text: e.target.value.slice(0, 500) }, "text")} className="text-xs" />
+            <TokenChips text={src.text} textareaRef={textareaRef} onChange={(text) => patch({ text }, "text")} />
           </Field>
           <GoogleFontSelect value={src.fontFamily} onValueChange={(v) => patch({ fontFamily: v }, "font")} />
           <div className="grid grid-cols-2 gap-2">

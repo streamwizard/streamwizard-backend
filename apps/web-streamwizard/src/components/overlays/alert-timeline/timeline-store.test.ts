@@ -137,6 +137,18 @@ describe("timeline store", () => {
     expect(store.getState().past.length).toBe(0);
   });
 
+  it("the event and the chosen sample are session state, not edits", () => {
+    const { scene } = fixture();
+    const store = createTimelineStore(scene, { event: "cheer" });
+    expect(store.getState().event).toBe("cheer");
+    expect(store.getState().sampleId).toBe("default");
+    store.getState().setSample("big");
+    expect(store.getState().sampleId).toBe("big");
+    expect(isDirty(store.getState())).toBe(false);
+    expect(store.getState().past.length).toBe(0);
+    expect(createTimelineStore(scene).getState().event).toBe("follow");
+  });
+
   it("clamps the playhead to the scene", () => {
     const { scene } = fixture();
     const store = createTimelineStore(scene);

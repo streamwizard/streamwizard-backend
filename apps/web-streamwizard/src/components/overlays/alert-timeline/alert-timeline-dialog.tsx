@@ -64,7 +64,7 @@ export interface AlertTimelineDialogProps {
  * and therefore stacks above without a higher z-index.
  */
 export function AlertTimelineDialog(props: AlertTimelineDialogProps) {
-  const [store] = useState(() => createTimelineStore(props.initialScene, { saved: props.saved }));
+  const [store] = useState(() => createTimelineStore(props.initialScene, { saved: props.saved, event: props.event }));
   return (
     <TimelineStoreProvider value={store}>
       <Providers {...props} />
@@ -88,7 +88,6 @@ function Providers(props: AlertTimelineDialogProps) {
 }
 
 function EditorDialog({
-  event,
   eventLabel,
   onSave,
   onClose,
@@ -183,7 +182,7 @@ function EditorDialog({
               <ResizablePanel id="top" minSize="25%" className="min-h-0">
                 <ResizablePanelGroup orientation="horizontal" defaultLayout={layout.columns} onLayoutChanged={persistColumns}>
                   <ResizablePanel id="preview" minSize="35%" className="min-h-0 min-w-0">
-                    <PreviewPane event={event} />
+                    <PreviewPane />
                   </ResizablePanel>
                   <ResizableHandle />
                   <ResizablePanel id="inspector" minSize={240} className="min-h-0 min-w-0 border-l bg-background">

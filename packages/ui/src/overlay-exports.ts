@@ -109,6 +109,7 @@ export {
   ALERT_MESSAGE_EVENTS,
   ALERT_GIFTER_EVENTS,
   ALERT_DETAIL_TOKENS,
+  ALERT_TIER_EVENTS,
   ALERT_LAYOUTS,
   ALERT_DURATION_MODES,
   ALERT_ANIMATIONS_IN,
@@ -179,6 +180,7 @@ export { AlertScenePlayer, type AlertScenePlayerProps } from "./components/overl
 export {
   ALERT_TEMPLATE_TOKENS,
   alertTierLabel,
+  alertTokensForEvent,
   alertTokensFromInstance,
   type AlertTemplateToken,
 } from "./components/overlay/widgets/alert/alert-widget-config";

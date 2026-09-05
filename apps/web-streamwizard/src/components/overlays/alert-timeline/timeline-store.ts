@@ -7,7 +7,9 @@
 
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { findClip, type AlertScene, type PropName } from "@repo/alert-scene";
+import type { AlertEventType } from "@repo/ui/overlay";
 import type { Command } from "./commands";
+import { DEFAULT_SAMPLE_ID } from "./sample-payloads";
 import { DEFAULT_PX_PER_MS, clampPxPerMs } from "./timeline/timeline-math";
 
 export const HISTORY_LIMIT = 100;
@@ -32,6 +34,8 @@ interface HistoryEntry {
 }
 
 export interface TimelineState {
+  /** The alert event this timeline belongs to. Fixed for the dialog's life. */
+  event: AlertEventType;
   scene: AlertScene;
   /** What the overlay holds; null for a timeline that was never saved. */
   savedScene: AlertScene | null;
@@ -53,6 +57,8 @@ export interface TimelineState {
   uniformScale: boolean;
   /** Silences the preview stage; never part of the scene. Session only. */
   previewMuted: boolean;
+  /** Which sample alert the preview renders (`sample-payloads.ts`). Session only. */
+  sampleId: string;
 
   execute(command: Command): void;
   undo(): void;
@@ -68,6 +74,7 @@ export interface TimelineState {
   setLayerExpanded(layerId: string, expanded: boolean): void;
   setUniformScale(uniform: boolean): void;
   setPreviewMuted(muted: boolean): void;
+  setSample(sampleId: string): void;
   setPlayhead(ms: number): void;
   setPlaying(playing: boolean): void;
   setLoop(loop: boolean): void;
@@ -123,6 +130,7 @@ export function visibleScene(state: Pick<TimelineState, "scene" | "draft">): Ale
 export interface TimelineStoreOptions {
   /** False for a freshly seeded timeline: Save is meaningful before any edit. */
   saved?: boolean;
+  event?: AlertEventType;
   now?: () => number;
 }
 
@@ -130,6 +138,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
   const now = options.now ?? (() => Date.now());
   const savedScene = options.saved === false ? null : initial;
   return createStore<TimelineState>((set, get) => ({
+    event: options.event ?? "follow",
     scene: initial,
     savedScene,
     dirty: computeDirty(initial, savedScene),
@@ -145,6 +154,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
     expandedLayerIds: {},
     uniformScale: false,
     previewMuted: false,
+    sampleId: DEFAULT_SAMPLE_ID,
 
     execute: (command) => {
       const { scene, past, selection } = get();
@@ -227,6 +237,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
       }),
     setUniformScale: (uniformScale) => set({ uniformScale }),
     setPreviewMuted: (previewMuted) => set({ previewMuted }),
+    setSample: (sampleId) => set({ sampleId }),
 
     setPlayhead: (ms) => {
       const { scene } = get();
