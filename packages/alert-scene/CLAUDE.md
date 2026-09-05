@@ -31,7 +31,8 @@ calls `stage.render(t)`. Scrubbing backwards, pausing mid-alert and previewing a
 - `Keyframe { id, time, value, easing }`. **Times are absolute scene ms.** Moving a clip shifts them, trimming does not.
 - `easing` describes the segment *leaving* the keyframe: `"linear"`, `"hold"`, or `{ x1, y1, x2, y2 }` (CSS cubic-bezier).
 - `x`/`y` position the anchor point in scene px; `anchorX`/`anchorY` are 0..1 of the box; `rotation` degrees.
-- `effects` (blend, shadow, blur, tint) are static per clip in v1.
+- `effects` (blend, shadow, blur, tint) are static per clip in v1. All four render; see Effects below.
+- Text sources carry `preset` (`none | typewriter | stagger`) and `presetDurationMs`; see Text presets below.
 
 Evaluation rules (`evaluateTrack`): no track → base; one keyframe → constant; outside the keyframe range → clamped to
 the nearest end; between two → leading keyframe's easing.
@@ -50,10 +51,41 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
 - `scene-ops` functions return a new scene and share untouched layers/clips by reference. Range-changing ops
   throw on overlap; the editor clamps first (`timeline-math.ts`).
 - Tokens: `substituteTokens(text, values)` is generic. The alert vocabulary (`{name} {amount} {message} {gifter}
-  {reward} {charity} {tier}`) is built by `alertTokensFromInstance` in `packages/ui`.
+  {reward} {charity} {tier}`) is built by `alertTokensFromInstance` in `packages/ui`; `alertTokensForEvent(event)`
+  there says which of them an event can fill (the editor greys out the rest).
 - Tests: co-located `*.test.ts`, `import { describe, it, expect } from "bun:test"`. Core only; the renderer has no
   DOM test harness.
 - Media URLs are plain CDN strings from the media library. No asset ids, no signing at read time.
+
+## Effects
+
+- `effectsFilterList(effects, tintId)` (core) is the one place that builds the CSS `filter` chain, in paint order:
+  tint, then drop-shadow (so the shadow keeps the colour it was given), then blur. `mix-blend-mode` is separate.
+- **Tint is an inline SVG filter**, one `<filter>` per tinted clip inside the stage (`TintFilterDefs`): flood the
+  tint colour, cut it to `SourceAlpha`, mix into the source by `amount` (`feComposite arithmetic`, sRGB). Alpha is
+  untouched, so a transparent PNG, text and a rounded shape tint only where they paint; `opacity` and transforms
+  apply after. Ids are `sw-tint-<stageId>-<clipId>` (stage counter, so two stages on a page never resolve each
+  other's defs). The filter region is the box ±100%; text spilling further than a box-length out of its box is
+  clipped there. A tint with `amount` 0 is no tint (`hasTint`).
+- **Two shadows on text.** `TextSource.shadow` is the legacy text-shadow inside the content; `effects.shadow` is a
+  drop-shadow on the wrapper. Both render, stacked; the inspector says so on a text clip. Neither is removed in v1.
+- Not keyframable. Making an effect animate is a schema decision.
+
+## Text presets
+
+- `core/text-preset.ts` is the maths, pure and tested: `splitGraphemes` (Intl.Segmenter, `Array.from` fallback),
+  `presetDuration` (= min(presetDurationMs, clip length), never 0), `typewriterRevealed` (ceil(n × t/d)) and
+  `staggerProgress` (per-grapheme ease-out over a 40 % window, starts spread so the last lands at d).
+- The renderer keeps **every grapheme in the DOM as an inline `<span data-grapheme>`** inside one wrapper span
+  (the wrapper is the single flex item, exactly like the anonymous block a plain string gets), so the box, the
+  line breaks and the centring are the full string's from frame one. `applyNode` paints the reveal from
+  `RenderNode.localTime` only: typewriter flips `visibility` up to the revealed count, stagger writes `opacity`
+  and a `top` lift (inline, not inline-block, so wrapping stays that of the plain string). Scrub backwards and the
+  letters go away again. No CSS animation anywhere.
+- Spans are re-collected (`invalidateText`) whenever the scene or tokens change, and their imperative styles are
+  reset first, so a preset switch or a token change never leaves stale paint.
+- The reveal never outlives the clip: a stored `presetDurationMs` longer than the clip completes at the clip's
+  end. The inspector clamps the field to the clip length as well.
 
 ## Editor conventions (keyframes)
 
@@ -70,6 +102,21 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
   (`from`, the committed scene, the box) because props re-render with the draft mid-drag.
 - **Selectors return stable slices.** `useTimeline` is `useSyncExternalStore`; a selector that builds a new
   object per read loops forever. Select the scene/playhead/ids and derive with `useMemo` in render.
+- **Undo.** Every command has a label that says what it did ("Set opacity", "Hide layer", "Edit text";
+  `PROP_LABELS` for properties, `updateClipCommand`'s last argument for source/effect edits); the transport shows
+  "Undo <label>". Same `coalesceKey` within `COALESCE_WINDOW_MS` (400 ms) merges into one step: typing in one
+  field, a slider drag, repeated nudges, a chip insert on top of typing. Keys carry the clip id and the field, so
+  two props or two clips never merge. History caps at `HISTORY_LIMIT` (200); `dirty` is a structural compare
+  against the saved scene, so it stays right when the saved state falls off the bottom. Entries remember the
+  selection around them: undo keeps what is still selected and fills the holes from before the command (a
+  deleted clip comes back selected), redo prefers what was selected when undo was pressed (a duplicate comes back
+  selected). A cancelled drag commits `null` and leaves no step.
+- **Session state that never reaches the scene**: `previewMuted`, `sampleId` (which sample alert the preview
+  renders, `sample-payloads.ts`), `testRun` (Test/`T`: rewind and play once, loop or not; cleared whenever playback
+  stops), `event` (fixed for the dialog).
+- **Sample alerts** (`sample-payloads.ts`) start from `buildTestAlertSocketMessage` and patch the payload, then go
+  through `alertInstanceFromSocketMessage` like a real alert. A test asserts every sample still matches its
+  EventSub schema. Add a sample by adding an entry; keep `default` first.
 - **Rows.** `timeline-rows.ts` builds one flat list that both timeline columns render; an expanded layer adds a
   26px row per animated property. Folded clips draw mini diamonds instead.
 - **Stage overlay.** `preview/stage-geometry.ts` mirrors the renderer's transform (origin at the anchor, then
@@ -100,4 +147,15 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
 - **Seeding** (`scene-from-variant.ts`): the legacy variant's video lands on the bottom layer (looping for a
   fixed-length alert, played once for a video-length one, `volume` 0 when a separate sound exists), the sound on a
   top layer at full volume, both over the whole scene.
+
+## Seeding animations
+
+`scene-from-variant.ts` writes the legacy `animationIn`/`animationOut` onto every visual clip (never the sound)
+as keyframes: `entranceKeyframes` over the first `SEED_IN_MS` (500), `exitKeyframes` over the last `SEED_OUT_MS`
+(350). In: fade (opacity 0→1), slide_up / slide_down (y ±32 → rest, plus fade), zoom (scale 0.8→1 on both axes,
+plus fade), bounce (0.6 → 1.08 at 60 % → 0.97 at 80 % → 1, opaque from 60 %). Out: fade, slide_down (y → +24),
+zoom (→ 0.85), all with the fade. Easing per segment as CSS keyframes do: `SEED_IN_EASING` = cubic-bezier(0.22, 1,
+0.36, 1), `SEED_OUT_EASING` = ease-in. Slide offsets add to the clip's resting `y` (anchor position, scene px). A
+track both sides touch rests between them by holding the same value; a track only one side touches holds through
+`evaluate`'s clamping. Media-mode length still decides the scene duration.
 
