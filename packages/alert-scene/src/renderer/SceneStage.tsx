@@ -3,9 +3,10 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { effectsFilterList, hasTint, tintArithmetic, tintFilterId } from "../core/effects";
 import { evaluate } from "../core/evaluate";
+import { splitGraphemes } from "../core/text-preset";
 import { substituteTokens } from "../core/tokens";
 import type { AlertScene, Clip, ClipEffects, ClipSource, Layer, RenderNode } from "../core/types";
-import { applyNode, createStageNode, hideNode, type StageNode } from "./apply-render-state";
+import { applyNode, createStageNode, hideNode, invalidateText, type StageNode } from "./apply-render-state";
 import { createMediaSyncState, syncMedia, type MediaSyncState } from "./media-sync";
 
 export interface SceneStageHandle {
@@ -98,6 +99,28 @@ function textStyle(src: Extract<ClipSource, { kind: "text" }>): CSSProperties {
   };
 }
 
+/**
+ * A preset text clip keeps every grapheme in the DOM as an inline span, so
+ * the box, the wrapping and the centring are those of the full string from
+ * the first frame; `applyNode` paints only what the preset reveals. Inline
+ * (not inline-block) so the browser breaks lines exactly as it would for the
+ * plain string; the stagger lift uses `top`, which inline boxes honour.
+ */
+function PresetText({ src, text }: { src: Extract<ClipSource, { kind: "text" }>; text: string }) {
+  const spanStyle: CSSProperties = src.preset === "stagger" ? { position: "relative", opacity: 0 } : { visibility: "hidden" };
+  return (
+    <div style={textStyle(src)} data-text-preset={src.preset}>
+      <span>
+        {splitGraphemes(text).map((g, i) => (
+          <span key={i} data-grapheme="" style={spanStyle}>
+            {g}
+          </span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
 function ClipContent({
   clip,
   tokens,
@@ -109,8 +132,11 @@ function ClipContent({
 }) {
   const src = clip.source;
   switch (src.kind) {
-    case "text":
-      return <div style={textStyle(src)}>{substituteTokens(src.text, tokens)}</div>;
+    case "text": {
+      const text = substituteTokens(src.text, tokens);
+      if (src.preset !== "none") return <PresetText src={src} text={text} />;
+      return <div style={textStyle(src)}>{text}</div>;
+    }
     case "image":
       return src.url ? (
         <img
@@ -219,8 +245,10 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
   );
 
   // Structure changed (clip added/removed, source edited): repaint the current
-  // time so the new element gets its numbers before the next frame.
+  // time so the new element gets its numbers before the next frame. Preset
+  // text spans may have been re-rendered too, so they are collected afresh.
   useEffect(() => {
+    for (const entry of entries.current.values()) invalidateText(entry.node);
     paint(timeRef.current, playingRef.current);
   }, [scene, tokens, paint]);
 

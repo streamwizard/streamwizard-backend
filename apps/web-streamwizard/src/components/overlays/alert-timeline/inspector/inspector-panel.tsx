@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { findClip, type Clip, type ClipSource, type MediaFit, type PropName, type ShapeKind } from "@repo/alert-scene";
+import { findClip, type Clip, type ClipSource, type MediaFit, type PropName, type ShapeKind, type TextPreset } from "@repo/alert-scene";
 import { Link2, Unlink2 } from "lucide-react";
 import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
@@ -312,6 +312,14 @@ const SOURCE_LABELS: Record<string, string> = {
   align: "Set alignment",
   color: "Set text colour",
   shadow: "Toggle text shadow",
+  preset: "Set text reveal",
+  presetDuration: "Set reveal length",
+};
+
+const PRESET_LABELS: Record<TextPreset, string> = {
+  none: "None",
+  typewriter: "Typewriter",
+  stagger: "Letter by letter",
 };
 
 function SourceSection({ clip }: { clip: Clip }) {
@@ -411,6 +419,34 @@ function SourceSection({ clip }: { clip: Clip }) {
           <TextAlignSelect value={src.align} onValueChange={(v) => patch({ align: v }, "align")} />
           <ColourRow label="Text" value={src.color} onChange={(v) => patch({ color: v }, "color")} />
           <SwitchRow id={`shadow-${clip.id}`} label="Shadow" checked={src.shadow} onCheckedChange={(v) => patch({ shadow: v }, "shadow")} />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Reveal">
+              <Select value={src.preset} onValueChange={(v) => patch({ preset: v as TextPreset }, "preset")}>
+                <SelectTrigger className="h-8 text-xs" aria-label="Text reveal">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRESET_LABELS) as TextPreset[]).map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PRESET_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {src.preset !== "none" && (
+              <Field label="Reveal length">
+                <NumberField
+                  value={Math.min(src.presetDurationMs, clip.end - clip.start) / 1000}
+                  min={MIN_CLIP_MS / 1000}
+                  max={(clip.end - clip.start) / 1000}
+                  onCommit={(v) => patch({ presetDurationMs: Math.min(clip.end - clip.start, Math.max(MIN_CLIP_MS, Math.round(v * 1000))) }, "presetDuration")}
+                  className="pr-8"
+                  adornment={<Unit>s</Unit>}
+                />
+              </Field>
+            )}
+          </div>
         </div>
       </InspectorSection>
     );

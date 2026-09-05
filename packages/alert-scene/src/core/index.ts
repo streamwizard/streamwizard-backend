@@ -4,6 +4,7 @@ export * from "./tokens";
 export * from "./easing";
 export * from "./evaluate";
 export * from "./effects";
+export * from "./text-preset";
 export * from "./schema";
 export * from "./scene-ops";
 export * from "./clock";
