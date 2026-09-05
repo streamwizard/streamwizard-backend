@@ -32,7 +32,8 @@ calls `stage.render(t)`. Scrubbing backwards, pausing mid-alert and previewing a
 - `easing` describes the segment *leaving* the keyframe: `"linear"`, `"hold"`, or `{ x1, y1, x2, y2 }` (CSS cubic-bezier).
 - `x`/`y` position the anchor point in scene px; `anchorX`/`anchorY` are 0..1 of the box; `rotation` degrees.
 - `effects` (blend, shadow, blur, tint) are static per clip in v1. All four render; see Effects below.
-- Text sources carry `preset` (`none | typewriter | stagger`) and `presetDurationMs`; see Text presets below.
+- Text sources carry animate in (`preset`, `presetDurationMs`) and animate out (`presetOut`,
+  `presetOutDurationMs`), each `none | typewriter | stagger`; see Text animate in / out below.
 
 Evaluation rules (`evaluateTrack`): no track → base; one keyframe → constant; outside the keyframe range → clamped to
 the nearest end; between two → leading keyframe's easing.
@@ -71,21 +72,27 @@ and drops anything invalid so a bad row plays the legacy alert instead of breaki
   drop-shadow on the wrapper. Both render, stacked; the inspector says so on a text clip. Neither is removed in v1.
 - Not keyframable. Making an effect animate is a schema decision.
 
-## Text presets
+## Text animate in / out
 
+- Lives on the text source, not on `effects` (it only means anything for text), but the inspector shows it at the
+  top of the Effects section as "Animate in" / "Animate out", each a preset plus a length. `preset` /
+  `presetDurationMs` are the in; `presetOut` / `presetOutDurationMs` the out (added with defaults, old scenes parse).
 - `core/text-preset.ts` is the maths, pure and tested: `splitGraphemes` (Intl.Segmenter, `Array.from` fallback),
-  `presetDuration` (= min(presetDurationMs, clip length), never 0), `typewriterRevealed` (ceil(n × t/d)) and
-  `staggerProgress` (per-grapheme ease-out over a 40 % window, starts spread so the last lands at d).
+  `presetDuration` (= min(duration, clip length), never 0), `typewriterRevealed` (ceil(n × t/d)), `staggerProgress`
+  (per-grapheme ease-out over a 40 % window, starts spread so the last lands at d) and `graphemeFrame`, which
+  combines in and out into one `{ visible, opacity, lift }` per grapheme. In runs over the first length of the
+  clip, out over the last; on a clip too short for both they overlap and simply combine. Typewriter types left to
+  right and backspaces right to left; stagger arrives and leaves in reading order, lifting in and dropping out.
 - The renderer keeps **every grapheme in the DOM as an inline `<span data-grapheme>`** inside one wrapper span
   (the wrapper is the single flex item, exactly like the anonymous block a plain string gets), so the box, the
-  line breaks and the centring are the full string's from frame one. `applyNode` paints the reveal from
-  `RenderNode.localTime` only: typewriter flips `visibility` up to the revealed count, stagger writes `opacity`
-  and a `top` lift (inline, not inline-block, so wrapping stays that of the plain string). Scrub backwards and the
-  letters go away again. No CSS animation anywhere.
+  line breaks and the centring are the full string's from frame one. `applyNode` paints each span's frame from
+  `RenderNode.localTime` only: `visibility` for typewriter, `opacity` and a `top` lift for stagger (inline, not
+  inline-block, so wrapping stays that of the plain string). Scrub backwards and the letters come back. No CSS
+  animation anywhere.
 - Spans are re-collected (`invalidateText`) whenever the scene or tokens change, and their imperative styles are
   reset first, so a preset switch or a token change never leaves stale paint.
-- The reveal never outlives the clip: a stored `presetDurationMs` longer than the clip completes at the clip's
-  end. The inspector clamps the field to the clip length as well.
+- Neither side outlives the clip: a stored length longer than the clip completes at the clip's edge. The inspector
+  clamps both fields to the clip length as well.
 
 ## Editor conventions (keyframes)
 

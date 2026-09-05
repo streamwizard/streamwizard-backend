@@ -150,6 +150,8 @@ function textSource(text: string, variant: AlertVariantConfig, size: number, wei
     shadow: variant.textShadow,
     preset: "none",
     presetDurationMs: 800,
+    presetOut: "none",
+    presetOutDurationMs: 800,
   };
 }
 

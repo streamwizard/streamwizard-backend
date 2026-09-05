@@ -73,6 +73,8 @@ const textSourceSchema = z.object({
   shadow: z.boolean().default(true),
   preset: z.enum(TEXT_PRESETS).default("none"),
   presetDurationMs: z.number().min(0).max(MAX_SCENE_DURATION_MS).default(800),
+  presetOut: z.enum(TEXT_PRESETS).default("none"),
+  presetOutDurationMs: z.number().min(0).max(MAX_SCENE_DURATION_MS).default(800),
 });
 
 const imageSourceSchema = z.object({

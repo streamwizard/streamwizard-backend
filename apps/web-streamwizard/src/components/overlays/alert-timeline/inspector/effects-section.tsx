@@ -1,6 +1,6 @@
 "use client";
 
-import { BLEND_MODES, findClip, type BlendMode, type Clip, type ClipEffects } from "@repo/alert-scene";
+import { BLEND_MODES, MIN_CLIP_MS, TEXT_PRESETS, findClip, type BlendMode, type Clip, type ClipEffects, type TextPreset, type TextSource } from "@repo/alert-scene";
 import { Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Slider } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
 import { InspectorSection } from "@/components/overlays/editor/inspector-section";
@@ -16,6 +16,12 @@ const BLEND_LABELS: Record<BlendMode, string> = {
   lighten: "Lighten",
   darken: "Darken",
   difference: "Difference",
+};
+
+const PRESET_LABELS: Record<TextPreset, string> = {
+  none: "None",
+  typewriter: "Typewriter",
+  stagger: "Letter by letter",
 };
 
 /** What switching an effect on starts from; visible at once, easy to tune. */
@@ -40,8 +46,84 @@ function SliderRow({ id, label, value, min, max, step, unit, onChange }: { id: s
 }
 
 /**
- * Static per-clip effects: blend, drop shadow, blur, tint. Nothing here has a
- * stopwatch; a slider drag coalesces into one undo step through its key.
+ * How the text arrives and leaves: a preset and its length, one pair for in
+ * (from the clip start) and one for out (to the clip end). Text clips only;
+ * the fields live on the text source and paint from the clip's local time.
+ */
+function TextAnimationFields({ clip, src }: { clip: Clip; src: TextSource }) {
+  const api = useTimelineStoreApi();
+  const length = clip.end - clip.start;
+  const patch = (p: Partial<TextSource>, key: string, label: string) => {
+    const s = api.getState();
+    const loc = findClip(s.scene, clip.id);
+    if (!loc || loc.clip.source.kind !== "text") return;
+    const cmd = updateClipCommand(s.scene, clip.id, { source: { ...loc.clip.source, ...p } }, `src:${clip.id}:${key}`, label);
+    if (cmd) s.execute(cmd);
+  };
+  const clampMs = (seconds: number) => Math.min(length, Math.max(MIN_CLIP_MS, Math.round(seconds * 1000)));
+  const pair = (
+    side: "in" | "out",
+    preset: TextPreset,
+    durationMs: number,
+    onPreset: (p: TextPreset) => void,
+    onDuration: (ms: number) => void
+  ) => {
+    const title = side === "in" ? "Animate in" : "Animate out";
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <Field label={title}>
+          <Select value={preset} onValueChange={(v) => onPreset(v as TextPreset)}>
+            <SelectTrigger className="h-8 text-xs" aria-label={title}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TEXT_PRESETS.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {PRESET_LABELS[p]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        {preset !== "none" && (
+          <Field label="Length">
+            <NumberField
+              value={Math.min(durationMs, length) / 1000}
+              min={MIN_CLIP_MS / 1000}
+              max={length / 1000}
+              onCommit={(v) => onDuration(clampMs(v))}
+              className="pr-8"
+              adornment={<Unit>s</Unit>}
+            />
+          </Field>
+        )}
+      </div>
+    );
+  };
+  return (
+    <>
+      {pair(
+        "in",
+        src.preset,
+        src.presetDurationMs,
+        (preset) => patch({ preset }, "preset", "Set animate in"),
+        (presetDurationMs) => patch({ presetDurationMs }, "presetDuration", "Set animate in length")
+      )}
+      {pair(
+        "out",
+        src.presetOut,
+        src.presetOutDurationMs,
+        (presetOut) => patch({ presetOut }, "presetOut", "Set animate out"),
+        (presetOutDurationMs) => patch({ presetOutDurationMs }, "presetOutDuration", "Set animate out length")
+      )}
+    </>
+  );
+}
+
+/**
+ * Per-clip effects: how text animates in and out, then the static look
+ * (blend, drop shadow, blur, tint). Nothing here has a stopwatch; a slider
+ * drag coalesces into one undo step through its key.
  */
 export function EffectsSection({ clip }: { clip: Clip }) {
   const api = useTimelineStoreApi();
@@ -62,6 +144,7 @@ export function EffectsSection({ clip }: { clip: Clip }) {
   return (
     <InspectorSection title="Effects" defaultOpen={false}>
       <div className="space-y-3">
+        {clip.source.kind === "text" && <TextAnimationFields clip={clip} src={clip.source} />}
         <Field label="Blend mode">
           <Select value={fx.blendMode} onValueChange={(v) => set({ blendMode: v as BlendMode }, "blend", "Set blend mode")}>
             <SelectTrigger className="h-8 text-xs" aria-label="Blend mode">

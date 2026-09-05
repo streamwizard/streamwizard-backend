@@ -3,7 +3,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { effectsFilterList, hasTint, tintArithmetic, tintFilterId } from "../core/effects";
 import { evaluate } from "../core/evaluate";
-import { splitGraphemes } from "../core/text-preset";
+import { hasTextAnimation, splitGraphemes } from "../core/text-preset";
 import { substituteTokens } from "../core/tokens";
 import type { AlertScene, Clip, ClipEffects, ClipSource, Layer, RenderNode } from "../core/types";
 import { applyNode, createStageNode, hideNode, invalidateText, type StageNode } from "./apply-render-state";
@@ -100,16 +100,18 @@ function textStyle(src: Extract<ClipSource, { kind: "text" }>): CSSProperties {
 }
 
 /**
- * A preset text clip keeps every grapheme in the DOM as an inline span, so
+ * An animated text clip keeps every grapheme in the DOM as an inline span, so
  * the box, the wrapping and the centring are those of the full string from
- * the first frame; `applyNode` paints only what the preset reveals. Inline
- * (not inline-block) so the browser breaks lines exactly as it would for the
- * plain string; the stagger lift uses `top`, which inline boxes honour.
+ * the first frame; `applyNode` paints what the animate in / out leave visible.
+ * Inline (not inline-block) so the browser breaks lines exactly as it would
+ * for the plain string; the stagger lift uses `top`, which inline boxes honour.
+ * The initial style is the first frame of the animate in, so nothing flashes
+ * before the first paint.
  */
 function PresetText({ src, text }: { src: Extract<ClipSource, { kind: "text" }>; text: string }) {
-  const spanStyle: CSSProperties = src.preset === "stagger" ? { position: "relative", opacity: 0 } : { visibility: "hidden" };
+  const spanStyle: CSSProperties = { position: "relative", ...(src.preset === "stagger" ? { opacity: 0 } : src.preset === "typewriter" ? { visibility: "hidden" } : {}) };
   return (
-    <div style={textStyle(src)} data-text-preset={src.preset}>
+    <div style={textStyle(src)} data-text-preset={src.preset} data-text-preset-out={src.presetOut}>
       <span>
         {splitGraphemes(text).map((g, i) => (
           <span key={i} data-grapheme="" style={spanStyle}>
@@ -134,7 +136,7 @@ function ClipContent({
   switch (src.kind) {
     case "text": {
       const text = substituteTokens(src.text, tokens);
-      if (src.preset !== "none") return <PresetText src={src} text={text} />;
+      if (hasTextAnimation(src)) return <PresetText src={src} text={text} />;
       return <div style={textStyle(src)}>{text}</div>;
     }
     case "image":

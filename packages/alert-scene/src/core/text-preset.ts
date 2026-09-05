@@ -1,10 +1,12 @@
 /**
- * Text reveal presets, as pure functions of the clip's local time. The
- * renderer keeps every grapheme in the DOM from the first frame (so the box,
- * the line breaks and the centring never move) and only changes how much of
- * it is painted, per `evaluate()`'s determinism rule: scrub backwards and the
- * letters go away again.
+ * Text animate in / animate out presets, as pure functions of the clip's
+ * local time. The renderer keeps every grapheme in the DOM from the first
+ * frame (so the box, the line breaks and the centring never move) and only
+ * changes how much of it is painted, per `evaluate()`'s determinism rule:
+ * scrub backwards and the letters come back.
  */
+
+import type { TextSource } from "./types";
 
 interface GraphemeSegmenter {
   segment(text: string): Iterable<{ segment: string }>;
@@ -56,4 +58,52 @@ export function staggerProgress(index: number, count: number, localTime: number,
   const start = count > 1 ? (lastStart * index) / (count - 1) : 0;
   const raw = window > 0 ? (localTime - start) / window : localTime >= start ? 1 : 0;
   return easeOutCubic(Math.min(1, Math.max(0, raw)));
+}
+
+export type TextAnimation = Pick<TextSource, "preset" | "presetDurationMs" | "presetOut" | "presetOutDurationMs">;
+
+/** True when the clip needs grapheme spans at all. */
+export function hasTextAnimation(src: TextAnimation): boolean {
+  return src.preset !== "none" || src.presetOut !== "none";
+}
+
+/** What one grapheme looks like this frame. */
+export interface GraphemeFrame {
+  /** Typewriter: painted or not. */
+  visible: boolean;
+  /** Stagger: 0..1. */
+  opacity: number;
+  /** Stagger: em below the resting line (positive = lower). */
+  lift: number;
+}
+
+/**
+ * Animate in runs over the first `presetDurationMs` of the clip, animate out
+ * over the last `presetOutDurationMs`; each is clamped to the clip and the two
+ * simply combine when a short clip makes them overlap. Typewriter types left
+ * to right and backspaces right to left; stagger arrives and leaves in reading
+ * order, dropping on the way out as it lifted on the way in.
+ */
+export function graphemeFrame(index: number, count: number, localTime: number, clipDurationMs: number, src: TextAnimation): GraphemeFrame {
+  const frame: GraphemeFrame = { visible: true, opacity: 1, lift: 0 };
+  if (src.preset === "typewriter") {
+    frame.visible = index < typewriterRevealed(count, localTime, presetDuration(src.presetDurationMs, clipDurationMs));
+  } else if (src.preset === "stagger") {
+    const p = staggerProgress(index, count, localTime, presetDuration(src.presetDurationMs, clipDurationMs));
+    frame.opacity *= p;
+    frame.lift += (1 - p) * STAGGER_LIFT_EM;
+  }
+  if (src.presetOut !== "none") {
+    const outDuration = presetDuration(src.presetOutDurationMs, clipDurationMs);
+    const outTime = localTime - (clipDurationMs - outDuration);
+    if (src.presetOut === "typewriter") {
+      const removed = typewriterRevealed(count, outTime, outDuration);
+      frame.visible = frame.visible && index < count - removed;
+    } else {
+      const q = staggerProgress(index, count, outTime, outDuration);
+      frame.opacity *= 1 - q;
+      frame.lift += q * STAGGER_LIFT_EM;
+    }
+  }
+  return frame;
 }

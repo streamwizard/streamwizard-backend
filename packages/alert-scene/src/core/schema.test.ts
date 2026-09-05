@@ -31,11 +31,13 @@ describe("parseAlertScene", () => {
     const raw = JSON.parse(JSON.stringify(scene));
     delete raw.layers[0].clips[0].effects;
     delete raw.layers[0].clips[0].source.preset;
+    delete raw.layers[0].clips[0].source.presetOut;
+    delete raw.layers[0].clips[0].source.presetOutDurationMs;
     delete raw.fps;
     const parsed = parseAlertScene(raw)!;
     expect(parsed.fps).toBe(60);
     expect(parsed.layers[0]!.clips[0]!.effects.blendMode).toBe("normal");
-    expect(parsed.layers[0]!.clips[0]!.source).toMatchObject({ preset: "none" });
+    expect(parsed.layers[0]!.clips[0]!.source).toMatchObject({ preset: "none", presetOut: "none", presetOutDurationMs: 800 });
   });
 
   it("rejects overlapping clips, reversed clips and mismatched kinds", () => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { presetDuration, splitGraphemes, staggerProgress, typewriterRevealed } from "./text-preset";
+import { STAGGER_LIFT_EM, graphemeFrame, hasTextAnimation, presetDuration, splitGraphemes, staggerProgress, typewriterRevealed, type TextAnimation } from "./text-preset";
+
+const anim = (p: Partial<TextAnimation> = {}): TextAnimation => ({ preset: "none", presetDurationMs: 800, presetOut: "none", presetOutDurationMs: 800, ...p });
 
 describe("splitGraphemes", () => {
   it("counts what a person sees as one character", () => {
@@ -53,5 +55,60 @@ describe("staggerProgress", () => {
     }
     expect(staggerProgress(0, 1, 0, 1000)).toBe(0);
     expect(staggerProgress(0, 1, 400, 1000)).toBe(1);
+  });
+});
+
+describe("graphemeFrame", () => {
+  const n = 10;
+  const clip = 4000;
+
+  it("nothing set: every grapheme plain, and no spans needed", () => {
+    expect(hasTextAnimation(anim())).toBe(false);
+    expect(graphemeFrame(3, n, 2000, clip, anim())).toEqual({ visible: true, opacity: 1, lift: 0 });
+  });
+
+  it("typewriter in types left to right over the first 800ms", () => {
+    const a = anim({ preset: "typewriter" });
+    expect(hasTextAnimation(a)).toBe(true);
+    expect(graphemeFrame(0, n, 0, clip, a).visible).toBe(false);
+    expect(graphemeFrame(4, n, 400, clip, a).visible).toBe(true);
+    expect(graphemeFrame(5, n, 400, clip, a).visible).toBe(false);
+    expect(graphemeFrame(9, n, 800, clip, a).visible).toBe(true);
+    expect(graphemeFrame(9, n, 3999, clip, a).visible).toBe(true);
+  });
+
+  it("typewriter out backspaces from the end over the last 800ms", () => {
+    const a = anim({ presetOut: "typewriter" });
+    expect(graphemeFrame(9, n, 3199, clip, a).visible).toBe(true);
+    expect(graphemeFrame(9, n, 3201, clip, a).visible).toBe(false);
+    expect(graphemeFrame(0, n, 3201, clip, a).visible).toBe(true);
+    // 400ms in: ceil(10 × 0.5) = 5 removed → indexes 0..4 remain.
+    expect(graphemeFrame(4, n, 3600, clip, a).visible).toBe(true);
+    expect(graphemeFrame(5, n, 3600, clip, a).visible).toBe(false);
+    expect(graphemeFrame(0, n, 4000, clip, a).visible).toBe(false);
+  });
+
+  it("stagger in lifts and fades in; stagger out drops and fades out; both in reading order", () => {
+    const a = anim({ preset: "stagger", presetOut: "stagger" });
+    expect(graphemeFrame(0, n, 0, clip, a)).toEqual({ visible: true, opacity: 0, lift: STAGGER_LIFT_EM });
+    expect(graphemeFrame(9, n, 800, clip, a)).toEqual({ visible: true, opacity: 1, lift: 0 });
+    expect(graphemeFrame(3, n, 2000, clip, a)).toEqual({ visible: true, opacity: 1, lift: 0 });
+    const first = graphemeFrame(0, n, 3400, clip, a);
+    const last = graphemeFrame(9, n, 3400, clip, a);
+    expect(first.opacity).toBeLessThan(last.opacity);
+    expect(first.lift).toBeGreaterThan(last.lift);
+    expect(graphemeFrame(0, n, 4000, clip, a)).toEqual({ visible: true, opacity: 0, lift: STAGGER_LIFT_EM });
+  });
+
+  it("in and out can mix, and overlap on a short clip", () => {
+    const mixed = anim({ preset: "typewriter", presetOut: "stagger" });
+    expect(graphemeFrame(9, n, 100, clip, mixed)).toEqual({ visible: false, opacity: 1, lift: 0 });
+    expect(graphemeFrame(0, n, 4000, clip, mixed)).toEqual({ visible: true, opacity: 0, lift: STAGGER_LIFT_EM });
+    // 500ms clip, 800ms each way: both clamp to 500 and run at once.
+    const short = anim({ preset: "typewriter", presetOut: "typewriter" });
+    expect(graphemeFrame(0, n, 250, 500, short).visible).toBe(true);
+    expect(graphemeFrame(9, n, 250, 500, short).visible).toBe(false);
+    expect(graphemeFrame(4, n, 250, 500, short).visible).toBe(true);
+    expect(graphemeFrame(5, n, 250, 500, short).visible).toBe(false);
   });
 });

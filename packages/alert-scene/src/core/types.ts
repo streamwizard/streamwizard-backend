@@ -78,9 +78,12 @@ export interface TextSource {
   lineHeight: number;
   letterSpacing: number;
   shadow: boolean;
+  /** Animate in: how the text arrives over the first `presetDurationMs` of the clip. */
   preset: TextPreset;
-  /** How long the preset reveal takes from the clip start. */
   presetDurationMs: number;
+  /** Animate out: how the text leaves over the last `presetOutDurationMs` of the clip. */
+  presetOut: TextPreset;
+  presetOutDurationMs: number;
 }
 
 export interface ImageSource {

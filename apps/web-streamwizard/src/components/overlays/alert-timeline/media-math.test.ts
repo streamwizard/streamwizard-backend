@@ -4,7 +4,7 @@ import { clampTrimIn, fitBox, footageEndMs, isMediaClip, mediaLoops, mediaTrimLi
 
 const video = (loop = false): ClipSource => ({ kind: "video", url: "https://cdn.test/a.webm", loop, fit: "contain" });
 const audio: ClipSource = { kind: "audio", url: "https://cdn.test/a.mp3" };
-const text: ClipSource = { kind: "text", text: "", fontFamily: "Inter", fontSize: 48, fontWeight: 700, color: "#fff", align: "center", lineHeight: 1.2, letterSpacing: 0, shadow: true, preset: "none", presetDurationMs: 800 };
+const text: ClipSource = { kind: "text", text: "", fontFamily: "Inter", fontSize: 48, fontWeight: 700, color: "#fff", align: "center", lineHeight: 1.2, letterSpacing: 0, shadow: true, preset: "none", presetDurationMs: 800, presetOut: "none", presetOutDurationMs: 800 };
 
 const clip = (source: ClipSource, trimIn = 0) => ({ start: 1000, end: 3000, trimIn, source });
 
