@@ -149,6 +149,18 @@ describe("timeline store", () => {
     expect(createTimelineStore(scene).getState().event).toBe("follow");
   });
 
+  it("a test run ends when playback stops for any reason", () => {
+    const { scene } = fixture();
+    const store = createTimelineStore(scene);
+    const s = () => store.getState();
+    s().setTestRun(true);
+    s().setPlaying(true);
+    expect(s().testRun).toBe(true);
+    s().setPlaying(false);
+    expect(s().testRun).toBe(false);
+    expect(isDirty(s())).toBe(false);
+  });
+
   it("clamps the playhead to the scene", () => {
     const { scene } = fixture();
     const store = createTimelineStore(scene);

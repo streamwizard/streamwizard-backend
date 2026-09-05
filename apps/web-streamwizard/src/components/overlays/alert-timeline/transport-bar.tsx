@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { findClip, MIN_CLIP_MS } from "@repo/alert-scene";
-import { Magnet, Maximize2, Pause, Play, Redo2, Repeat, Scissors, SkipBack, SkipForward, Undo2, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
+import { FlaskConical, Magnet, Maximize2, Pause, Play, Redo2, Repeat, Scissors, SkipBack, SkipForward, Undo2, Volume2, VolumeX, ZoomIn, ZoomOut } from "lucide-react";
 import { Button, Kbd, KbdGroup, Separator, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { AddLayerMenu } from "./add-layer-menu";
 import { splitClipCommand } from "./commands";
@@ -52,7 +52,7 @@ function TimeReadout() {
 
 export function TransportBar() {
   const api = useTimelineStoreApi();
-  const { controls } = usePlayback();
+  const { controls, playOnce } = usePlayback();
   const view = useTimelineView();
   const playing = useTimeline((s) => s.playing);
   const loop = useTimeline((s) => s.loop);
@@ -121,6 +121,12 @@ export function TransportBar() {
       </Tip>
       <TimeReadout />
       <Separator orientation="vertical" className="mx-1 h-5" />
+      <Tip label="Play once with the sample" keys={["T"]}>
+        <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-xs" aria-label="Test: play once with the sample" onMouseDown={keepFocus} onClick={playOnce}>
+          <FlaskConical className="size-3.5" />
+          Test
+        </Button>
+      </Tip>
       <SampleSelect />
       <Separator orientation="vertical" className="mx-1 h-5" />
       <Tip label="Split at playhead" keys={["S"]}>

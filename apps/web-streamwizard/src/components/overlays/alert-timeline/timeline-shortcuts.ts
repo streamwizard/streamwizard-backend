@@ -14,6 +14,7 @@ export const TIMELINE_SHORTCUT_GROUPS: EditorShortcutGroup[] = [
     description: "Moving through the alert.",
     shortcuts: [
       { action: "Play or pause", combos: [["Space"]] },
+      { action: "Test: play once from the start with the sample alert", combos: [["T"]] },
       { action: "Jump to the start or the end", combos: [["Home"], ["End"]] },
       { action: "Step one frame (nothing selected)", combos: [["←", "→"]] },
       { action: "Step ten frames", combos: [["Shift", "←", "→"]] },

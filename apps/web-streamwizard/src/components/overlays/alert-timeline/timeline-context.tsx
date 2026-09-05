@@ -21,6 +21,8 @@ export function useTimeline<T>(selector: (state: TimelineState) => T): T {
 
 export interface EditorPlayback {
   controls: ScenePlaybackControls;
+  /** Test: rewind to 0 and play through once, ignoring the loop toggle. */
+  playOnce(): void;
   stageRef: RefObject<SceneStageHandle | null>;
   /** The scrolling track pane; focus target for shortcuts, anchor for zoom. */
   paneRef: RefObject<HTMLDivElement | null>;

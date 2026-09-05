@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useScenePlayback, type SceneStageHandle } from "@repo/alert-scene/renderer";
 import { useTimeline, useTimelineStoreApi, type EditorPlayback } from "./timeline-context";
 
@@ -14,14 +14,25 @@ export function useEditorPlayback(paneRef: EditorPlayback["paneRef"]): EditorPla
   const stageRef = useRef<SceneStageHandle | null>(null);
   const duration = useTimeline((s) => s.scene.duration);
   const loop = useTimeline((s) => s.loop);
+  const testRun = useTimeline((s) => s.testRun);
 
   const controls = useScenePlayback({
     stageRef,
     duration,
-    loop,
+    // A test run plays through once whatever the loop toggle says.
+    loop: loop && !testRun,
     onTime: (t) => api.getState().setPlayhead(t),
     onEnded: () => api.getState().setPlaying(false),
   });
+
+  const playOnce = useCallback(() => {
+    const s = api.getState();
+    s.setTestRun(true);
+    controls.pause();
+    controls.seek(0);
+    controls.play();
+    s.setPlaying(true);
+  }, [api, controls]);
 
   // Scrubs while paused: the clock did not produce this playhead, so seek it.
   useEffect(() => {
@@ -47,5 +58,5 @@ export function useEditorPlayback(paneRef: EditorPlayback["paneRef"]): EditorPla
     if (playhead > duration) setPlayhead(duration);
   }, [api, duration]);
 
-  return { controls, stageRef, paneRef };
+  return { controls, playOnce, stageRef, paneRef };
 }

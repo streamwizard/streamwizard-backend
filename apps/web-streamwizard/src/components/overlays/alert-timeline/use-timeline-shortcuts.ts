@@ -50,7 +50,7 @@ export interface ShortcutKeyEvent {
  */
 export function useTimelineShortcuts({ onSave, onToggleShortcuts }: TimelineShortcutOptions) {
   const api = useTimelineStoreApi();
-  const { controls } = usePlayback();
+  const { controls, playOnce } = usePlayback();
   const view = useTimelineView();
 
   return useCallback(
@@ -174,6 +174,12 @@ export function useTimelineShortcuts({ onSave, onToggleShortcuts }: TimelineShor
           handled();
           state.setLoop(!state.loop);
           return;
+        case "t":
+        case "T":
+          if (mod) return;
+          handled();
+          playOnce();
+          return;
         case "j":
         case "J":
         case "k":
@@ -223,6 +229,6 @@ export function useTimelineShortcuts({ onSave, onToggleShortcuts }: TimelineShor
           return;
       }
     },
-    [api, controls, onSave, onToggleShortcuts, view]
+    [api, controls, onSave, onToggleShortcuts, playOnce, view]
   );
 }

@@ -48,6 +48,8 @@ export interface TimelineState {
   selection: Selection;
   playhead: number;
   playing: boolean;
+  /** A Test run: plays once from 0 and stops at the end, loop or not. Cleared when playback stops. */
+  testRun: boolean;
   loop: boolean;
   pxPerMs: number;
   snap: boolean;
@@ -77,6 +79,7 @@ export interface TimelineState {
   setSample(sampleId: string): void;
   setPlayhead(ms: number): void;
   setPlaying(playing: boolean): void;
+  setTestRun(testRun: boolean): void;
   setLoop(loop: boolean): void;
   setPxPerMs(v: number): void;
   setSnap(snap: boolean): void;
@@ -148,6 +151,7 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
     selection: EMPTY_SELECTION,
     playhead: 0,
     playing: false,
+    testRun: false,
     loop: false,
     pxPerMs: DEFAULT_PX_PER_MS,
     snap: true,
@@ -243,7 +247,9 @@ export function createTimelineStore(initial: AlertScene, options: TimelineStoreO
       const { scene } = get();
       set({ playhead: Math.min(scene.duration, Math.max(0, ms)) });
     },
-    setPlaying: (playing) => set({ playing }),
+    // Stopping for any reason (end, pause, scrub) ends a test run.
+    setPlaying: (playing) => set(playing ? { playing } : { playing, testRun: false }),
+    setTestRun: (testRun) => set({ testRun }),
     setLoop: (loop) => set({ loop }),
     setPxPerMs: (v) => set({ pxPerMs: clampPxPerMs(v) }),
     setSnap: (snap) => set({ snap }),
