@@ -1,6 +1,7 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { effectsFilterList, hasTint, tintArithmetic, tintFilterId } from "../core/effects";
 import { evaluate } from "../core/evaluate";
 import { substituteTokens } from "../core/tokens";
 import type { AlertScene, Clip, ClipEffects, ClipSource, Layer, RenderNode } from "../core/types";
@@ -36,17 +37,43 @@ interface Entry {
 
 const EMPTY_TOKENS: Record<string, string> = {};
 
-function effectsStyle(effects: ClipEffects): CSSProperties {
-  const filters: string[] = [];
-  if (effects.shadow) {
-    const s = effects.shadow;
-    filters.push(`drop-shadow(${s.x}px ${s.y}px ${s.blur}px ${s.color})`);
-  }
-  if (effects.blur > 0) filters.push(`blur(${effects.blur}px)`);
+let stageCounter = 0;
+
+function effectsStyle(effects: ClipEffects, tintId: string): CSSProperties {
+  const filters = effectsFilterList(effects, tintId);
   return {
     mixBlendMode: effects.blendMode === "normal" ? undefined : effects.blendMode,
     filter: filters.length ? filters.join(" ") : undefined,
   };
+}
+
+/**
+ * One SVG filter per tinted clip: the tint colour cut to the clip's own alpha,
+ * mixed into the source by `amount`. Static markup, so it is as deterministic
+ * as the rest of the styles. The region reaches one box in every direction so
+ * text that spills out of its box stays tinted; beyond that it is clipped.
+ */
+function TintFilterDefs({ scene, stageId }: { scene: AlertScene; stageId: string }) {
+  const tinted: Clip[] = [];
+  for (const layer of scene.layers) for (const clip of layer.clips) if (hasTint(clip.effects)) tinted.push(clip);
+  if (tinted.length === 0) return null;
+  return (
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}>
+      <defs>
+        {tinted.map((clip) => {
+          const tint = clip.effects.tint!;
+          const { k2, k3 } = tintArithmetic(tint.amount);
+          return (
+            <filter key={clip.id} id={tintFilterId(stageId, clip.id)} colorInterpolationFilters="sRGB" x="-100%" y="-100%" width="300%" height="300%">
+              <feFlood floodColor={tint.color} result="flood" />
+              <feComposite in="flood" in2="SourceAlpha" operator="in" result="tint" />
+              <feComposite in="SourceGraphic" in2="tint" operator="arithmetic" k1="0" k2={k2} k3={k3} k4="0" />
+            </filter>
+          );
+        })}
+      </defs>
+    </svg>
+  );
 }
 
 function textStyle(src: Extract<ClipSource, { kind: "text" }>): CSSProperties {
@@ -131,6 +158,7 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
   { scene, tokens = EMPTY_TOKENS, fit = null, volume = 1, muted = false, initialTime = 0, className, style },
   ref
 ) {
+  const [stageId] = useState(() => `s${++stageCounter}`);
   const entries = useRef(new Map<string, Entry>());
   const pendingMedia = useRef(new Map<string, HTMLMediaElement | null>());
   const timeRef = useRef(initialTime);
@@ -268,6 +296,7 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
   return (
     <div className={className} style={outerStyle} data-alert-scene-stage="">
       <div style={innerStyle}>
+        <TintFilterDefs scene={scene} stageId={stageId} />
         {scene.layers.map((layer: Layer) =>
           layer.clips.map((clip: Clip) => (
             <div
@@ -280,7 +309,7 @@ export const SceneStage = forwardRef<SceneStageHandle, SceneStageProps>(function
                 top: 0,
                 display: "none",
                 willChange: "transform, opacity",
-                ...effectsStyle(clip.effects),
+                ...effectsStyle(clip.effects, tintFilterId(stageId, clip.id)),
               }}
             >
               <ClipContent clip={clip} tokens={tokens} mediaRef={registerMedia(clip.id)} />

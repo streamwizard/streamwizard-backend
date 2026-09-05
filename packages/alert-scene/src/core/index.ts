@@ -3,6 +3,7 @@ export * from "./ids";
 export * from "./tokens";
 export * from "./easing";
 export * from "./evaluate";
+export * from "./effects";
 export * from "./schema";
 export * from "./scene-ops";
 export * from "./clock";

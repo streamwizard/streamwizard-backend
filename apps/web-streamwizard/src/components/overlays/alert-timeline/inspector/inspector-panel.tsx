@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { findClip, type Clip, type ClipSource, type MediaFit, type PropName, type ShapeKind } from "@repo/alert-scene";
 import { Link2, Unlink2 } from "lucide-react";
-import { ColorPicker, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
+import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Tooltip, TooltipContent, TooltipTrigger, cn } from "@repo/ui";
 import { NumberField } from "@/components/overlays/editor/number-field";
 import { InspectorSection } from "@/components/overlays/editor/inspector-section";
 import { FontWeightSelect, GoogleFontSelect, MediaField, SectionTitle, TextAlignSelect } from "@/components/overlays/inspector-fields";
@@ -19,7 +19,8 @@ import { visibleScene } from "../timeline-store";
 import { clampClipTrim, neighboursOf } from "../timeline/timeline-math";
 import { MAX_SCENE_DURATION_MS, MAX_SCENE_SIZE, MIN_CLIP_MS, MIN_SCENE_DURATION_MS } from "@repo/alert-scene";
 import { AnimatableField } from "./animatable-field";
-import { Field, Unit } from "./field-chrome";
+import { EffectsSection } from "./effects-section";
+import { ColourRow, Field, SwitchRow, Unit } from "./field-chrome";
 import { KeyframeSection } from "./keyframe-section";
 import { TokenChips } from "./token-chips";
 
@@ -279,29 +280,6 @@ function FitSelect({ value, onValueChange }: { value: MediaFit; onValueChange: (
   );
 }
 
-function SwitchRow({ id, label, checked, onCheckedChange, helper }: { id: string; label: string; checked: boolean; onCheckedChange: (v: boolean) => void; helper?: string }) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={id} className="text-[11px] text-muted-foreground">
-          {label}
-        </Label>
-        <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
-      </div>
-      {helper && <p className="text-[11px] leading-snug text-muted-foreground/80">{helper}</p>}
-    </div>
-  );
-}
-
-function ColourRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <Label className="text-[11px] text-muted-foreground">{label}</Label>
-      <ColorPicker value={value} onChange={onChange} aria-label={`${label} colour`} />
-    </div>
-  );
-}
-
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 
 /** Volume for a video or sound clip; the layer's mute switch lives on the timeline. */
@@ -469,6 +447,7 @@ export function InspectorPanel() {
           <TimingSection clip={clip} />
           {hasPicture && <TransformSection clip={clip} />}
           {hasPicture && <AnchorSection clip={clip} />}
+          {hasPicture && <EffectsSection clip={clip} />}
         </div>
       ) : (
         <div className="space-y-5">
