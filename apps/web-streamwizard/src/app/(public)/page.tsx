@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
-import { absoluteUrl, faqPageSchema, isIndexableEnvironment, softwareApplicationSchema, webSiteSchema } from "@/lib/seo";
+import { absoluteUrl, faqPageSchema, softwareApplicationSchema, webSiteSchema } from "@/lib/seo";
 import { Hero } from "@/components/public/home/hero";
 import { TrustBand } from "@/components/public/home/trust-band";
 import { CloudObsShowcase } from "@/components/public/home/cloud-obs-showcase";
@@ -12,12 +12,11 @@ import { Faq, FAQ_ITEMS } from "@/components/public/home/faq";
 import { FinalCta } from "@/components/public/home/final-cta";
 
 const TITLE = "Cloud OBS, Overlays, Clips & Analytics for Twitch";
-// og:title and twitter:title skip the root's title template, and a social card
-// has no length limit to protect, so those get the brand spelled out.
-const TITLE_WITH_BRAND = `${TITLE} – StreamWizard`;
 const DESCRIPTION =
   "Cloud OBS for IRL streaming, overlays, clip folders, VOD clipping, and stream analytics for Twitch. Open source and built in public.";
 
+// No openGraph/twitter block: see the root layout for why. The social card
+// gets this title plus og:site_name for the brand, and the file-based image.
 export const metadata: Metadata = {
   // Absolute, so the root's `%s – StreamWizard` template does not append the
   // brand: those 15 characters would push the title past where Google
@@ -26,38 +25,6 @@ export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   alternates: { canonical: absoluteUrl("/") },
-  // A page-level openGraph block replaces the root one outright rather than
-  // merging into it, so siteName/locale/type are restated here or they vanish.
-  // The file-based opengraph-image survives: only an explicit `images` key
-  // would displace it.
-  openGraph: {
-    type: "website",
-    siteName: "StreamWizard",
-    locale: "en_US",
-    url: absoluteUrl("/"),
-    title: TITLE_WITH_BRAND,
-    description: DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: TITLE_WITH_BRAND,
-    description: DESCRIPTION,
-  },
-  // robots.txt already blocks non-production hosts wholesale; this is the
-  // second lock, for the case where a preview host is reachable but its
-  // robots.txt is not the one we think it is.
-  robots: isIndexableEnvironment()
-    ? {
-        index: true,
-        follow: true,
-        // Defaults are a ~160px thumbnail and a truncated snippet. Both of
-        // these are opt-in only, and they are what makes the result show the
-        // full OG image and quote the FAQ answers at length.
-        "max-image-preview": "large",
-        "max-snippet": -1,
-        "max-video-preview": -1,
-      }
-    : { index: false, follow: false },
 };
 
 // The clips marquee reads from the database; the hourly refresh lives on the

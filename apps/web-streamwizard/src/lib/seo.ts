@@ -31,13 +31,16 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
 ];
 
 /**
- * Paths that exist but must never be crawled: everything behind auth.
+ * Paths that exist but must never be crawled: everything behind auth, which
+ * only ever answers a crawler with a redirect to /login.
  *
- * /goodbye is deliberately absent. It needs to stay *out of the index* rather
- * than merely uncrawled, and a crawler blocked here could never read the
- * noindex tag that does that. It carries `robots: { index: false }` instead.
+ * /goodbye, /error and /unauthorized are deliberately absent. They need to
+ * stay *out of the index* rather than merely uncrawled, and a crawler blocked
+ * here could never read the noindex tag that does that. Each carries
+ * `robots: { index: false }` instead. /login is absent because it is meant to
+ * be found: it is the answer to a "streamwizard login" search.
  */
-export const DISALLOWED_PATHS = ["/api/", "/auth/", "/login", "/unauthorized", "/dashboard", "/deck", "/obs-viewer", "/error"];
+export const DISALLOWED_PATHS = ["/api/", "/auth/", "/dashboard", "/deck", "/obs-viewer"];
 
 /** The one host whose content is the real, indexable site. */
 const CANONICAL_HOST = "streamwizard.org";

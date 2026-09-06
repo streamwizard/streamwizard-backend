@@ -6,10 +6,15 @@ import { BarChart3, Cloud, Scissors } from "lucide-react";
 
 import TwitchLogin from "@/components/buttons/twitch-login";
 import { discordInviteLink } from "@/lib/constant";
+import { absoluteUrl } from "@/lib/seo";
 
+// Indexable on purpose: "streamwizard login" is a real query and this page
+// answers it. The canonical folds every /login?next=... variant the auth
+// redirects produce into the one URL.
 export const metadata: Metadata = {
-  title: "Login",
-  description: "Login in to your account to access your dashboard.",
+  title: "Log in",
+  description: "Log in to StreamWizard with your Twitch account to reach your dashboard, cloud OBS, overlays, clips and analytics.",
+  alternates: { canonical: absoluteUrl("/login") },
 };
 
 const perks = [
