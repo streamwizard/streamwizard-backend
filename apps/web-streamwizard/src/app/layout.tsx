@@ -2,7 +2,7 @@ import { CookieBanner } from "@/components/cookie-banner";
 import { LightModeOverlay } from "@/components/global/light-mode-overlay";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { PHProvider, PostHogPageView } from "@repo/posthog";
-import { siteUrl } from "@/lib/seo";
+import { isIndexableEnvironment, siteUrl } from "@/lib/seo";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import localFont from "next/font/local";
@@ -40,19 +40,36 @@ export const metadata: Metadata = {
     name: SITE_NAME,
     url: "https://streamwizard.org",
   },
+  // No title/description/url here on purpose. Next copies each page's own
+  // resolved title and description into og:* and twitter:* when these blocks
+  // leave them unset, so a share of /cloud-obs carries that page's title rather
+  // than the site-wide one. A page must never define its own openGraph block:
+  // it would replace this one outright and, with it, the file-based
+  // opengraph-image.tsx that Next attaches at this segment.
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
     locale: "en_US",
-    title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
-    url: "/",
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
   },
+  // robots.txt already blocks non-production hosts wholesale; this is the
+  // second lock, for the case where a preview host is reachable but its
+  // robots.txt is not the one we think it is. Pages that must stay out of the
+  // index everywhere (/goodbye, /error) override this with their own noindex.
+  robots: isIndexableEnvironment()
+    ? {
+        index: true,
+        follow: true,
+        // Defaults are a ~160px thumbnail and a truncated snippet. Both of
+        // these are opt-in only, and they are what makes the result show the
+        // full OG image and quote page copy at length.
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      }
+    : { index: false, follow: false },
 };
 
 export default async function RootLayout({

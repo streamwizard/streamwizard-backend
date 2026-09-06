@@ -9,9 +9,10 @@ export default function robots(): MetadataRoute.Robots {
     return { rules: [{ userAgent: "*", disallow: "/" }] };
   }
 
+  // No `host` line: Google never read it and Yandex dropped it in 2018 in
+  // favour of a 301 from the alternate host, which is Cloudflare's job.
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: DISALLOWED_PATHS }],
     sitemap: absoluteUrl("/sitemap.xml"),
-    host: absoluteUrl("/"),
   };
 }
