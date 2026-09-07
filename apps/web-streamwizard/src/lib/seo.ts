@@ -10,24 +10,27 @@ import { env } from "@/lib/env";
  */
 export type PublicRoute = {
   path: string;
-  changeFrequency: "yearly" | "monthly" | "weekly" | "daily";
-  priority: number;
-  /** ISO date, or undefined to fall back to build time. */
-  lastModified?: string;
+  /**
+   * ISO date of the last real copy change on the page. Google only trusts
+   * lastmod when it moves with content, so bump this by hand when the page
+   * text changes; a build timestamp on every route teaches it to ignore the
+   * field. changefreq and priority are deliberately absent: Google ignores both.
+   */
+  lastModified: string;
 };
 
 export const PUBLIC_ROUTES: PublicRoute[] = [
-  { path: "/", changeFrequency: "weekly", priority: 1 },
-  { path: "/cloud-obs", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/overlays", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/clips", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/vods", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/analytics", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/about", changeFrequency: "monthly", priority: 0.5 },
-  { path: "/contact", changeFrequency: "monthly", priority: 0.5 },
-  { path: "/roadmap", changeFrequency: "weekly", priority: 0.5 },
-  { path: "/privacy-policy", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-05-26" },
-  { path: "/terms-of-service", changeFrequency: "yearly", priority: 0.3, lastModified: "2026-05-26" },
+  { path: "/", lastModified: "2026-09-06" },
+  { path: "/cloud-obs", lastModified: "2026-08-29" },
+  { path: "/overlays", lastModified: "2026-08-29" },
+  { path: "/clips", lastModified: "2026-08-29" },
+  { path: "/vods", lastModified: "2026-08-29" },
+  { path: "/analytics", lastModified: "2026-08-29" },
+  { path: "/about", lastModified: "2026-08-29" },
+  { path: "/contact", lastModified: "2026-08-29" },
+  { path: "/roadmap", lastModified: "2026-08-29" },
+  { path: "/privacy-policy", lastModified: "2026-05-26" },
+  { path: "/terms-of-service", lastModified: "2026-05-26" },
 ];
 
 /**
@@ -86,9 +89,18 @@ export function isIndexableEnvironment(): boolean {
   return new URL(configured).hostname === CANONICAL_HOST;
 }
 
-/** Absolute URL for a public path, built off the environment's own base URL. */
+/**
+ * Absolute URL for a public path, built off the environment's own base URL.
+ *
+ * The bare root comes back as the origin with no trailing slash. `URL` would
+ * serialise it as `https://streamwizard.org/`, while Next normalises the
+ * canonical tag to the slash-less form, so the sitemap, JSON-LD `url` fields
+ * and the canonical disagreed on which home URL is the real one.
+ */
 export function absoluteUrl(path: string): string {
-  return new URL(path, siteUrl()).toString();
+  const url = new URL(path, siteUrl());
+  if (url.pathname === "/" && !url.search && !url.hash) return url.origin;
+  return url.toString();
 }
 
 /**

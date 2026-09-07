@@ -38,6 +38,7 @@ export function LinkDiscordSection() {
             </p>
             <TrackedLink
               href="/dashboard/settings/integrations"
+              rel="nofollow"
               cta="link_discord"
               section="contact_link_discord"
               className="mt-2 inline-flex h-10 items-center gap-2 rounded-md border border-border bg-transparent px-6 text-sm font-medium text-foreground transition-colors hover:bg-accent"

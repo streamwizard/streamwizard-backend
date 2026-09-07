@@ -3,6 +3,9 @@ export async function register() {
 
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");
+    // Tell IndexNow the public pages may have changed. Fire-and-forget: a
+    // slow or failing Bing endpoint must never hold up server start.
+    void import("./lib/indexnow").then((m) => m.pingIndexNow());
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {
