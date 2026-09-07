@@ -13,8 +13,8 @@ import { ViewerEventsDemo } from "./viewer-events-demo";
 const FEATURES = [
   {
     icon: LineChart,
-    title: "A dot per minute",
-    body: "Viewer counts are sampled while you are live, so the line shows the whole arc: the slow start, the raid bump, the drop when you said one more game.",
+    title: "A dot every five minutes",
+    body: "Viewer counts are sampled every five minutes while you are live, so the line shows the whole arc: the slow start, the raid bump, the drop when you said one more game.",
   },
   {
     icon: Pin,

@@ -44,7 +44,10 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
  * stay *out of the index* rather than merely uncrawled, and a crawler blocked
  * here could never read the noindex tag that does that. Each carries
  * `robots: { index: false }` instead. /login is absent because it is meant to
- * be found: it is the answer to a "streamwizard login" search.
+ * be found: it is the answer to a "streamwizard login" search. /roadmap is
+ * also absent here and from PUBLIC_ROUTES: it carries `noindex, follow`
+ * because it is too thin to rank (SW-308), and a crawler still has to be able
+ * to read that tag.
  */
 export const DISALLOWED_PATHS = ["/api/", "/auth/", "/dashboard", "/deck", "/obs-viewer"];
 
