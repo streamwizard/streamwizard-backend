@@ -116,7 +116,7 @@ function NormalContent() {
         <h2 className="text-2xl font-semibold mt-10 mb-4">8. Termination</h2>
         <p className="text-muted-foreground leading-relaxed">
           You may delete your account at any time from{" "}
-          <Link href="/dashboard/settings/account" className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
+          <Link href="/dashboard/settings/account" rel="nofollow" className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
             Settings → Account
           </Link>
           {" "}or by contacting{" "}
@@ -312,7 +312,7 @@ function GenZContent() {
         <h2 className="text-2xl font-semibold mt-10 mb-4">8. getting banned (or leaving) 🚪</h2>
         <p className="text-muted-foreground leading-relaxed">
           u can delete ur account anytime in{" "}
-          <Link href="/dashboard/settings/account" className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
+          <Link href="/dashboard/settings/account" rel="nofollow" className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
             Settings → Account
           </Link>
           {" "}or email{" "}

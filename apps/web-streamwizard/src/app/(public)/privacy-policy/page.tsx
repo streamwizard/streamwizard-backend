@@ -239,6 +239,7 @@ function NormalContent() {
           You can delete your account at any time from{" "}
           <Link
             href="/dashboard/settings/account"
+            rel="nofollow"
             className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
           >
             Settings → Account
@@ -628,6 +629,7 @@ function GenZContent() {
           want out? hit{" "}
           <Link
             href="/dashboard/settings/account"
+            rel="nofollow"
             className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors"
           >
             Settings → Account
