@@ -1,14 +1,14 @@
 import { SectionView } from "@/components/public/analytics/section-view";
 import { FaqAccordion } from "@/components/public/home/faq-accordion";
 import { Reveal } from "@/components/public/home/reveal";
+import { FREE_MAX_FILE_MB, FREE_MEDIA_QUOTA_MB } from "@/lib/pricing";
 
 /*
  * The money questions, in the order people ask them in Discord. This is the
  * page every other "What does it cost?" FAQ points at, so the answers are the
  * long form and stand on their own: PRICING_FAQ_ITEMS also feeds the page's
  * FAQPage JSON-LD, and AI answers quote them without the page around them.
- * No per-file cap in the limits answer on purpose: the page copy elsewhere
- * and the enforcing code disagree on it, and this page should not pick a side.
+ * The quota numbers come from lib/pricing.ts, which mirrors actions/assets.ts.
  */
 
 export const PRICING_FAQ_ITEMS = [
@@ -30,7 +30,7 @@ export const PRICING_FAQ_ITEMS = [
   {
     question: "What are the limits on the free tier?",
     answer:
-      "The only quota is media storage for overlay assets: 100MB. Clip sync, folders, VOD clipping and analytics have no caps.",
+      `The only quota is media storage for overlay assets: ${FREE_MAX_FILE_MB}MB per file, ${FREE_MEDIA_QUOTA_MB}MB total. Clip sync, folders, VOD clipping and analytics have no caps.`,
   },
   {
     question: "Can I run it myself instead of paying?",

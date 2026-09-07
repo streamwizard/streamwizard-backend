@@ -1,6 +1,7 @@
 import { discordInviteLink, docsLink, githubLink, twitchChannelLink } from "@/lib/constant";
 import { env } from "@/lib/env";
 import { FREE_TIER_OFFER_DESCRIPTION } from "@/lib/pricing";
+import type { FaqItem } from "@/components/public/home/faq-accordion";
 
 /**
  * Single source of truth for what search engines may see.
@@ -210,19 +211,22 @@ export function webSiteSchema(): Record<string, unknown> {
 }
 
 /**
- * The home page FAQ, as a FAQPage rich result. Questions and answers come from
- * the section itself so the two can never drift apart.
+ * A page's FAQ, as a FAQPage rich result. Questions and answers come from the
+ * section itself so the two can never drift apart. An item's link becomes an
+ * anchor at the end of the answer: Google allows <a> inside Answer text, and
+ * the pointer to /pricing is part of the answer, not decoration around it.
  */
-export function faqPageSchema(
-  items: readonly { question: string; answer: string }[]
-): Record<string, unknown> {
+export function faqPageSchema(items: readonly FaqItem[]): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: items.map(({ question, answer }) => ({
+    mainEntity: items.map(({ question, answer, link }) => ({
       "@type": "Question",
       name: question,
-      acceptedAnswer: { "@type": "Answer", text: answer },
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: link ? `${answer} <a href="${absoluteUrl(link.href)}">${link.label}</a>` : answer,
+      },
     })),
   };
 }

@@ -9,6 +9,8 @@
  * so nothing here may pull in React.
  */
 
+import { pricingLink } from "@/lib/constant";
+
 /** What costs nothing. Lower-case so it can sit mid-sentence. */
 export const FREE_TIER_SUMMARY = "clip sync, clip folders, overlays, VOD clipping and stream analytics";
 
@@ -21,3 +23,16 @@ export const FREE_TIER_OFFER_DESCRIPTION = `Free tier: ${FREE_TIER_SUMMARY}. ${P
 
 /** Mirrors FREE_QUOTA_MB in actions/assets.ts, which enforces it. */
 export const FREE_MEDIA_QUOTA_MB = 100;
+
+/** Mirrors MAX_FILE_BYTES in actions/assets.ts, which enforces it. */
+export const FREE_MAX_FILE_MB = 10;
+
+/**
+ * The pointer every short cost answer ends on. One object so the five FAQs
+ * that carry it read the same and PostHog sees one CTA id.
+ */
+export const PRICING_FAQ_LINK = {
+  label: "Full split on the pricing page.",
+  href: pricingLink,
+  cta: "pricing",
+} as const;
