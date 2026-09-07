@@ -36,6 +36,11 @@ const nextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
+          // None of these run in this app. The GPS widgets that need
+          // geolocation live in web-overlay on its own origin, and the only
+          // iframes here are Twitch embeds, which delegate autoplay/fullscreen
+          // through their own allow attribute and are unaffected.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           // cdn.streamwizard.org 403s any request whose Referer is not a
           // streamwizard.org origin, so on localhost every CDN asset (landing
           // page demo clips, the theme-transition WebMs) fails to load. Sending
