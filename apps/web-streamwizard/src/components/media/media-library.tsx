@@ -155,7 +155,7 @@ export function MediaLibrary({ initialListing, onSelect, kindFilter }: MediaLibr
         <div className="text-center">
           <p className="text-sm font-medium">Drop files here or click to browse</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Images, sounds, and videos for your overlays. Up to 100MB per file.
+            Images, sounds, and videos for your overlays. Up to 10MB per file.
           </p>
         </div>
         <input
