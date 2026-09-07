@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, breadcrumbSchema, faqPageSchema } from "@/lib/seo";
+import { absoluteUrl, breadcrumbSchema, faqPageSchema, softwareApplicationSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { AnalyticsDemo } from "@/components/public/home/analytics-demo";
 import { ViewerGraphSection } from "@/components/public/analytics/viewer-graph-section";
@@ -29,6 +29,7 @@ export default function AnalyticsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <JsonLd schema={breadcrumbSchema("Analytics", "/analytics")} />
+      <JsonLd schema={softwareApplicationSchema()} />
       <JsonLd schema={faqPageSchema(ANALYTICS_FAQ_ITEMS)} />
       <section className="pt-16 md:pt-20">
         <div className="container mx-auto px-4">

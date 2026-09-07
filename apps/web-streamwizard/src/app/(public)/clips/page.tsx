@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, breadcrumbSchema } from "@/lib/seo";
+import { absoluteUrl, breadcrumbSchema, softwareApplicationSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ClipsVods } from "@/components/public/home/clips-vods";
 import { ClipsSyncSection } from "@/components/public/clips/clips-sync-section";
@@ -30,6 +30,7 @@ export default function ClipsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <JsonLd schema={breadcrumbSchema("Clips", "/clips")} />
+      <JsonLd schema={softwareApplicationSchema()} />
       <section className="pt-16 md:pt-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">

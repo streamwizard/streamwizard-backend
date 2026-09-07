@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { FaDiscord } from "react-icons/fa";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, contactPageSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import { discordInviteLink } from "@/lib/constant";
 import { PageHero } from "@/components/public/layout/page-hero";
 import { TrackedLink } from "@/components/public/analytics/tracked-link";
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <JsonLd schema={contactPageSchema()} />
+
       <PageHero
         eyebrow="Contact"
         title={

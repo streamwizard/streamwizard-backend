@@ -15,17 +15,19 @@ import { GoalSection } from "@/components/public/about/goal-section";
  * (built in public), what do you optimize for (principles), and where is
  * this going (goal). The FinalCta answers "fine, how do I try it".
  */
+const DESCRIPTION =
+  "StreamWizard began as Twitch channel point chaos in 2023 and became clip folders in 2024. Now it is five streamer tools behind one Twitch login: cloud OBS for IRL, overlays, clips, VOD clipping and analytics. Open source, built by one person in the Netherlands, maintained with the community.";
+
 export const metadata: Metadata = {
   title: "About StreamWizard",
-  description:
-    "StreamWizard began as Twitch channel point chaos in 2023 and became clip folders in 2024. Now it is five streamer tools behind one Twitch login: cloud OBS for IRL, overlays, clips, VOD clipping and analytics. Open source, built by one person in the Netherlands, maintained with the community.",
+  description: DESCRIPTION,
   alternates: { canonical: absoluteUrl("/about") },
 };
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <JsonLd schema={aboutPageSchema()} />
+      <JsonLd schema={aboutPageSchema({ description: DESCRIPTION })} />
 
       <PageHero
         eyebrow="About"

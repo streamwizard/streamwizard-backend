@@ -121,11 +121,18 @@ export function organizationSchema(): Record<string, unknown> {
   };
 }
 
+/** lastModified for a public route, so schema dates and the sitemap agree. */
+function routeLastModified(path: string): string | undefined {
+  return PUBLIC_ROUTES.find((route) => route.path === path)?.lastModified;
+}
+
 /**
- * The about page as an entity. It only points at the organization and website
- * nodes rendered elsewhere; the facts live on those nodes, not here.
+ * The about page as an entity. It points at the organization and website
+ * nodes rendered elsewhere; the facts live on those nodes, not here. The
+ * description is the page's own meta description, passed in so the two
+ * cannot drift.
  */
-export function aboutPageSchema(): Record<string, unknown> {
+export function aboutPageSchema({ description }: { description: string }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "AboutPage",
@@ -133,8 +140,34 @@ export function aboutPageSchema(): Record<string, unknown> {
     name: "About StreamWizard",
     url: absoluteUrl("/about"),
     inLanguage: "en",
+    description,
+    dateModified: routeLastModified("/about"),
     about: { "@id": absoluteUrl("/#organization") },
     isPartOf: { "@id": absoluteUrl("/#website") },
+  };
+}
+
+/**
+ * The contact page as an entity. Support is a Discord ticket, not an email
+ * address or a phone number, so the contact point carries the invite URL.
+ */
+export function contactPageSchema(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "@id": absoluteUrl("/contact#contact"),
+    name: "Contact StreamWizard",
+    url: absoluteUrl("/contact"),
+    inLanguage: "en",
+    dateModified: routeLastModified("/contact"),
+    about: { "@id": absoluteUrl("/#organization") },
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      url: discordInviteLink,
+      availableLanguage: "en",
+    },
   };
 }
 
@@ -192,7 +225,14 @@ export function faqPageSchema(
   };
 }
 
-/** The product itself: what AI answers and rich results read to describe us. */
+/**
+ * The product itself: what AI answers and rich results read to describe us.
+ *
+ * Rendered on the home page and on the four free pillar pages (overlays,
+ * clips, vods, analytics), always under the same @id so it is one node
+ * however many pages carry it. Not on /cloud-obs: that page sells the paid
+ * tier, and the free-tier offer below would sit oddly next to it.
+ */
 export function softwareApplicationSchema(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
