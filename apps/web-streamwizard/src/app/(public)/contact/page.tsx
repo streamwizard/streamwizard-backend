@@ -14,7 +14,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "The fastest way to reach StreamWizard is a ticket in the Discord: one button, one private channel with the people who wrote the code. GitHub issues and docs cover the rest.",
+    "Fastest way to reach StreamWizard: a Discord ticket. One button, one private channel with the people who wrote the code. GitHub issues and docs cover the rest.",
   alternates: { canonical: absoluteUrl("/contact") },
 };
 

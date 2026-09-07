@@ -21,7 +21,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Stream overlays and alerts",
   description:
-    "Alert box, clips rotator, countdowns and live GPS widgets in one browser source. Install widgets other streamers built, or write your own. Free, with no paywall on alerts.",
+    "Alert box, clips rotator, countdowns and GPS widgets in one browser source. Install widgets other streamers built, or write your own. Free, alerts included.",
   alternates: { canonical: absoluteUrl("/overlays") },
 };
 

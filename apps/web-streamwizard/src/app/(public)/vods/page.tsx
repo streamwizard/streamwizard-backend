@@ -20,7 +20,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Clip from your Twitch VODs",
   description:
-    "Every follow, sub, raid and ad break marked on your VOD timeline. Click an event to jump there, zoom in to 20x, and drag a 5 to 60 second selection into a real Twitch clip.",
+    "Every follow, sub, raid and ad break marked on your VOD timeline. Jump to an event, zoom to 20x, and drag a 5 to 60 second selection into a real Twitch clip.",
   alternates: { canonical: absoluteUrl("/vods") },
 };
 

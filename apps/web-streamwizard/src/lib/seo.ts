@@ -22,16 +22,15 @@ export type PublicRoute = {
 };
 
 export const PUBLIC_ROUTES: PublicRoute[] = [
-  { path: "/", lastModified: "2026-09-06" },
-  { path: "/cloud-obs", lastModified: "2026-08-29" },
-  { path: "/overlays", lastModified: "2026-08-29" },
-  { path: "/clips", lastModified: "2026-08-29" },
-  { path: "/vods", lastModified: "2026-08-29" },
-  { path: "/analytics", lastModified: "2026-08-29" },
+  { path: "/", lastModified: "2026-09-07" },
+  { path: "/cloud-obs", lastModified: "2026-09-07" },
+  { path: "/overlays", lastModified: "2026-09-07" },
+  { path: "/clips", lastModified: "2026-09-07" },
+  { path: "/vods", lastModified: "2026-09-07" },
+  { path: "/analytics", lastModified: "2026-09-07" },
   { path: "/pricing", lastModified: "2026-09-07" },
-  { path: "/about", lastModified: "2026-08-29" },
-  { path: "/contact", lastModified: "2026-08-29" },
-  { path: "/roadmap", lastModified: "2026-08-29" },
+  { path: "/about", lastModified: "2026-09-07" },
+  { path: "/contact", lastModified: "2026-09-07" },
   { path: "/privacy-policy", lastModified: "2026-05-26" },
   { path: "/terms-of-service", lastModified: "2026-05-26" },
 ];

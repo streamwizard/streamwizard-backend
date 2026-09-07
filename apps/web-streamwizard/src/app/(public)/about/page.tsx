@@ -16,7 +16,7 @@ import { GoalSection } from "@/components/public/about/goal-section";
  * this going (goal). The FinalCta answers "fine, how do I try it".
  */
 const DESCRIPTION =
-  "StreamWizard began as Twitch channel point chaos in 2023 and became clip folders in 2024. Now it is five streamer tools behind one Twitch login: cloud OBS for IRL, overlays, clips, VOD clipping and analytics. Open source, built by one person in the Netherlands, maintained with the community.";
+  "Open source Twitch tools built by one streamer in the Netherlands since 2024: cloud OBS for IRL, overlays, clip folders, VOD clipping and analytics.";
 
 export const metadata: Metadata = {
   title: "About StreamWizard",

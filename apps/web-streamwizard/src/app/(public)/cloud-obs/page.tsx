@@ -27,7 +27,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Cloud OBS for IRL streaming",
   description:
-    "A dedicated OBS for your channel in the cloud, run from the deck on your phone. SRT and SRTLA ingest, and an auto switcher that moves you to a fallback scene when the connection drops and tells chat why. Stream IRL without a PC.",
+    "OBS for your channel in the cloud, run from your phone. SRT and SRTLA ingest, and an auto switcher that covers for your connection. Stream IRL without a PC.",
   alternates: { canonical: absoluteUrl("/cloud-obs") },
 };
 

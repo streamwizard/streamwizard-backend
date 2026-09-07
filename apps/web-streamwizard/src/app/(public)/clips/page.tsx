@@ -22,7 +22,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Twitch clip manager with folders",
   description:
-    "Every clip from your Twitch channel, synced the moment your stream ends and filed into folders and subfolders you create. Stack filters by title, category, or who clipped it, then point an overlay at a folder and let it rotate on stream.",
+    "Every Twitch clip synced the moment your stream ends, filed into folders you create. Filter by title, category or clipper, then rotate a folder on stream.",
   alternates: { canonical: absoluteUrl("/clips") },
 };
 
