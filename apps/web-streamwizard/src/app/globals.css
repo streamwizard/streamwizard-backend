@@ -360,3 +360,21 @@
     0 0 0 1px oklch(0.84 0.016 260 / 0.55),
     0 1px 3px oklch(0.4 0.02 260 / 0.06) !important;
 }
+/* Public FAQ <details>: animate the open/close height where the browser can
+   interpolate to `auto` (Chrome 131+); everywhere else the panel just snaps,
+   which is the native behaviour anyway. */
+@media (prefers-reduced-motion: no-preference) {
+  details[name="faq"] {
+    interpolate-size: allow-keywords;
+  }
+  details[name="faq"]::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 0.2s ease-out,
+      content-visibility 0.2s allow-discrete;
+  }
+  details[name="faq"][open]::details-content {
+    block-size: auto;
+  }
+}

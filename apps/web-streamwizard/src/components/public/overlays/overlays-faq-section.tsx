@@ -5,11 +5,12 @@ import { FaqAccordion } from "../home/faq-accordion";
 /*
  * The page's FAQ, which is also where the setup story lives now: one browser
  * source, the no-refresh socket, the free story, and the no-code answer. Its
- * own section id so the funnel dashboard can tell it apart from the home FAQ;
- * no JSON-LD, the FAQPage schema stays a home-page-only thing.
+ * own section id so the funnel dashboard can tell it apart from the home FAQ.
+ * OVERLAY_FAQ_ITEMS also feeds the page's FAQPage JSON-LD, so answers must
+ * stand on their own: AI answers quote them without the page around them.
  */
 
-const OVERLAY_FAQ_ITEMS = [
+export const OVERLAY_FAQ_ITEMS = [
   {
     question: "How do I get this into OBS?",
     answer:

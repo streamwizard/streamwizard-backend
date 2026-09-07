@@ -5,12 +5,13 @@ import { FaqAccordion } from "../home/faq-accordion";
 /*
  * The page's FAQ, and the canonical home of the honest caveat: tracking
  * starts when you connect, so streams from before StreamWizard have no data
- * to show. Its own section id for the funnel dashboard; no JSON-LD, the
- * FAQPage schema stays a home-page-only thing. The off-switch answer must
- * stay in step with AnalyticsStatsRow's copy (and SW-196).
+ * to show. Its own section id for the funnel dashboard. ANALYTICS_FAQ_ITEMS
+ * also feeds the page's FAQPage JSON-LD, so answers must stand on their own:
+ * AI answers quote them without the page around them. The off-switch answer
+ * must stay in step with AnalyticsStatsRow's copy (and SW-196).
  */
 
-const ANALYTICS_FAQ_ITEMS = [
+export const ANALYTICS_FAQ_ITEMS = [
   {
     question: "Where is my last stream?",
     answer:

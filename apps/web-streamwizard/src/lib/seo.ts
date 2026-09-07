@@ -121,11 +121,18 @@ export function organizationSchema(): Record<string, unknown> {
   };
 }
 
+/** lastModified for a public route, so schema dates and the sitemap agree. */
+function routeLastModified(path: string): string | undefined {
+  return PUBLIC_ROUTES.find((route) => route.path === path)?.lastModified;
+}
+
 /**
- * The about page as an entity. It only points at the organization and website
- * nodes rendered elsewhere; the facts live on those nodes, not here.
+ * The about page as an entity. It points at the organization and website
+ * nodes rendered elsewhere; the facts live on those nodes, not here. The
+ * description is the page's own meta description, passed in so the two
+ * cannot drift.
  */
-export function aboutPageSchema(): Record<string, unknown> {
+export function aboutPageSchema({ description }: { description: string }): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "AboutPage",
@@ -133,8 +140,49 @@ export function aboutPageSchema(): Record<string, unknown> {
     name: "About StreamWizard",
     url: absoluteUrl("/about"),
     inLanguage: "en",
+    description,
+    dateModified: routeLastModified("/about"),
     about: { "@id": absoluteUrl("/#organization") },
     isPartOf: { "@id": absoluteUrl("/#website") },
+  };
+}
+
+/**
+ * The contact page as an entity. Support is a Discord ticket, not an email
+ * address or a phone number, so the contact point carries the invite URL.
+ */
+export function contactPageSchema(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "@id": absoluteUrl("/contact#contact"),
+    name: "Contact StreamWizard",
+    url: absoluteUrl("/contact"),
+    inLanguage: "en",
+    dateModified: routeLastModified("/contact"),
+    about: { "@id": absoluteUrl("/#organization") },
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      url: discordInviteLink,
+      availableLanguage: "en",
+    },
+  };
+}
+
+/**
+ * Home → page, for the pillar pages that sit one level under home. Two items
+ * is the whole trail, and still a supported rich result.
+ */
+export function breadcrumbSchema(name: string, path: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name, item: absoluteUrl(path) },
+    ],
   };
 }
 
@@ -177,7 +225,14 @@ export function faqPageSchema(
   };
 }
 
-/** The product itself: what AI answers and rich results read to describe us. */
+/**
+ * The product itself: what AI answers and rich results read to describe us.
+ *
+ * Rendered on the home page and on the four free pillar pages (overlays,
+ * clips, vods, analytics), always under the same @id so it is one node
+ * however many pages carry it. Not on /cloud-obs: that page sells the paid
+ * tier, and the free-tier offer below would sit oddly next to it.
+ */
 export function softwareApplicationSchema(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
@@ -210,12 +265,20 @@ export function softwareApplicationSchema(): Record<string, unknown> {
       "VOD timeline marking follows, subs, cheers, raids and ad breaks, with 5 to 60 second clip creation",
       "Per-stream analytics with follows, subs and clips plotted on the viewer graph",
     ],
-    // No `offers` on purpose. An Offer here prices the whole application, and
-    // Cloud OBS, the ingest server and the deck are paid — the FAQ on the same
-    // page says so, and structured data that contradicts the visible page is a
-    // spam-policy problem rather than a missing rich result. Add a real offers
-    // array once pricing is public; until then `license` carries the
-    // open-source half of the story.
     license: "https://opensource.org/licenses/MIT",
+    // Google wants offers, review or aggregateRating before it shows a software
+    // rich result. The one honest offer is the free tier, so the description
+    // spells out what the zero covers and names the paid part; a bare "0" would
+    // contradict the FAQ on the same page, which says Cloud OBS is paid. No
+    // price for Cloud OBS until pricing is public.
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl("/"),
+      description:
+        "Free tier: clip sync, clip folders, overlays, VOD clipping and stream analytics. Cloud OBS, the ingest server and the mobile deck are a separate paid plan, currently in invite-only beta.",
+    },
   };
 }

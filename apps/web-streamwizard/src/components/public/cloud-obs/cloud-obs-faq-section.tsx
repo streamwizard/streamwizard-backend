@@ -8,10 +8,11 @@ import { FaqAccordion } from "@/components/public/home/faq-accordion";
  * whether a stopped container eats your scenes, and whether this is real OBS.
  * The cost answer stays short because the beta note underneath is its home.
  * Its own section id so the funnel dashboard can tell it apart from the home
- * FAQ; no JSON-LD, the FAQPage schema stays a home-page-only thing.
+ * FAQ. CLOUD_OBS_FAQ_ITEMS also feeds the page's FAQPage JSON-LD, so answers
+ * must stand on their own: AI answers quote them without the page around them.
  */
 
-const CLOUD_OBS_FAQ_ITEMS = [
+export const CLOUD_OBS_FAQ_ITEMS = [
   {
     question: "Do I need a PC running at home?",
     answer:

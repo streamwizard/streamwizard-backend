@@ -6,10 +6,11 @@ import { FaqAccordion } from "../home/faq-accordion";
  * The page's FAQ, and the canonical home of the honest caveat: events are
  * recorded live, so VODs from before you connected have a bare timeline.
  * Its own section id so the funnel dashboard can tell it apart from the home
- * FAQ; no JSON-LD, the FAQPage schema stays a home-page-only thing.
+ * FAQ. VODS_FAQ_ITEMS also feeds the page's FAQPage JSON-LD, so answers must
+ * stand on their own: AI answers quote them without the page around them.
  */
 
-const VODS_FAQ_ITEMS = [
+export const VODS_FAQ_ITEMS = [
   {
     question: "Why is the timeline empty on my older VODs?",
     answer:
