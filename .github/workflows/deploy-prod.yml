@@ -2,7 +2,7 @@ name: Deploy to Production
 
 on:
   workflow_run:
-    workflows: ["Build Check"]
+    workflows: ["Build Check", "Deploy Production Database Migrations"]
     types:
       - completed
     branches:
@@ -14,10 +14,31 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: write
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+      # This job runs once per completed upstream workflow. Merge only when the
+      # latest completed run of *both* upstreams on main is green, so app code
+      # never ships on top of a failed database migration. If the other
+      # upstream is still running, this run ends early and its completion
+      # triggers a fresh evaluation.
+      - name: Require Build Check and DB migrations both green
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ready=true
+          for wf in build-check.yml deploy-prod-db.yml; do
+            conclusion=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf" --branch main --limit 1 \
+              --json status,conclusion --jq '.[0] | select(.status == "completed") | .conclusion')
+            echo "$wf: ${conclusion:-not completed}"
+            [ "$conclusion" = "success" ] || ready=false
+          done
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+
       - name: Checkout code
+        if: steps.gate.outputs.ready == 'true'
         uses: actions/checkout@v7
         with:
           ref: main
@@ -25,6 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Merge main into production
+        if: steps.gate.outputs.ready == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
