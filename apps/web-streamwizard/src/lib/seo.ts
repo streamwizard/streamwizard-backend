@@ -139,6 +139,21 @@ export function aboutPageSchema(): Record<string, unknown> {
 }
 
 /**
+ * Home → page, for the pillar pages that sit one level under home. Two items
+ * is the whole trail, and still a supported rich result.
+ */
+export function breadcrumbSchema(name: string, path: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name, item: absoluteUrl(path) },
+    ],
+  };
+}
+
+/**
  * The site as an entity, separate from the company that publishes it.
  *
  * Rendered on the home page only: WebSite describes the whole domain, so a

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, faqPageSchema } from "@/lib/seo";
+import { absoluteUrl, breadcrumbSchema, faqPageSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { VodClipping } from "@/components/public/home/vod-clipping-section";
 import { VodsLibrarySection } from "@/components/public/vods/vods-library-section";
@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 export default function VodsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <JsonLd schema={breadcrumbSchema("VODs", "/vods")} />
       <JsonLd schema={faqPageSchema(VODS_FAQ_ITEMS)} />
       <section className="pt-16 md:pt-20">
         <div className="container mx-auto px-4">

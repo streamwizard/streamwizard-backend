@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, faqPageSchema } from "@/lib/seo";
+import { absoluteUrl, breadcrumbSchema, faqPageSchema } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { CloudObsShowcase } from "@/components/public/home/cloud-obs-showcase";
 import { IngestSection } from "@/components/public/cloud-obs/ingest-section";
@@ -34,6 +34,7 @@ export const metadata: Metadata = {
 export default function CloudObsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <JsonLd schema={breadcrumbSchema("Cloud OBS", "/cloud-obs")} />
       <JsonLd schema={faqPageSchema(CLOUD_OBS_FAQ_ITEMS)} />
       <section className="pt-16 md:pt-20">
         <div className="container mx-auto px-4">
