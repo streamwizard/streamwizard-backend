@@ -15,9 +15,22 @@ export const ALERTS_SCENE_NAME = "_alerts";
 // out of scene pickers even though it isn't `_`/`-` prefixed.
 export const WELCOME_SCENE_NAME = "Welcome (Delete me)";
 
+/** SRT receiver-buffer latency (ms) for the OBS pull. SRT negotiates the
+ * effective TSBPD delay as max(caller, listener), so a value larger than the
+ * ingest node's own output listener silently wins and becomes the real one —
+ * this must track `INGEST_SRT_EGRESS_LATENCY_MS` in ingest-server (default 300,
+ * see apps/ingest-media/src/ingest_media/config.py). That hop is server-to-
+ * server over the tailnet (RTT <30ms), so a few hundred ms is plenty; anything
+ * more is dead glass-to-glass delay stacked on top of the 4s ingress buffer.
+ * Override per environment with NEXT_PUBLIC_OBS_PULL_LATENCY_MS if a node runs
+ * a non-default egress latency. */
+const DEFAULT_PULL_LATENCY_MS = 300;
+export const OBS_PULL_LATENCY_MS =
+  Number(process.env.NEXT_PUBLIC_OBS_PULL_LATENCY_MS) || DEFAULT_PULL_LATENCY_MS;
+
 /** The SRT URL an OBS Media Source uses to pull a feed from the ingest server.
  * `host` is the ingest node's tailnet IP, resolved server-side from the linked
  * node and threaded down (see CloudObsPage). */
 export function obsPullUrl(host: string, outputKey: string) {
-  return `srt://${host}:9000?streamid=${outputKey}&latency=4000`;
+  return `srt://${host}:9000?streamid=${outputKey}&latency=${OBS_PULL_LATENCY_MS}`;
 }
