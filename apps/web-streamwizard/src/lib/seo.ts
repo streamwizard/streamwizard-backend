@@ -210,12 +210,20 @@ export function softwareApplicationSchema(): Record<string, unknown> {
       "VOD timeline marking follows, subs, cheers, raids and ad breaks, with 5 to 60 second clip creation",
       "Per-stream analytics with follows, subs and clips plotted on the viewer graph",
     ],
-    // No `offers` on purpose. An Offer here prices the whole application, and
-    // Cloud OBS, the ingest server and the deck are paid — the FAQ on the same
-    // page says so, and structured data that contradicts the visible page is a
-    // spam-policy problem rather than a missing rich result. Add a real offers
-    // array once pricing is public; until then `license` carries the
-    // open-source half of the story.
     license: "https://opensource.org/licenses/MIT",
+    // Google wants offers, review or aggregateRating before it shows a software
+    // rich result. The one honest offer is the free tier, so the description
+    // spells out what the zero covers and names the paid part; a bare "0" would
+    // contradict the FAQ on the same page, which says Cloud OBS is paid. No
+    // price for Cloud OBS until pricing is public.
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl("/"),
+      description:
+        "Free tier: clip sync, clip folders, overlays, VOD clipping and stream analytics. Cloud OBS, the ingest server and the mobile deck are a separate paid plan, currently in invite-only beta.",
+    },
   };
 }
