@@ -18,8 +18,9 @@ export function VodsClipCreationSection() {
           <p className="font-mono text-xs tracking-widest text-amber-300 uppercase">Create clip</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Two handles, a loop, and a name.</h2>
           <p className="mt-4 text-muted-foreground">
-            No editor, no export queue. Cutting a clip out of a four hour VOD is three steps, and you
-            hear the cut before you commit to it.
+            You cut a clip from a VOD by dragging two handles over 5 to 60 seconds, watching the selection loop, and
+            naming it. Twitch renders it as a real clip on your channel. No editor, no export queue. Three steps out
+            of a four hour VOD, and you hear the cut before you commit to it.
           </p>
         </div>
 

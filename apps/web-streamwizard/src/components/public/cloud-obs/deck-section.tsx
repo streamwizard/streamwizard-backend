@@ -80,8 +80,9 @@ export function DeckSection() {
             The whole control room. <br /> One thumb.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            The deck opens in your browser and installs to your home screen like an app. Four tabs, tiles you can hit
-            without looking, and zoom locked so fast tapping never fights you.
+            The deck is a phone-sized web app that controls your cloud OBS: scenes, chat, stream info and switcher
+            sensitivity. It opens in your browser and installs to your home screen like an app. Four tabs, tiles you
+            can hit without looking, and zoom locked so fast tapping never fights you.
           </p>
         </div>
 

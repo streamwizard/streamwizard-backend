@@ -48,8 +48,9 @@ export function ChatNoticesSection() {
             Chat hears what happened. <br /> You do not type a word.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Three messages you write once. The switcher fills in the numbers behind the switch and posts them in your
-            channel while your hands are busy holding a camera.
+            Each time the auto switcher changes scene it posts a message in your Twitch chat, as you, with the bitrate,
+            ping, packet loss and scene filled in. Three messages you write once. The switcher fills in the numbers
+            behind the switch and posts them in your channel while your hands are busy holding a camera.
           </p>
         </div>
 

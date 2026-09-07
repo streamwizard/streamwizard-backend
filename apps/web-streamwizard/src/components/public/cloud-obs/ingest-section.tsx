@@ -48,8 +48,8 @@ export function IngestSection() {
             Your phone streams in. <br /> The cloud stays on air.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Whatever you stream with connects to a StreamWizard ingest server, and your cloud OBS picks the feed up from
-            there. One thing to decide: how many connections you are streaming over.
+            StreamWizard runs an SRT and SRTLA ingest server that receives the video from your phone or encoder and
+            hands it to your cloud OBS. One thing to decide: how many connections you are streaming over.
           </p>
         </div>
 

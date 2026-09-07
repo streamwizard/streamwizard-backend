@@ -35,8 +35,9 @@ export function WidgetLibrarySection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">Widget library</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Someone already built it.</h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Browse widgets other streamers published, hit install, tweak the settings. No code anywhere in that
-            sentence.
+            The widget library is a catalogue of overlay widgets published by other streamers, installed with one
+            click and adjusted through settings fields. Browse, hit install, tweak the settings. No code anywhere in
+            that sentence.
           </p>
         </div>
 

@@ -34,8 +34,8 @@ export function IrlOverlaysSection() {
         <div className="mx-auto mb-12 max-w-2xl text-center">
           <h2 className="text-3xl font-bold sm:text-4xl">Overlays that know where you are.</h2>
           <p className="mt-4 text-muted-foreground">
-            Speed, distance, city, and weather, straight from the phone you stream with. Build it in the editor, paste
-            one URL into cloud OBS.
+            IRL widgets put your live speed, distance, city and weather on stream, read from the GPS of the phone you
+            stream with. Build it in the editor, paste one URL into cloud OBS.
           </p>
           <p className="mt-2 text-sm text-muted-foreground/70">Just don&apos;t dox yourself while your home.</p>
         </div>

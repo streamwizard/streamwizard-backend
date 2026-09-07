@@ -49,8 +49,9 @@ export function ClipsFiltersSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">Filters</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Filter down to the one you meant.</h2>
           <p className="mt-4 text-muted-foreground">
-            Every filter stacks with the others and shows as a chip you can drop. Sort by views or
-            date when you are done.
+            Clip filters cover title search, category, streamer, who clipped it, date range and Twitch featured
+            status. Every filter stacks with the others and shows as a chip you can drop. Sort by views or date when
+            you are done.
           </p>
         </div>
 
