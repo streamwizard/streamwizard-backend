@@ -9,11 +9,15 @@ import { subscribeToWsRoom } from "../../lib/ws-store";
 
 export type IrlConnectionStatus = "connecting" | "connected" | "offline" | "disconnected";
 
+// The geo frame nests its status discriminant inside `payload` -- ws-server
+// broadcasts the whole {status, payload} envelope as the message payload.
 type IrlMessage =
   | { type: "ws:open" }
   | { type: "ws:close" }
-  | { type: "streamwizard.geo"; status: "connected"; payload: GeoPayload }
-  | { type: "streamwizard.geo"; status: "offline" };
+  | {
+      type: "streamwizard.geo";
+      payload: { status: "connected"; payload: GeoPayload } | { status: "offline" };
+    };
 
 const MOCK_GEO: GeoPayload = {
   latitude: 52.37403,
@@ -51,10 +55,11 @@ export function useIrlGeoData(
       } else if (msg.type === "ws:close") {
         setState((s) => ({ ...s, status: "disconnected" }));
       } else if (msg.type === "streamwizard.geo") {
-        if (msg.status === "offline") {
+        const geoEvent = msg.payload;
+        if (!geoEvent || geoEvent.status === "offline") {
           setState((s) => ({ ...s, status: "offline" }));
         } else {
-          setState({ geo: msg.payload, status: "connected" });
+          setState({ geo: geoEvent.payload, status: "connected" });
         }
       }
     });

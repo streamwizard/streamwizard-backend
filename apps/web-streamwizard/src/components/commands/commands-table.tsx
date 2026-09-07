@@ -55,7 +55,6 @@ export function CommandsTable({ commands }: CommandsTableProps) {
 
   const getActionBadgeVariant = (action: string | null): "default" | "secondary" | "outline" => {
     if (!action) return "secondary";
-    if (action.includes("spotify")) return "default";
     return "outline";
   };
 

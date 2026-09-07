@@ -15,7 +15,7 @@ function justifyForAlign(align: "left" | "center" | "right"): string {
   return "center";
 }
 
-export function ClockWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
+export function ClockWidgetRenderer({ item }: WidgetRenderProps) {
   const cfg = normalizeClockWidgetConfig(item.config);
   const fontFamily = resolvedTextWidgetFontFamily(cfg);
   useGoogleFont(fontFamily);
@@ -48,7 +48,7 @@ export function ClockWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
         boxSizing: "border-box",
         padding: "4px 8px",
         color: cfg.color,
-        fontSize: cfg.fontSize * zoom,
+        fontSize: cfg.fontSize,
         fontWeight: cfg.fontWeight,
         fontFamily: `"${fontFamily}", sans-serif`,
         textAlign: cfg.align,

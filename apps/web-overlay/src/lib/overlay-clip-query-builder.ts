@@ -33,11 +33,26 @@ export function getTimeWindowDates(
 }
 
 /**
+ * Sort column per non-random option, with `id` as the tiebreak. Exported because
+ * the widget pages through clips one at a time with a keyset cursor and has to
+ * build the "row after this one" predicate from the same column and direction.
+ */
+export const CLIP_SORT_COLUMNS: Record<
+  string,
+  { column: string; ascending: boolean }
+> = {
+  newest: { column: "created_at_twitch", ascending: false },
+  oldest: { column: "created_at_twitch", ascending: true },
+  most_viewed: { column: "view_count", ascending: false },
+  least_viewed: { column: "view_count", ascending: true },
+};
+
+/**
  * Same layering as the main app overlay editor: filters + optional sort on `clips`,
- * before broadcaster / folder scope. Random uses no SQL sort; shuffle after fetch.
+ * before broadcaster / folder scope. Random uses no SQL sort; the DB picks the row.
  *
  * Does **not** apply `.limit()` — callers must chain broadcaster/folder filters first,
- * then `.limit()` last (see `loadOverlayClipPlaylistForWidget`).
+ * then `.limit()` last (see `getNextOverlayClip`).
  */
 export function buildOverlayClipQuery<T>(
   config: ClipsWidgetConfig,
@@ -49,7 +64,10 @@ export function buildOverlayClipQuery<T>(
     gte: (column: string, value: unknown) => T;
     lte: (column: string, value: unknown) => T;
     in: (column: string, values: unknown[]) => T;
-    order: (column: string, opts?: { ascending: boolean }) => T;
+    order: (
+      column: string,
+      opts?: { ascending: boolean; nullsFirst?: boolean }
+    ) => T;
   };
 
   const chain = (x: T) => x as Q;
@@ -88,20 +106,16 @@ export function buildOverlayClipQuery<T>(
   }
 
   if (config.sort !== "random") {
-    const sortMap: Record<
-      string,
-      { column: string; ascending: boolean }
-    > = {
-      newest: { column: "created_at_twitch", ascending: false },
-      oldest: { column: "created_at_twitch", ascending: true },
-      most_viewed: { column: "view_count", ascending: false },
-      least_viewed: { column: "view_count", ascending: true },
-    };
-    const sortConfig = sortMap[config.sort];
+    const sortConfig = CLIP_SORT_COLUMNS[config.sort];
     if (sortConfig) {
+      // `nullsFirst: false` in both directions so a nullable column (view_count)
+      // orders the same way ascending and descending — otherwise Postgres puts
+      // NULLs first on DESC and the keyset cursor walks off the end immediately.
       result = chain(result).order(sortConfig.column, {
         ascending: sortConfig.ascending,
+        nullsFirst: false,
       });
+      result = chain(result).order("id", { ascending: sortConfig.ascending });
     }
   }
 

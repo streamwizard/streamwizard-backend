@@ -1,19 +1,22 @@
 "use server";
 
-import { getAuthContext } from "@/lib/auth";
+import { reportError } from "@repo/sentry";
+
+import { tryAuthContext } from "@/lib/auth";
 import { getChannelAccessToken } from "@repo/supabase";
+import { getDiscordIntegrationByUserId } from "@repo/supabase/queries/user";
+import { getGuildSettings } from "@repo/supabase/queries/discord";
 import { createAdminClient, supabaseAdmin } from "@repo/supabase/next/admin";
 import { TwitchApi } from "@repo/twitch-api";
 import { redirect } from "next/navigation";
 import axios from "axios";
+import { removeRole } from "@/server/discord/roles";
+import { env } from "@/lib/env";
 
 export async function deleteAccount() {
-  let user, broadcasterId: string;
-  try {
-    ({ user, broadcasterId } = await getAuthContext());
-  } catch {
-    return { success: false, error: "Unauthorized" };
-  }
+  const ctx = await tryAuthContext();
+  if (!ctx) return { success: false, error: "Unauthorized" };
+  const { user, broadcasterId } = ctx;
   const supabase = createAdminClient();
   // Revoke the Twitch access token so it is immediately invalidated.
   // This cannot remove the app from the user's Twitch authorized connections
@@ -48,15 +51,36 @@ export async function deleteAccount() {
     // Non-fatal: proceed with data deletion even if cleanup fails.
   }
 
+  // Best-effort: revoke the Verified Member role directly via the bot before
+  // wiping the integration row, since deleting the account doesn't remove
+  // the user from the Discord server itself. A failure here must not block
+  // account deletion.
+  try {
+    const { data: integration } = await getDiscordIntegrationByUserId(supabase, user.id);
+    const settings = await getGuildSettings(supabaseAdmin, env.DISCORD_GUILD_ID);
+    if (integration?.discord_user_id && settings?.verified_role_id) {
+      await removeRole(integration.discord_user_id, settings.verified_role_id);
+    }
+  } catch (revokeErr) {
+    const { captureException } = await import("@sentry/nextjs");
+    captureException(revokeErr);
+  }
+
   const { error: rpcError } = await supabase.rpc("delete_user_data", {
     p_twitch_user_id: broadcasterId,
   });
-  if (rpcError) return { success: false, error: rpcError.message };
+  if (rpcError) {
+    reportError(rpcError, "actions/delete-account");
+    return { success: false, error: rpcError.message };
+  }
 
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
     user.id,
   );
-  if (authError) return { success: false, error: authError.message };
+  if (authError) {
+    reportError(authError, "actions/delete-account");
+    return { success: false, error: authError.message };
+  }
 
   redirect("/goodbye");
 }

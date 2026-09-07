@@ -3,11 +3,31 @@ declare const process: { env: Record<string, string | undefined> };
 
 export type WsEventListener = (msg: unknown) => void;
 
+export type WsRoomStatus = "connecting" | "connected" | "disconnected";
+
+export interface WsRoomOptions {
+  /** Stable identity for the socket. Subscribers sharing a key share one connection. */
+  roomKey: string;
+  wsUrl: string;
+  /**
+   * Resolved on every (re)connect rather than captured once, so a refreshed
+   * Supabase JWT reconnects into the same room instead of forking a new one.
+   */
+  getToken: () => string | Promise<string>;
+  /**
+   * Event types this connection wants. Omitted or empty means every event in
+   * the room, which is what overlays want — a filter only pays off for a
+   * consumer like the deck's chat tab that ignores most of the room's traffic.
+   */
+  channels?: string[];
+}
+
 interface RoomState {
   ws: WebSocket | null;
   listeners: Set<WsEventListener>;
   retryTimer: ReturnType<typeof setTimeout> | null;
   retryDelay: number;
+  opts: WsRoomOptions;
 }
 
 const rooms = new Map<string, RoomState>();
@@ -18,8 +38,42 @@ function broadcast(room: RoomState, msg: unknown) {
   }
 }
 
-function connect(subscriberToken: string, wsUrl: string, room: RoomState) {
-  const ws = new WebSocket(`${wsUrl}/ws?role=subscriber&token=${encodeURIComponent(subscriberToken)}`);
+/** True while `room` is still the live entry for `roomKey` — false after teardown. */
+function isCurrent(roomKey: string, room: RoomState) {
+  return rooms.get(roomKey) === room;
+}
+
+function scheduleRetry(roomKey: string, room: RoomState) {
+  if (!isCurrent(roomKey, room)) return;
+  const delay = Math.min(room.retryDelay, 30000);
+  room.retryDelay = Math.min(delay * 2, 30000);
+  room.retryTimer = setTimeout(() => connect(roomKey, room), delay);
+}
+
+async function connect(roomKey: string, room: RoomState) {
+  broadcast(room, { type: "ws:connecting" });
+
+  let token = "";
+  try {
+    token = await room.opts.getToken();
+  } catch {
+    token = "";
+  }
+  // The room can be torn down while the token resolves.
+  if (!isCurrent(roomKey, room)) return;
+  if (!token) {
+    broadcast(room, { type: "ws:close" });
+    scheduleRetry(roomKey, room);
+    return;
+  }
+
+  const channels = room.opts.channels?.length
+    ? `&channels=${encodeURIComponent(room.opts.channels.join(","))}`
+    : "";
+
+  const ws = new WebSocket(
+    `${room.opts.wsUrl}/ws?role=subscriber&token=${encodeURIComponent(token)}${channels}`
+  );
   room.ws = ws;
 
   ws.onopen = () => {
@@ -36,37 +90,64 @@ function connect(subscriberToken: string, wsUrl: string, room: RoomState) {
   };
 
   ws.onclose = () => {
-    if (!rooms.has(subscriberToken)) return; // already cleaned up
+    if (!isCurrent(roomKey, room)) return; // already cleaned up
     room.ws = null;
     broadcast(room, { type: "ws:close" });
-    const delay = Math.min(room.retryDelay, 30000);
-    room.retryDelay = Math.min(delay * 2, 30000);
-    room.retryTimer = setTimeout(() => connect(subscriberToken, wsUrl, room), delay);
+    scheduleRetry(roomKey, room);
   };
 
   ws.onerror = () => ws.close();
 }
 
+/**
+ * Subscribers sharing a `roomKey` share one socket, so the first caller's
+ * `channels` filter is the one that takes effect. Give a consumer with its own
+ * filter its own key.
+ */
+export function subscribeToWsRoomWith(
+  opts: WsRoomOptions,
+  listener: WsEventListener
+): () => void {
+  let room = rooms.get(opts.roomKey);
+  if (!room) {
+    room = { ws: null, listeners: new Set(), retryTimer: null, retryDelay: 1000, opts };
+    rooms.set(opts.roomKey, room);
+    room.listeners.add(listener);
+    connect(opts.roomKey, room);
+  } else {
+    room.listeners.add(listener);
+    // A late joiner missed the open frame; replay current status so its UI is accurate.
+    listener({ type: room.ws?.readyState === WebSocket.OPEN ? "ws:open" : "ws:connecting" });
+  }
+  return () => {
+    const r = rooms.get(opts.roomKey);
+    if (!r) return;
+    r.listeners.delete(listener);
+    if (r.listeners.size === 0) {
+      if (r.retryTimer) clearTimeout(r.retryTimer);
+      rooms.delete(opts.roomKey);
+      r.ws?.close();
+    }
+  };
+}
+
+/** Overlay-style subscription: the scene's subscriber token is both the credential and the room key. */
 export function subscribeToWsRoom(
   subscriberToken: string,
   wsUrl: string,
   listener: WsEventListener
 ): () => void {
-  let room = rooms.get(subscriberToken);
-  if (!room) {
-    room = { ws: null, listeners: new Set(), retryTimer: null, retryDelay: 1000 };
-    rooms.set(subscriberToken, room);
-    connect(subscriberToken, wsUrl, room);
-  }
-  room.listeners.add(listener);
-  return () => {
-    const r = rooms.get(subscriberToken);
-    if (!r) return;
-    r.listeners.delete(listener);
-    if (r.listeners.size === 0) {
-      if (r.retryTimer) clearTimeout(r.retryTimer);
-      r.ws?.close();
-      rooms.delete(subscriberToken);
-    }
-  };
+  return subscribeToWsRoomWith(
+    { roomKey: subscriberToken, wsUrl, getToken: () => subscriberToken },
+    listener
+  );
+}
+
+/** Maps the internal `ws:*` control frames onto a simple status value. */
+export function wsStatusFromMessage(msg: unknown): WsRoomStatus | null {
+  const type = (msg as { type?: string })?.type;
+  if (type === "ws:open") return "connected";
+  if (type === "ws:close") return "disconnected";
+  if (type === "ws:connecting") return "connecting";
+  return null;
 }

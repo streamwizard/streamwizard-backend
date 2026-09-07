@@ -2,7 +2,7 @@
   "name": "@repo/supabase",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -35,6 +35,10 @@
       "types": "./src/queries/overlays.ts",
       "default": "./src/queries/overlays.ts"
     },
+    "./queries/overlay-templates": {
+      "types": "./src/queries/overlay-templates.ts",
+      "default": "./src/queries/overlay-templates.ts"
+    },
     "./queries/user": {
       "types": "./src/queries/user.ts",
       "default": "./src/queries/user.ts"
@@ -51,10 +55,6 @@
       "types": "./src/queries/stream-analytics.ts",
       "default": "./src/queries/stream-analytics.ts"
     },
-    "./queries/public": {
-      "types": "./src/queries/public.ts",
-      "default": "./src/queries/public.ts"
-    },
     "./queries/sync": {
       "types": "./src/queries/sync.ts",
       "default": "./src/queries/sync.ts"
@@ -67,13 +67,53 @@
       "types": "./src/queries/viewer-counts.ts",
       "default": "./src/queries/viewer-counts.ts"
     },
-    "./queries/smp": {
-      "types": "./src/queries/smp.ts",
-      "default": "./src/queries/smp.ts"
-    },
     "./queries/irl": {
       "types": "./src/queries/irl.ts",
       "default": "./src/queries/irl.ts"
+    },
+    "./queries/user-states": {
+      "types": "./src/queries/user-states.ts",
+      "default": "./src/queries/user-states.ts"
+    },
+    "./queries/ingest": {
+      "types": "./src/queries/ingest.ts",
+      "default": "./src/queries/ingest.ts"
+    },
+    "./queries/obs-nodes": {
+      "types": "./src/queries/obs-nodes.ts",
+      "default": "./src/queries/obs-nodes.ts"
+    },
+    "./queries/ingest-nodes": {
+      "types": "./src/queries/ingest-nodes.ts",
+      "default": "./src/queries/ingest-nodes.ts"
+    },
+    "./queries/subscriptions": {
+      "types": "./src/queries/subscriptions.ts",
+      "default": "./src/queries/subscriptions.ts"
+    },
+    "./queries/discord": {
+      "types": "./src/queries/discord.ts",
+      "default": "./src/queries/discord.ts"
+    },
+    "./queries/discord-activity": {
+      "types": "./src/queries/discord-activity.ts",
+      "default": "./src/queries/discord-activity.ts"
+    },
+    "./queries/tickets": {
+      "types": "./src/queries/tickets.ts",
+      "default": "./src/queries/tickets.ts"
+    },
+    "./queries/alerts": {
+      "types": "./src/queries/alerts.ts",
+      "default": "./src/queries/alerts.ts"
+    },
+    "./queries/alert-rule-config": {
+      "types": "./src/queries/alert-rule-config.ts",
+      "default": "./src/queries/alert-rule-config.ts"
+    },
+    "./queries/alert-notification-config": {
+      "types": "./src/queries/alert-notification-config.ts",
+      "default": "./src/queries/alert-notification-config.ts"
     },
     "./types/supabase": {
       "types": "./src/types/supabase.ts",
@@ -82,6 +122,38 @@
     "./crypto": {
       "types": "./src/crypto.ts",
       "default": "./src/crypto.ts"
+    },
+    "./queries/query-stats": {
+      "types": "./src/queries/query-stats.ts",
+      "default": "./src/queries/query-stats.ts"
+    },
+    "./queries/auto-switcher": {
+      "types": "./src/queries/auto-switcher.ts",
+      "default": "./src/queries/auto-switcher.ts"
+    },
+    "./queries/overlay-widgets": {
+      "types": "./src/queries/overlay-widgets.ts",
+      "default": "./src/queries/overlay-widgets.ts"
+    },
+    "./queries/assets": {
+      "types": "./src/queries/assets.ts",
+      "default": "./src/queries/assets.ts"
+    },
+    "./queries/data-export": {
+      "types": "./src/queries/data-export.ts",
+      "default": "./src/queries/data-export.ts"
+    },
+    "./queries/platform-stats": {
+      "types": "./src/queries/platform-stats.ts",
+      "default": "./src/queries/platform-stats.ts"
+    },
+    "./queries/stream-events": {
+      "types": "./src/queries/stream-events.ts",
+      "default": "./src/queries/stream-events.ts"
+    },
+    "./queries/asset-cache": {
+      "types": "./src/queries/asset-cache.ts",
+      "default": "./src/queries/asset-cache.ts"
     }
   },
   "scripts": {
@@ -91,7 +163,7 @@
   "dependencies": {
     "@repo/metrics": "workspace:*",
     "@supabase/supabase-js": "^2.105.1",
-    "@supabase/ssr": "^0.8.0"
+    "@supabase/ssr": "^0.12.0"
   },
   "peerDependencies": {
     "next": ">=15.0.0"
@@ -104,6 +176,6 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^25.0.8",
-    "typescript": "^5.7.3"
+    "typescript": "^5.9.2"
   }
 }

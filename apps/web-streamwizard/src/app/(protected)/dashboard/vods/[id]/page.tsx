@@ -22,7 +22,7 @@ export default async function VodPage({ params }: { params: Promise<{ id: string
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">VOD Not Found</h1>
-          <p className="text-muted-foreground">The video you're looking for doesn't exist or has been deleted.</p>
+          <p className="text-muted-foreground">The video you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
           <Button asChild variant="outline">
             <Link href="/dashboard/vods">
               <ArrowLeft className="mr-2 h-4 w-4" />

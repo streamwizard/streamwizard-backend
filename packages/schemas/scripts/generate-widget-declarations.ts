@@ -130,7 +130,13 @@ import {
 import { StreamOnlineEventSchema, StreamOfflineEventSchema } from "../src/stream";
 
 // streamwizard
-import { OverlayGeoEventSchema } from "../src/streamwizard";
+import {
+  IngestStatsPayloadSchema,
+  ObsInstanceLifecyclePayloadSchema,
+  ObsSceneChangedPayloadSchema,
+  OverlayGeoEventSchema,
+} from "../src/streamwizard";
+import { autoSwitcherStatusSchema } from "../src/auto-switcher";
 
 // user
 import {
@@ -236,6 +242,10 @@ const SCHEMAS = [
   { name: "StreamOfflineEvent",                                         schema: StreamOfflineEventSchema },
   // streamwizard
   { name: "StreamWizardGeoEvent",                                       schema: OverlayGeoEventSchema },
+  { name: "IngestStatsPayload",                                         schema: IngestStatsPayloadSchema },
+  { name: "AutoSwitcherStatus",                                         schema: autoSwitcherStatusSchema },
+  { name: "ObsInstanceLifecyclePayload",                                schema: ObsInstanceLifecyclePayloadSchema },
+  { name: "ObsSceneChangedPayload",                                     schema: ObsSceneChangedPayloadSchema },
   // user
   { name: "UserAuthorizationGrantEvent",                                schema: UserAuthorizationGrantEventSchema },
   { name: "UserAuthorizationRevokeEvent",                               schema: UserAuthorizationRevokeEventSchema },
@@ -350,6 +360,10 @@ type EventReceivedDetail =
   | { listener: "stream.offline";                                                event: StreamOfflineEvent }
   // streamwizard
   | { listener: "streamwizard.geo"; event: StreamWizardGeoEvent }
+  | { listener: "streamwizard.ingest_stats"; event: IngestStatsPayload }
+  | { listener: "streamwizard.auto_switcher_status"; event: AutoSwitcherStatus }
+  | { listener: "streamwizard.obs_instance_lifecycle"; event: ObsInstanceLifecyclePayload }
+  | { listener: "streamwizard.obs_scene_changed"; event: ObsSceneChangedPayload }
   // user
   | { listener: "user.authorization.grant";                                      event: UserAuthorizationGrantEvent }
   | { listener: "user.authorization.revoke";                                     event: UserAuthorizationRevokeEvent }

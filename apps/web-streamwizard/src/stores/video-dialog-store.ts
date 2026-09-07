@@ -1,248 +1,24 @@
 "use client";
 
-import { getStreamData, createClipFromVOD, getStreamMarkers, createStreamMarker } from "@/actions/twitch/vods";
-import type { TwitchPlayer } from "@/components/vods/twitch-player";
-import type { TimelineEvent, TimelineSegment, TimelineSegmentType } from "@/components/vods/timeline/types";
-import type { Database } from "@repo/supabase";
-import { StreamEventType, type Clip } from "@/types/stream-events";
-import { getStreamEventDisplayInfo } from "@/lib/utils/stream-events";
-import { TwitchVideo, parseDuration, type TwitchStreamMarker } from "@/types/twitch-video";
 import { create } from "zustand";
 import { toast } from "sonner";
+import { getStreamData, createClipFromVOD, getStreamMarkers, createStreamMarker } from "@/actions/twitch/vods";
+import { StreamEventType } from "@/types/stream-events";
+import { openTwitchUrl } from "@/lib/utils/open-twitch-url";
+import { parseDuration } from "@/types/twitch-video";
+import { clipToStreamEvent, markerToStreamEvent, toTimelineEvent } from "./video-dialog/event-mappers";
+import { initialState } from "./video-dialog/initial-state";
+import type { DragHandle, VideoPlayerStore } from "./video-dialog/types";
+import type { StreamEvent } from "./video-dialog/event-mappers";
+import type { TimelineSegment } from "@/components/vods/timeline/types";
 
-type StreamEvent = Database["public"]["Tables"]["stream_events"]["Row"];
-
-/**
- * Convert StreamEvent (database format) to TimelineEvent (UI format)
- */
-function toTimelineEvent(event: StreamEvent): TimelineEvent {
-  const displayInfo = getStreamEventDisplayInfo(event);
-  const offset = event.offset_seconds || 0;
-
-  return {
-    id: event.id,
-    offset,
-    type: event.event_type as StreamEventType,
-    label: displayInfo.label,
-    details: displayInfo.message,
-  };
-}
-
-/**
- * Convert a Clip to a pseudo-StreamEvent so it can be displayed in the events panel
- */
-function clipToStreamEvent(clip: Clip): StreamEvent {
-  return {
-    id: `clip-${clip.id}`,
-    created_at: clip.created_at_twitch,
-    updated_at: clip.created_at_twitch,
-    event_type: "clip",
-    provider: "twitch",
-    broadcaster_id: clip.broadcaster_id,
-    stream_id: clip.video_id ?? "",
-    event_data: {
-      title: clip.title,
-      creator_name: clip.creator_name,
-      url: clip.url,
-      view_count: clip.view_count,
-      duration: clip.duration,
-      id: clip.id.toString(),
-      twitch_clip_id: clip.twitch_clip_id,
-      folder_ids: clip.folder_ids,
-      embed_url: clip.embed_url,
-    },
-    metadata: null,
-    status: "completed",
-    offset_seconds: clip.vod_offset ?? 0,
-  };
-}
-
-/**
- * Convert a TwitchStreamMarker to a pseudo-StreamEvent
- */
-function markerToStreamEvent(marker: TwitchStreamMarker): StreamEvent {
-  return {
-    id: `marker-${marker.id}`,
-    created_at: marker.created_at,
-    updated_at: marker.created_at,
-    event_type: "marker",
-    provider: "twitch",
-    broadcaster_id: "",
-    stream_id: "",
-    event_data: {
-      description: marker.description,
-      url: marker.url,
-    },
-    metadata: null,
-    status: "completed",
-    offset_seconds: marker.position_seconds,
-  };
-}
-
-/** Drag handle type for clip selection */
-export type DragHandle = "start" | "end" | "middle" | null;
-
-/** Drag start info for middle handle dragging */
-export interface DragStartInfo {
-  clientX: number;
-  startTime: number;
-  endTime: number;
-}
-
-export interface VideoPlayerState {
-  // Dialog state
-  video: TwitchVideo | null;
-
-  // Player state
-  player: TwitchPlayer | null;
-  isPlaying: boolean;
-  isMuted: boolean;
-  currentTime: number;
-  isPlayerReady: boolean;
-  playerKey: number;
-
-  // Stream events & clips state
-  events: StreamEvent[];
-  clips: Clip[];
-  filteredEvents: StreamEvent[];
-  timelineEvents: TimelineEvent[];
-  selectedEventTypes: Set<string>;
-  isLoadingEvents: boolean;
-
-  // Timeline segments (muted, ad breaks, etc.)
-  segments: Map<TimelineSegmentType, TimelineSegment[]>;
-
-  // Clip creation state
-  isCreatingClip: boolean;
-  clipTitle: string;
-  clipStartTime: number;
-  clipEndTime: number;
-  isSubmittingClip: boolean;
-
-  // Timeline state
-  zoomLevel: number;
-  viewOffset: number;
-  dragging: DragHandle;
-  dragStartInfo: DragStartInfo | null;
-  isSeekDisabled: boolean;
-}
-
-export interface VideoPlayerActions {
-  // Dialog actions
-  setVideo: (video: TwitchVideo | null) => void;
-
-  // Player actions
-  setPlayer: (player: TwitchPlayer | null) => void;
-  setPlayerReady: (ready: boolean) => void;
-  setIsPlaying: (playing: boolean) => void;
-  setIsMuted: (muted: boolean) => void;
-  setCurrentTime: (time: number) => void;
-  incrementPlayerKey: () => void;
-
-  // Playback controls
-  play: () => void;
-  pause: () => void;
-  togglePlay: () => void;
-  toggleMute: () => void;
-  seek: (seconds: number) => void;
-
-  // Event actions
-  setEvents: (events: StreamEvent[]) => void;
-  setFilteredEvents: (events: StreamEvent[]) => void;
-  setIsLoadingEvents: (loading: boolean) => void;
-  fetchEvents: (videoId: string) => Promise<void>;
-  seekToEvent: (eventId: string) => void;
-  toggleEventType: (type: string) => void;
-  selectAllEventTypes: () => void;
-  deselectAllEventTypes: () => void;
-
-  // Segment actions
-  setMutedSegments: (segments: { duration: number; offset: number }[] | null) => void;
-
-  // Clip creation actions
-  startClipCreation: (atOffset?: number) => void;
-  cancelClipCreation: () => void;
-  setClipTitle: (title: string) => void;
-  setClipStartTime: (time: number) => void;
-  setClipEndTime: (time: number) => void;
-  setClipSelection: (start: number, end: number) => void;
-  saveClip: () => Promise<{ success: boolean; error?: string; editUrl?: string; clipId?: string }>;
-
-  // Marker actions
-  createMarker: (description?: string) => Promise<void>;
-
-  // Utility actions
-  seekToClipStart: () => void;
-  resetState: () => void;
-
-  // Timeline actions
-  setZoomLevel: (zoom: number) => void;
-  setViewOffset: (offset: number) => void;
-  zoomIn: (centerPoint?: number) => void;
-  zoomOut: (centerPoint?: number) => void;
-  setDragging: (handle: DragHandle) => void;
-  setDragStartInfo: (info: DragStartInfo | null) => void;
-  initializeZoomForClip: () => void;
-  resetZoom: () => void;
-  setIsSeekDisabled: (disabled: boolean) => void;
-}
-
-export type VideoPlayerStore = VideoPlayerState & VideoPlayerActions;
-
-const initialState: VideoPlayerState = {
-  // Dialog state
-  video: null,
-
-  // Player state
-  player: null,
-  isPlaying: false,
-  isMuted: true,
-  currentTime: 0,
-  isPlayerReady: false,
-  playerKey: 0,
-
-  // Stream events & clips state
-  events: [],
-  clips: [],
-  filteredEvents: [],
-  timelineEvents: [],
-  selectedEventTypes: new Set<string>([
-    "channel.follow",
-    "channel.subscribe",
-    "channel.subscription.message",
-    "channel.subscription.gift",
-    "channel.raid",
-    "channel.cheer",
-    "channel.ban",
-    "channel.unban",
-    "channel.shoutout.create",
-    "channel.shoutout.receive",
-    "channel.channel_points_custom_reward_redemption.add",
-    "channel.moderator.add",
-    "channel.moderator.remove",
-    "channel.ad_break.begin",
-    "clip",
-    "marker",
-  ]),
-  isLoadingEvents: false,
-
-  // Timeline segments
-  segments: new Map(),
-
-  // Clip creation state
-  isCreatingClip: false,
-  clipTitle: "",
-  clipStartTime: 0,
-  clipEndTime: 30,
-  isSubmittingClip: false,
-
-  // Timeline state
-  zoomLevel: 1,
-  viewOffset: 0,
-  dragging: null,
-  dragStartInfo: null,
-  isSeekDisabled: false,
-};
+export type {
+  DragHandle,
+  DragStartInfo,
+  VideoPlayerState,
+  VideoPlayerActions,
+  VideoPlayerStore,
+} from "./video-dialog/types";
 
 export const useVideoPlayerStore = create<VideoPlayerStore>((set, get) => ({
   ...initialState,
@@ -411,6 +187,7 @@ export const useVideoPlayerStore = create<VideoPlayerStore>((set, get) => ({
       "channel.moderator.add",
       "channel.moderator.remove",
       "channel.ad_break.begin",
+      "obs.scene_switch",
       "clip",
       "marker",
     ]);
@@ -513,7 +290,7 @@ export const useVideoPlayerStore = create<VideoPlayerStore>((set, get) => ({
         action: data.editUrl
           ? {
               label: "View Clip",
-              onClick: () => window.open(data.editUrl, "_blank"),
+              onClick: () => openTwitchUrl(data.editUrl),
             }
           : undefined,
         description: "It may take a few seconds for the clip to be available.",

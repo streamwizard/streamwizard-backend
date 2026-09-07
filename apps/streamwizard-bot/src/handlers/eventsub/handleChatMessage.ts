@@ -1,5 +1,6 @@
 import { TwitchApi } from "@repo/twitch-api";
 import { supabase } from "@repo/supabase";
+import { reportError } from "@repo/sentry";
 import { getEnabledCommandsByChannel } from "@repo/supabase/queries/commands";
 import type { ChannelChatMessageEvent } from "@repo/schemas";
 import { resolveVariables } from "../../functions/resolveVariables";
@@ -22,7 +23,9 @@ export async function handleChatMessage(message: ChannelChatMessageEvent, twitch
     try {
       data = await getEnabledCommandsByChannel(supabase, message.broadcaster_user_id);
     } catch (error) {
-      console.error(error);
+      reportError(error, "chat-message.load-commands", {
+        broadcaster_user_id: message.broadcaster_user_id,
+      });
       return;
     }
 

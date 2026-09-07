@@ -1,11 +1,14 @@
 {
   "name": "twitch-tools",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:main": "turbo run dev --filter=@repo/web-streamwizard --filter=@repo/web-overlay --filter=@repo/streamwizard-bot --filter=@repo/ws-server --filter=@repo/rest-api --filter=@repo/docs",
-    "dev:monitor": "turbo run dev --filter=@repo/web-monitor",
+    "dev:main": "turbo run dev --filter=@repo/web-streamwizard --filter=@repo/web-overlay  --filter=@repo/ws-server   --filter=@repo/web-admin ",
+    "dev:admin": "turbo run dev --filter=@repo/web-admin",
+    "dev:docs": "turbo run dev --filter=@repo/docs",
+    "clean": "rm -rf apps/*/.next",
     "doppler:sync": "bash scripts/sync-doppler-shared.sh",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -19,10 +22,10 @@
     "typescript": "5.9.2"
   },
   "overrides": {
-    "next": "^16.2.6",
-    "@sentry/core": "10.56.0",
-    "@sentry/bun": "10.56.0",
-    "@sentry/hono": "10.56.0",
+    "next": "16.2.12",
+    "@sentry/core": "10.70.0",
+    "@sentry/bun": "10.70.0",
+    "@sentry/hono": "10.70.0",
     "dompurify": "^3.4.7"
   },
   "engines": {
@@ -34,6 +37,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "ajv": "^8.17.1",
     "server-only": "^0.0.1"
   }
 }

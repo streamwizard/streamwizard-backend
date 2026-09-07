@@ -30,7 +30,7 @@ function computeDisplay(cfg: TimerWidgetItemConfig, deadlineMs: number): string 
   return formatCountdownMs(left);
 }
 
-export function TimerWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
+export function TimerWidgetRenderer({ item }: WidgetRenderProps) {
   const cfg = normalizeTimerWidgetConfig(item.config);
   const fontFamily = resolvedTextWidgetFontFamily(cfg);
   useGoogleFont(fontFamily);
@@ -69,7 +69,7 @@ export function TimerWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
         boxSizing: "border-box",
         padding: "4px 8px",
         color: cfg.color,
-        fontSize: cfg.fontSize * zoom,
+        fontSize: cfg.fontSize,
         fontWeight: cfg.fontWeight,
         fontFamily: `"${fontFamily}", sans-serif`,
         textAlign: cfg.align,

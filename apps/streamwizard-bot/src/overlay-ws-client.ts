@@ -30,7 +30,9 @@ class OverlayWsClient {
   }
 
   private dial(): void {
-    const ws = new WebSocket(`${this.url}/ws?role=bot`, {
+    // `source` labels this connection in ws-server's monitor view — several
+    // bots connect at once (this one plus each ingest node's control plane).
+    const ws = new WebSocket(`${this.url}/ws?role=bot&source=streamwizard-bot`, {
       // @ts-expect-error Bun WebSocket supports headers in options
       headers: { Authorization: `Bearer ${this.serviceKey}` },
     });

@@ -7,6 +7,10 @@ updates:
     target-branch: "staging"
     labels:
       - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -15,43 +19,31 @@ updates:
     target-branch: "staging"
     labels:
       - "dependencies"
+    groups:
+      npm-production:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
-    directory: "/apps/rest-api"
+    directories:
+      - "/apps/rest-api"
+      - "/apps/streamwizard-bot"
+      - "/apps/ws-server"
+      - "/apps/web-streamwizard"
+      - "/apps/web-overlay"
     schedule:
       interval: "weekly"
     target-branch: "staging"
     labels:
       - "dependencies"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/streamwizard-bot"
-    schedule:
-      interval: "weekly"
-    target-branch: "staging"
-    labels:
-      - "dependencies"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/ws-server"
-    schedule:
-      interval: "weekly"
-    target-branch: "staging"
-    labels:
-      - "dependencies"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/web-streamwizard"
-    schedule:
-      interval: "weekly"
-    target-branch: "staging"
-    labels:
-      - "dependencies"
-
-  - package-ecosystem: "docker"
-    directory: "/apps/web-overlay"
-    schedule:
-      interval: "weekly"
-    target-branch: "staging"
-    labels:
-      - "dependencies"
+    groups:
+      docker-base-images:
+        patterns:
+          - "*"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GetClipDownloadURL } from "@/actions/twitch/clips";
 import { createClient } from "@repo/supabase/next/server";
+import { reportError } from "@repo/sentry";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("Error in download-clip API route:", error);
+    reportError(error, "api/twitch/download-clip");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }

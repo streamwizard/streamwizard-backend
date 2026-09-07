@@ -50,6 +50,19 @@ addEventListener('onWidgetLoad', (obj) => {
 });
 ```
 
+### `onFieldsUpdate`
+
+Fires when the streamer changes a setting while the widget keeps running. Re-apply the values here — the same work your `onWidgetLoad` handler does — so edits show up without restarting your widget.
+
+```js
+addEventListener('onFieldsUpdate', (obj) => {
+  const { fieldData } = obj.detail;
+  document.getElementById('title').style.color = fieldData.accentColor;
+});
+```
+
+The current values are also readable at any time from `StreamWizard.fieldData`. If your widget doesn't listen for this event, the editor reloads the whole widget when a setting changes instead, which restarts your script and clears its state.
+
 ### `onEventReceived`
 
 Fires whenever a Twitch EventSub event is received. The `listener` property is the canonical EventSub subscription type string. Use a switch or if-chain to handle the events you care about.
@@ -68,6 +81,23 @@ addEventListener('onEventReceived', (obj) => {
 });
 ```
 
+### Don't build a demo mode
+
+Widgets used to ship their own preview data — a `demoMode` checkbox plus a
+`startDemo()` loop faking events inside the widget's own script. Don't. Demo
+mode in the editor toolbar feeds fake events to any widget from outside it,
+including looping simulators for a moving GPS track and a chat feed, so that
+code is redundant and ships to every viewer for no reason.
+
+Two things follow from this:
+
+- Handle real events properly and demo mode works for free — it delivers the
+  exact payload shape the wire does.
+- Keep listener strings as plain literals (`listener === 'channel.follow'`).
+  The picker reads your source to lead with the events you actually handle;
+  strings assembled at runtime can't be detected, and you fall back to the
+  full list.
+
 ### `onSessionUpdate`
 
 Fires when session data changes (rarely used).
@@ -77,6 +107,161 @@ addEventListener('onSessionUpdate', (obj) => {
   const { session } = obj.detail;
 });
 ```
+
+---
+
+## Twitch lookups — `StreamWizard.twitch`
+
+EventSub is generous with ids and stingy with pictures. A chat message tells you a badge is `set_id: "subscriber", id: "12"` — it does not tell you what that badge looks like, and you can't work it out, because the image URL contains a random uuid that only Twitch knows. Same story for avatars, cheermote graphics and box art.
+
+Your widget can't ask Twitch directly: the origin is blocked, and a Twitch token in widget source would ship to every viewer. So StreamWizard asks on your behalf.
+
+### Assets — cheap, cached, call them freely
+
+Badge and cheermote maps are fetched once and reused. Avatars are cached per user and batched.
+
+```js
+// Once, at load. After this the per-message resolvers work with no await.
+await StreamWizard.twitch.ready();
+
+addEventListener('onEventReceived', (e) => {
+  if (e.detail.listener !== 'channel.chat.message') return;
+  const event = e.detail.event;
+
+  const badgeUrls = event.badges.map((b) => StreamWizard.twitch.badgeUrl(b, '2x'));
+
+  for (const frag of event.message.fragments) {
+    if (frag.type === 'cheermote') {
+      const src = StreamWizard.twitch.cheermoteUrl(frag.cheermote, { theme: 'dark', format: 'animated', scale: '4' });
+    }
+  }
+});
+```
+
+| Call | Returns |
+|---|---|
+| `ready()` | Fetches badges + cheermotes, enables the two sync resolvers below |
+| `badgeUrl(badge, scale?)` | Image URL for an `event.badges[]` entry. Sync, no network. `scale` is `'1x'`, `'2x'` (default) or `'4x'` |
+| `cheermoteUrl(cheermote, opts?)` | Image URL for a fragment's `.cheermote`. Sync, no network |
+| `badges()` / `cheermotes()` | The raw maps, if you'd rather index them yourself |
+| `user(id)` | `{ id, login, display_name, profile_image_url }` |
+| `users(ids)` | Same, batched. Max 100 ids, memoised per id |
+| `game(id)` | `{ id, name, box_art_url }` — `box_art_url` is a template, replace `{width}` and `{height}` |
+| `thirdPartyEmotes(provider)` | `'7tv'`, `'bttv'` or `'ffz'` → emote code → `{ url_1x, url_2x, url_4x }` |
+
+The channel's own custom subscriber and bits badges come back automatically — `badgeUrl` returns that channel's artwork, not a generic stand-in.
+
+### Live values — always fresh, never cached
+
+```js
+await StreamWizard.twitch.followerTotal();  // number
+await StreamWizard.twitch.subTotal();       // number
+await StreamWizard.twitch.stream();         // { is_live, viewer_count, game_id, game_name, title, started_at, thumbnail_url }
+```
+
+These three skip every cache on the way out and back. That's deliberate: a goal bar that comes back from an OBS restart showing yesterday's number is worse than no goal bar.
+
+### Goal widgets
+
+Read the truth at load, adjust from events, re-anchor on a timer:
+
+```js
+let total = await StreamWizard.twitch.followerTotal();
+render(total);
+
+addEventListener('onEventReceived', (e) => {
+  if (e.detail.listener === 'channel.follow') render(++total);
+});
+
+setInterval(async () => {
+  total = await StreamWizard.twitch.followerTotal();
+  render(total);
+}, 60000);
+```
+
+The `setInterval` isn't optional polish. Events can be dropped or replayed when the connection blips, so a counter you only ever increment drifts away from reality over a long stream.
+
+Don't store the count with `StreamWizard.state` either. It's stale the second the widget closes; read it fresh instead.
+
+### In the editor preview
+
+Every `StreamWizard.twitch` method throws in the preview — there's no session to authenticate with. Wrap calls in `try/catch` so your widget still renders while you're building it.
+
+### Already in the payload
+
+Most events arrive with badge URLs and the subject's avatar already filled in (`badges[].url`, `user_profile_image_url`), so simple widgets need no lookup at all. Both are optional — StreamWizard adds them only when the value is already cached, so guard before use and fall back to `StreamWizard.twitch` if you need a guarantee.
+
+If you're porting from StreamElements, `badge.url` is there on purpose. It means the same thing it did there.
+
+---
+
+## Persistent state
+
+Two stores, and picking the wrong one is the most common bug in a widget that counts something.
+
+| | `StreamWizard.state` | `StreamWizard.userState` |
+|---|---|---|
+| Scope | this one placed widget | the whole channel |
+| Shape | one JSON blob, `set()` replaces it | key → value |
+| Written by | only this widget | this widget, other widgets, and StreamWizard's servers |
+
+```js
+// Per-widget blob
+const saved = await StreamWizard.state.get().catch(() => null);
+await StreamWizard.state.set({ deaths: 4 });
+
+// Channel-wide keys
+const deaths = await StreamWizard.userState.get('deaths');
+await StreamWizard.userState.set('current_game', 'Elden Ring');
+const everything = await StreamWizard.userState.getAll();
+
+// Counters: atomic server-side add — never get-then-set, which loses racing
+// writes. Resolves to the new value; a missing key starts from 0.
+const newDeaths = await StreamWizard.userState.increment('deaths');
+await StreamWizard.userState.delete('old_key');
+
+// Live updates: pushed to open overlays on every change, no polling. Both
+// return an unsubscribe function; safe to register in the editor preview
+// (there they just never fire).
+StreamWizard.userState.subscribe('deaths', (value) => render(value ?? 0));
+StreamWizard.userState.onChange((key, value) => console.log(key, value));
+```
+
+The read/write calls throw in the editor preview — there's no session to authenticate with. Wrap in `try/catch`.
+
+Channel keys are 1–64 characters of `a-z0-9_`, values any JSON up to 8KB, 200 keys per channel. `increment` works on numeric values only and rejects anything else. Changes also arrive as `onEventReceived` with listener `streamwizard.user_state` and event `{ key, value, updatedAt }`.
+
+### Server-written keys
+
+Keys beginning `sys.` belong to StreamWizard and reject writes — a widget that could set them could lie about what the channel is doing.
+
+| Key | Value |
+|---|---|
+| `sys.stream_id` | Current Twitch stream id, `null` when offline |
+| `sys.stream_started_at` | ISO timestamp the stream started |
+| `sys.is_live` | boolean |
+
+### Don't reset on an event
+
+A widget only receives events while it is open. "Reset the counter on `stream.online`" does exactly nothing when the streamer goes live before starting OBS — and the widget then restores last stream's total as if it were this one's.
+
+Record which stream the total belongs to and compare on load:
+
+```js
+addEventListener('onWidgetLoad', async () => {
+  const [saved, savedStream, currentStream] = await Promise.all([
+    StreamWizard.userState.get('total'),
+    StreamWizard.userState.get('total_stream_id'),
+    StreamWizard.userState.get('sys.stream_id'),
+  ]);
+
+  // An unknown stream id means keep what you had. Zeroing on "I don't know"
+  // throws away a real total every time the lookup fails.
+  total = currentStream && savedStream !== currentStream ? 0 : (saved ?? 0);
+});
+```
+
+Keep the event listener too if you want an instant reset while the overlay happens to be open — it's idempotent, so it costs nothing.
 
 ---
 
@@ -127,6 +312,27 @@ The **Fields** tab accepts a JSON object where each key is a field identifier an
 | `dropdown` | `string` | `options` | Select box |
 | `googleFont` | `string` | — | Google Font family picker |
 | `hidden` | any | — | Not shown in sidebar; just carries a value |
+| `group` | — | `fields` | Collapsible section holding other fields |
+
+#### `group` — collapsible sections
+
+```jsonc
+{
+  "follow": {
+    "type": "group",
+    "label": "Follow",
+    "fields": {
+      "followText":  { "type": "text", "label": "Message", "value": "Thanks {name}!" },
+      "followColor": { "type": "colorpicker", "label": "Colour", "value": "#9e7aff" }
+    }
+  }
+}
+```
+
+Grouping is presentation only — nested keys stay in the flat namespace, so the
+above is `{{followText}}` / `fieldData.followText`, not
+`fieldData.follow.followText`. Keys must therefore stay unique across the whole
+schema. Groups may nest up to five levels deep.
 
 #### `dropdown` options format
 
@@ -315,7 +521,9 @@ event.chatter_user_id     — Twitch user ID
 event.message.text        — plain text of the message
 event.message.fragments   — array of { type, text, emote?, cheermote?, mention? }
 event.color               — hex colour the user has chosen for their name
-event.badges              — array of { set_id, id, info }
+event.badges              — array of { set_id, id, info } plus StreamWizard's
+                            url / url_1x / url_2x / url_4x (optional — guard them)
+event.user_profile_image_url — chatter's avatar, added by StreamWizard (optional)
 event.message_type        — "text" | "channel_points_highlighted" | ...
 event.cheer?.bits         — bits amount if this is a cheer
 event.reply?.parent_message_body — quoted message if this is a reply
@@ -326,6 +534,7 @@ event.reply?.parent_message_body — quoted message if this is a reply
 event.user_name           — display name of the new follower
 event.user_id
 event.followed_at         — ISO 8601 timestamp
+event.user_profile_image_url — added by StreamWizard (optional)
 ```
 
 ### `channel.subscribe`
@@ -565,16 +774,17 @@ addEventListener('onEventReceived', (obj) => {
 ## Rules and constraints
 
 1. **No external scripts.** Only GSAP and Tailwind from the bundled CDNs are available. Do not add `<script src>` tags.
-2. **No external images unless hosted.** Use CSS gradients or inline SVG for graphics; or have the user configure an image URL via a `text` field.
+2. **Images can come from anywhere** — the CSP only restricts `fetch()`, not `<img>`. Twitch artwork (badges, avatars, emotes, box art) is resolved through `StreamWizard.twitch`; for the streamer's own graphics use an `image` field so they can pick from the media library.
 3. **Background is always transparent.** Never set a background on `body` or `html`.
-4. **`fieldData` is read-only.** It only reflects values at load time. React to user-configured changes via `onWidgetLoad`.
-5. **The widget has no internet access** (sandbox) so `fetch()` and XHR will fail.
+4. **`fieldData` is read-only.** Writing to it changes nothing. Read the initial values in `onWidgetLoad` and re-read them in `onFieldsUpdate` when the streamer edits a setting.
+5. **`fetch()` is limited to an allowlist.** The overlay origin (widget state and `StreamWizard.twitch`), the StreamWizard media CDN, `api.open-meteo.com` and `nominatim.openstreetmap.org`. Everything else is blocked, including `api.twitch.tv`, 7TV, BTTV and FrankerFaceZ — use `StreamWizard.twitch` for those. `<img>`, `<audio>` and `<video>` tags can load any URL.
 6. **GSAP TextPlugin** must be registered before use:
    ```js
    gsap.registerPlugin(TextPlugin);
    ```
 7. **Keep JS self-contained.** No `import`/`require`. Write plain ES2020 JavaScript.
 8. **Widget dimensions** come from the overlay editor. Design layouts in percentage or `vw`/`vh` units so they scale correctly, or use absolute positioning from edges.
+9. **No demo mode.** Don't add a `demoMode` field or a fake-data loop — the editor's Demo mode covers it. See [Don't build a demo mode](#dont-build-a-demo-mode).
 
 ---
 

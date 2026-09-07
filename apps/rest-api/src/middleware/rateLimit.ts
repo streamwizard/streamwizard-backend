@@ -1,4 +1,21 @@
-// middleware/rateLimit.ts
+/**
+ * Per-API-key rate limiting: 1000 requests/hour by default, or whatever
+ * `rate_limit` the key's row carries. Answers with 429 and the standard
+ * X-RateLimit-* headers once a key is over its window.
+ *
+ * NOT WIRED UP YET. Nothing calls rateLimit(), so no route is currently
+ * limited — the securityMiddleware chain in src/index.ts covers request ids,
+ * HTTPS, headers and brute-force, but not this. To turn it on, mount it after
+ * the auth middleware that populates `c.get("apiKey")`:
+ *
+ *   app.use("*", rateLimit());
+ *
+ * Two things to settle before that ships:
+ *   - the store is per-process and in-memory, so N instances mean N x limit.
+ *     Redis (or the ingest rate-limit table) is the fix for a real deployment.
+ *   - `apiKey` is only set on routes that authenticate with one; requests
+ *     without a key fall straight through, by design.
+ */
 import { type Context, type Next } from 'hono';
 
 interface RateLimitStore {

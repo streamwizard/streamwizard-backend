@@ -2,7 +2,7 @@
   "name": "@repo/schemas",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",
@@ -14,6 +14,7 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
+    "test": "bun test",
     "generate:widget-declarations": "bun run scripts/generate-widget-declarations.ts"
   },
   "dependencies": {
@@ -21,7 +22,8 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "typescript": "^5.7.3",
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.2",
     "zod-to-ts": "^2.0.0"
   }
 }

@@ -1,0 +1,28 @@
+# Local override — run the ingest stack with plain env vars instead of Doppler.
+#
+# Auto-merged by `docker compose up`. Overrides the control plane's Doppler
+# entrypoint with a direct `bun run start`, and injects Supabase creds (which
+# Doppler would normally supply) straight from .env. Pointed at the host's local
+# Supabase via host.docker.internal.
+#
+# This file is for local development only — production on the stream box uses the
+# base docker-compose.yml with a real DOPPLER_TOKEN.
+
+services:
+  ingest-control:
+    # Skip `doppler run --`; run the app directly.
+    entrypoint: ["bun", "run", "start"]
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      # No real OBS image / Docker socket access locally — expose a single SRT
+      # listener on the media plane instead of provisioning per-tenant OBS
+      # containers. A local OBS/ffplay can pull from it directly.
+      INGEST_OUTPUT_MODE: srt-listener
+    extra_hosts:
+      # Let the container reach the host's local Supabase.
+      - "host.docker.internal:host-gateway"
+
+  ingest-media:
+    ports:
+      - "8890:8890/udp"   # INGEST_OUTPUT_MODE=srt-listener passthrough output

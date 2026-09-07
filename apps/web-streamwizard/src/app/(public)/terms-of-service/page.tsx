@@ -1,12 +1,15 @@
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { LegalTabs } from "@/components/legal-tabs";
 import { LEGAL_CONTACT_EMAIL } from "@/lib/legal";
+import { absoluteUrl } from "@/lib/seo";
 import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terms of Service – StreamWizard",
+  // Suffix comes from the root layout's title template.
+  title: "Terms of Service",
   description: "The terms and conditions governing your use of StreamWizard.",
+  alternates: { canonical: absoluteUrl("/terms-of-service") },
 };
 
 const LAST_UPDATED = "26 May 2026";
@@ -21,9 +24,9 @@ function NormalContent() {
       <section>
         <h2 className="text-2xl font-semibold mt-10 mb-4">1. Acceptance of Terms</h2>
         <p className="text-muted-foreground leading-relaxed">
-          By accessing or using StreamWizard ("the Service"), you agree to be bound by these Terms of
-          Service ("Terms"). If you do not agree to these Terms, do not use the Service. These Terms
-          form a legally binding agreement between you and J. van der Wit ("we", "us", "our"),
+          By accessing or using StreamWizard (&quot;the Service&quot;), you agree to be bound by these Terms of
+          Service (&quot;Terms&quot;). If you do not agree to these Terms, do not use the Service. These Terms
+          form a legally binding agreement between you and J. van der Wit (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;),
           the operator of StreamWizard.
         </p>
       </section>
@@ -58,7 +61,7 @@ function NormalContent() {
           <li>Hold a valid Twitch account in good standing.</li>
           <li>Comply with{" "}
             <Link href="https://www.twitch.tv/p/en/legal/terms-of-service/" target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
-              Twitch's Terms of Service ↗
+              Twitch&apos;s Terms of Service ↗
             </Link>
             {" "}and Community Guidelines at all times.
           </li>
@@ -86,7 +89,7 @@ function NormalContent() {
           <li>Use the Service for any unlawful purpose or in violation of any applicable law or regulation.</li>
           <li>Attempt to gain unauthorised access to any part of the Service or its infrastructure.</li>
           <li>Reverse engineer, decompile, or disassemble any part of the Service.</li>
-          <li>Use the Service in a manner that violates Twitch's Terms of Service, Developer Agreement, or API usage policies.</li>
+          <li>Use the Service in a manner that violates Twitch&apos;s Terms of Service, Developer Agreement, or API usage policies.</li>
           <li>Transmit malicious code, spam, or disruptive content through the Service.</li>
           <li>Scrape, harvest, or otherwise collect data from the Service without our express written consent.</li>
           <li>Use the Service to harass, abuse, or harm other users or third parties.</li>
@@ -121,7 +124,7 @@ function NormalContent() {
             {CONTACT_EMAIL}
           </a>
           . We reserve the right to suspend or terminate your access to the Service, with or without
-          notice, if we reasonably believe you have violated these Terms, Twitch's policies, or
+          notice, if we reasonably believe you have violated these Terms, Twitch&apos;s policies, or
           applicable law. Upon termination, your right to use the Service ceases immediately. We will
           delete your personal data in accordance with our Privacy Policy.
         </p>
@@ -135,8 +138,8 @@ function NormalContent() {
           applies unless we expressly agree otherwise in writing.
         </p>
         <p className="text-muted-foreground leading-relaxed">
-          The Service is provided <span className="italic">"as is"</span> and{" "}
-          <span className="italic">"as available"</span> without warranties of any kind, whether express,
+          The Service is provided <span className="italic">&quot;as is&quot;</span> and{" "}
+          <span className="italic">&quot;as available&quot;</span> without warranties of any kind, whether express,
           implied, or statutory, including but not limited to warranties of merchantability, fitness for
           a particular purpose, non-infringement, accuracy, reliability, or uninterrupted availability.
           We do not warrant that the Service will be error-free, secure, compatible with your broadcast
@@ -187,7 +190,7 @@ function NormalContent() {
       <section>
         <h2 className="text-2xl font-semibold mt-10 mb-4">12. Changes to These Terms</h2>
         <p className="text-muted-foreground leading-relaxed">
-          We may update these Terms at any time. We will update the "Last updated" date at the top
+          We may update these Terms at any time. We will update the &quot;Last updated&quot; date at the top
           of this page when we do. Continued use of the Service after changes take effect constitutes
           your acceptance of the revised Terms. If we make material changes we will make reasonable
           efforts to notify active users.

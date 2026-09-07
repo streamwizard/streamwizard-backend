@@ -16,7 +16,7 @@ import {
 import { discordInviteLink } from "@/lib/constant";
 import { Database } from "@repo/supabase";
 import { User } from "@supabase/supabase-js";
-import { BarChart2, FileVideoCamera, Layers } from "lucide-react";
+import { BarChart2, Cloud,FileVideoCamera, FolderOpen, Layers, Radio } from "lucide-react";
 import { StreamWizardLogo } from "@/components/brand/streamwizard-logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,9 +29,15 @@ import SidebarCommands from "./sidebar-commands";
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: User;
   folders: Database["public"]["Tables"]["clip_folders"]["Row"][];
+  hasCloudObsAccess?: boolean;
 }
 
-export function AppSidebar({ user, folders, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  user,
+  folders,
+  hasCloudObsAccess = false,
+  ...props
+}: AppSidebarProps) {
   const { setOpenMobile, isMobile } = useSidebar();
   const closeMobile = () => {
     if (isMobile) setOpenMobile(false);
@@ -86,6 +92,32 @@ export function AppSidebar({ user, folders, ...props }: AppSidebarProps) {
             <SidebarClips clipFolders={folders} />
           </SidebarGroupContent>
         </SidebarGroup>
+        {hasCloudObsAccess && (
+          <SidebarGroup>
+            <SidebarGroupLabel>IRL</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/dashboard/irl/obs")}>
+                    <Link href="/dashboard/irl/obs" onClick={closeMobile}>
+                      <Cloud className="mr-2 h-4 w-4" />
+                      Cloud OBS
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith("/dashboard/irl/ingest")}>
+                    <Link href="/dashboard/irl/ingest" onClick={closeMobile}>
+                      <Radio className="mr-2 h-4 w-4" />
+                      Ingest
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel>Overlays</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -103,6 +135,14 @@ export function AppSidebar({ user, folders, ...props }: AppSidebarProps) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/dashboard/media")}>
+                  <Link href="/dashboard/media" onClick={closeMobile}>
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Media
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
             </SidebarMenu>
           </SidebarGroupContent>
@@ -113,6 +153,7 @@ export function AppSidebar({ user, folders, ...props }: AppSidebarProps) {
             <SidebarCommands />
           </SidebarGroupContent>
         </SidebarGroup>
+
       </SidebarContent>
       <SidebarFooter>
         <SidebarFooter>

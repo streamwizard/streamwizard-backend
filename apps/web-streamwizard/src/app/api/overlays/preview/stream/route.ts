@@ -1,5 +1,6 @@
 import { createClient } from "@repo/supabase/next/server";
 import { NextRequest, NextResponse } from "next/server";
+import { reportError } from "@repo/sentry";
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("Error streaming video:", error);
+    reportError(error, "api/overlays/preview/stream");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Stream error" },
       { status: 500 }

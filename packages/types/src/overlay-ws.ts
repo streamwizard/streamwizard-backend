@@ -1,7 +1,12 @@
 import type { EventSubSubscriptionType } from "./eventsub";
 import type {
   OverlayGeoPayload,
+  OverlayGeoEvent,
   OverlayStatusPayload,
+  ObsInstanceLifecyclePayload,
+  ObsSceneChangedPayload,
+  IngestStatsPayload,
+  UserStateUpdatePayload,
   // channel
   ChannelUpdateEvent,
   ChannelFollowEvent,
@@ -89,19 +94,91 @@ import type {
   UserAuthorizationRevokeEvent,
   UserUpdateEvent,
   UserWhisperMessageEvent,
+  // obs-auto-switcher
+  AutoSwitcherStatus,
+  AutoSwitcherConfig,
 } from "@repo/schemas";
 
-export type { OverlayGeoPayload, OverlayStatusPayload };
+export type { OverlayGeoPayload, OverlayGeoEvent, OverlayStatusPayload };
+
+/**
+ * Widget-facing name for the geo frame's payload. Kept as an alias rather than
+ * used directly below because the widget editor's generated declarations call
+ * it this, and the docs generator matches the two by name.
+ */
+export type StreamWizardGeoEvent = OverlayGeoEvent;
 
 export type StreamWizardEventType =
-  | "streamwizard.geo";
+  | "streamwizard.geo"
+  | "streamwizard.ingest_stats"
+  // obs-auto-switcher: engine → user room (state/heartbeat for the status card)
+  | "streamwizard.auto_switcher_status"
+  // obs-auto-switcher: web server actions → /internal/broadcast → consumer
+  // feed (config/override changes; payload is the obs_auto_switcher_configs row)
+  | "streamwizard.auto_switcher_config"
+  // obs-instance-manager: container start/stop/delete/crash → /internal/broadcast
+  // → the owning user's room, so decks/dashboards update live and cross-device
+  | "streamwizard.obs_instance_lifecycle"
+  // obs-instance-manager: the container's program scene actually changed,
+  // observed on a node-side obs-websocket connection → /internal/broadcast
+  | "streamwizard.obs_scene_changed"
+  // user_states mutation: whichever process applied the write (bot via its
+  // socket, rest-api/web-overlay via /internal/broadcast) → user room, one
+  // message per changed key, so overlays track counters without polling
+  | "streamwizard.user_state";
 
 export type OverlayEventType = EventSubSubscriptionType | StreamWizardEventType;
 
+// Both of these are zod-derived in @repo/schemas -- re-exported rather than
+// redeclared so the wire type and the validator can't drift apart. Their docs
+// live on the schemas.
+export type { ObsInstanceLifecyclePayload, IngestStatsPayload, ObsSceneChangedPayload, UserStateUpdatePayload };
+
+// Host NIC totals only — cpu/ram/disk deliberately stay on the InfluxDB
+// polling path; the WS carries just the network signal.
+export interface IngestNodeBandwidthPayload {
+  node_id: string;
+  /** Epoch ms at sample time on the node. */
+  ts: number;
+  rx_bytes_per_sec: number;
+  tx_bytes_per_sec: number;
+  tailscale_rx_bytes_per_sec: number;
+  tailscale_tx_bytes_per_sec: number;
+}
+
+// Node-scoped bot message: never delivered to user rooms (so it's not an
+// OverlayEventType) — ws-server folds it into monitor state instead.
+export interface NodeMetricsMessage {
+  kind: "node_metrics";
+  payload: IngestNodeBandwidthPayload;
+}
+
+// App-level heartbeat: bot sockets are otherwise send-only, so without a
+// reply the client can't tell a healthy link from a half-open TCP connection.
+export interface BotPingMessage {
+  kind: "ping";
+  /** Epoch ms at send time; echoed back in the pong. */
+  ts: number;
+}
+
+// ws-server's reply to BotPingMessage — the only message a bot ever receives.
+export interface BotPongMessage {
+  kind: "pong";
+  ts: number;
+}
+
 export type OverlaySocketMessage =
   // StreamWizard internal
-  | { type: "streamwizard.geo"; status: "connected"; payload: OverlayGeoPayload }
-  | { type: "streamwizard.geo"; status: "offline" }
+  // ws-server nests the status discriminant inside `payload` (it calls
+  // broadcastToRoom with the whole {status, payload} envelope), so the
+  // discriminant is one level down from where the other arms carry theirs.
+  | { type: "streamwizard.geo"; payload: StreamWizardGeoEvent }
+  | { type: "streamwizard.ingest_stats"; payload: IngestStatsPayload }
+  | { type: "streamwizard.auto_switcher_status"; payload: AutoSwitcherStatus }
+  | { type: "streamwizard.auto_switcher_config"; payload: AutoSwitcherConfig }
+  | { type: "streamwizard.obs_instance_lifecycle"; payload: ObsInstanceLifecyclePayload }
+  | { type: "streamwizard.obs_scene_changed"; payload: ObsSceneChangedPayload }
+  | { type: "streamwizard.user_state"; payload: UserStateUpdatePayload }
   // Channel
   | { type: "channel.update";                                             payload: ChannelUpdateEvent }
   | { type: "channel.follow";                                             payload: ChannelFollowEvent }
@@ -197,3 +274,8 @@ export interface BotBroadcastMessage {
   type: OverlayEventType;
   payload: unknown;
 }
+
+// Everything a bot socket may send: room-scoped fan-out messages plus
+// node-scoped metrics and heartbeats. `"kind" in msg` splits fan-out from
+// node-scoped; discriminate the rest on `msg.kind`.
+export type BotOutboundMessage = BotBroadcastMessage | NodeMetricsMessage | BotPingMessage;

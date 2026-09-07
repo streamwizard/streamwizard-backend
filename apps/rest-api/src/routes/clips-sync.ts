@@ -1,4 +1,5 @@
 import { type Context } from "hono";
+import { reportError } from "@repo/sentry";
 import { supabase } from "@repo/supabase";
 import { getTwitchIntegrationWithTokenByUserId } from "@repo/supabase/queries/user";
 import { getClipSync } from "@repo/supabase/queries/sync";
@@ -96,7 +97,8 @@ export async function syncClipsHandler(c: Context) {
       200,
     );
   } catch (error) {
-    console.error("Clips sync error:", error);
+    // Answered as a 500 instead of rethrown, so safeErrorHandler never sees it.
+    reportError(error, "clips-sync.run");
     return c.json(
       {
         error: "Sync failed",
@@ -148,7 +150,7 @@ export async function syncStatusHandler(c: Context) {
       200,
     );
   } catch (error) {
-    console.error("Sync status error:", error);
+    reportError(error, "clips-sync.status");
     return c.json(
       {
         error: "Failed to get sync status",

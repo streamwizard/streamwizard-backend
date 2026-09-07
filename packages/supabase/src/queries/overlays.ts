@@ -60,10 +60,6 @@ export async function deleteOverlayScene(client: DBClient, id: string, userId: s
   return client.from("overlay_scenes").delete().eq("id", id).eq("user_id", userId);
 }
 
-export async function deleteOverlayItem(client: DBClient, id: string) {
-  return client.from("overlay_items").delete().eq("id", id);
-}
-
 export async function getOverlayItems(client: DBClient, sceneId: string) {
   return client.from("overlay_items").select("id").eq("scene_id", sceneId);
 }
@@ -130,21 +126,6 @@ export async function updateOverlayItemData(
   return client.from("overlay_items").update(data).eq("id", id);
 }
 
-export async function updateOverlayItemReturning(
-  client: DBClient,
-  id: string,
-  data: Database["public"]["Tables"]["overlay_items"]["Update"]
-) {
-  return client.from("overlay_items").update(data).eq("id", id).select().single();
-}
-
-export async function insertOverlayItemReturning(
-  client: DBClient,
-  data: Database["public"]["Tables"]["overlay_items"]["Insert"]
-) {
-  return client.from("overlay_items").insert(data).select().single();
-}
-
 export async function insertOverlayItemsReturningIds(
   client: DBClient,
   items: Database["public"]["Tables"]["overlay_items"]["Insert"][]
@@ -175,4 +156,18 @@ export async function getLatestSubscriberToken(client: DBClient, userId: string)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+}
+
+/** Rotates the token that authorizes read-only overlay subscribers. */
+export async function updateSceneSubscriberToken(
+  client: DBClient,
+  sceneId: string,
+  userId: string,
+  token: string,
+) {
+  return client
+    .from("overlay_scenes")
+    .update({ subscriber_token: token })
+    .eq("id", sceneId)
+    .eq("user_id", userId);
 }

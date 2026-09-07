@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SyncBroadcasterClips } from "@/actions/twitch/clips";
 import { RefreshCcw, Check, Clapperboard, AlertCircle } from "lucide-react";
 import { Button, LoadingSpinner } from "@repo/ui";
+import { captureEvent } from "@repo/posthog";
 
 interface SyncNowStepProps {
   clipCount: number;
@@ -23,11 +24,13 @@ export function SyncNowStep({ clipCount }: SyncNowStepProps) {
     const response = await SyncBroadcasterClips();
 
     if (response.success) {
+      captureEvent("clips_synced", { source: "onboarding", skipped: false });
       setState("done");
       return;
     }
 
     if (response.skipped) {
+      captureEvent("clips_synced", { source: "onboarding", skipped: true });
       setState("skipped");
       return;
     }
@@ -83,7 +86,9 @@ export function SyncNowStep({ clipCount }: SyncNowStepProps) {
         >
           {isSyncing ? (
             <>
-              <LoadingSpinner />
+              <span className="mr-2 h-4 w-4 shrink-0">
+                <LoadingSpinner />
+              </span>
               {hasClips ? "Syncing..." : "Pulling in your clips..."}
             </>
           ) : state === "error" ? (

@@ -1,0 +1,62 @@
+{
+  "name": "@repo/alerting",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./engine": {
+      "types": "./src/engine.ts",
+      "default": "./src/engine.ts"
+    },
+    "./rules": {
+      "types": "./src/rules.ts",
+      "default": "./src/rules.ts"
+    },
+    "./notify": {
+      "types": "./src/notify.ts",
+      "default": "./src/notify.ts"
+    },
+    "./probes": {
+      "types": "./src/probes.ts",
+      "default": "./src/probes.ts"
+    },
+    "./state": {
+      "types": "./src/state.ts",
+      "default": "./src/state.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./src/types.ts"
+    },
+    "./home-env": {
+      "types": "./src/home-env.ts",
+      "default": "./src/home-env.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@repo/discord-api": "workspace:*",
+    "@repo/metrics": "workspace:*",
+    "@repo/supabase": "workspace:*",
+    "@repo/telegram-api": "workspace:*",
+    "@sentry/core": "^10",
+    "@supabase/supabase-js": "^2.105.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.3.6",
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.2"
+  }
+}

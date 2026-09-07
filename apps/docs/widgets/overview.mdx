@@ -1,0 +1,45 @@
+---
+title: "Custom widgets"
+description: "Build your own overlay elements with HTML, CSS, and JavaScript. The editor does the heavy lifting."
+---
+
+A custom widget is an overlay element you write yourself: HTML for the markup,
+JavaScript for the logic, CSS for extra styling, and a JSON field schema for
+the settings non-coders can tweak. It runs in a sandboxed iframe on your
+overlay and reacts to live Twitch events.
+
+Never written code? Start with the [recipes](/widgets/recipes/alert-box):
+paste, tweak a color, done. The [Starters tab](/overlays/alerts) in the widget
+library gets you an alert box without touching code at all.
+
+## What's in the sandbox
+
+Your widget's iframe ships with:
+
+- **Tailwind CSS**: every utility class, no setup.
+- **GSAP 3.12 + TextPlugin**: animation that doesn't fight you.
+- **`fieldData`**: the values of your configurable fields.
+- **`StreamWizard.state`**: persistence between streams ([state docs](/widgets/state)).
+- **Transparent background**: your widget composites over the stream.
+
+No npm imports, no external scripts. The sandbox is `allow-scripts` only.
+
+## The four tabs
+
+| Tab | What goes in it |
+|-----|----------------|
+| **HTML** | Markup. `{{fieldName}}` placeholders are replaced with field values. |
+| **JS** | Event listeners, animation, logic. |
+| **Fields** | JSON schema of user-facing settings ([field types](/widgets/fields)). |
+| **Extra CSS** | Styles beyond Tailwind classes. |
+
+## The event model
+
+Three events reach your widget:
+
+- `onWidgetLoad`: fires once, carries `fieldData` and session info.
+- `onEventReceived`: every live event. `detail.listener` is the event name,
+  `detail.event` the payload. Full list: [event reference](/widgets/api/events).
+- `onSessionUpdate`: reserved, currently unused.
+
+The editor autocompletes all of it. Type `e.detail.` and read the menu.

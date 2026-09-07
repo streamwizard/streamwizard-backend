@@ -6,6 +6,7 @@ import { getBroadcasterId } from "@repo/supabase/queries/user";
 import axios from "axios";
 import { env } from "@/lib/env";
 import { revalidatePath } from "next/cache";
+import { reportError } from "@repo/sentry";
 
 interface returnObject<T = unknown> {
   message: string;
@@ -99,14 +100,14 @@ export async function GetClipDownloadURL(clipId: string, user_id: string): Promi
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("GetClipDownloadURL axios error:", error.response?.status, error.response?.data);
+      reportError(error, "actions/twitch/clips.GetClipDownloadURL");
       return {
         message: `Twitch API error: ${error.response?.status ?? "unknown"}`,
         success: false,
       };
     }
 
-    console.error(error instanceof Error ? error.message : "Unknown error");
+    reportError(error, "actions/twitch/clips.GetClipDownloadURL");
     return {
       message: "Error downloading clip",
       success: false,

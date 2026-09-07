@@ -2,17 +2,31 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { discordInviteLink, githubLink } from "@/lib/constant";
+import { discordInviteLink, docsLink, githubLink, productLinks } from "@/lib/constant";
+import { resetCookieConsent } from "@repo/posthog";
+import { TrackedLink } from "../analytics/tracked-link";
 import { Separator } from "@repo/ui";
 import { FaDiscord, FaGithub } from "react-icons/fa";
 
 const navigation = {
+  // The public product pages, not /dashboard/*: those routes are behind auth,
+  // a dead end for anyone (and any crawler) not already signed in.
   product: [
-    { name: "Clip Management", href: "/dashboard/clips" },
+    { name: "Cloud OBS", href: productLinks.cloudObs, cta: "cloud_obs" },
+    { name: "Overlays", href: productLinks.overlays, cta: "overlays" },
+    { name: "Clips", href: productLinks.clips, cta: "clips" },
+    { name: "VOD clipping", href: productLinks.vods, cta: "vods" },
+    { name: "Analytics", href: productLinks.analytics, cta: "analytics" },
+    { name: "Docs", href: docsLink, cta: "docs" },
+  ],
+  company: [
+    { name: "About", href: "/about", cta: "about" },
+    { name: "Contact", href: "/contact", cta: "contact" },
+    { name: "Roadmap", href: "/roadmap", cta: "roadmap" },
   ],
   community: [
-    { name: "Discord", href: discordInviteLink },
-    { name: "GitHub", href: githubLink },
+    { name: "Discord", href: discordInviteLink, cta: "discord" },
+    { name: "GitHub", href: githubLink, cta: "github" },
   ],
   legal: [
     { name: "Terms of Service", href: "/terms-of-service" },
@@ -41,27 +55,48 @@ export function Footer() {
               <span className="text-xl font-medium ml-4">StreamWizard</span>
             </div>
             <p className="text-muted-foreground max-w-md">
-              StreamWizard helps you organize your Twitch clips effortlessly.
-              Search by category, creator, title, date range, and more. Create
-              custom folders to keep your clips perfectly organized.
+              Cloud OBS, overlays, clip management, and stream analytics for Twitch. One login, no
+              install, and the code is on GitHub.
             </p>
             <p className="text-sm text-muted-foreground/60">Free and open source. Built by the community.</p>
           </div>
 
           {/* Navigation Links */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-8 gap-x-8 md:w-1/2 md:justify-items-end">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-8 md:w-3/5 md:justify-items-end">
             {/* Product Links */}
             <div className="space-y-4">
               <h3 className="font-medium text-sm tracking-wider">PRODUCT</h3>
               <ul className="space-y-3">
                 {navigation.product.map((item) => (
                   <li key={item.name}>
-                    <Link
+                    <TrackedLink
                       href={item.href}
+                      cta={item.cta}
+                      section="footer"
+                      {...(item.href.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
                       className="text-muted-foreground hover:text-white transition-colors"
                     >
                       {item.name}
-                    </Link>
+                    </TrackedLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Company Links */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-sm tracking-wider">COMPANY</h3>
+              <ul className="space-y-3">
+                {navigation.company.map((item) => (
+                  <li key={item.name}>
+                    <TrackedLink
+                      href={item.href}
+                      cta={item.cta}
+                      section="footer"
+                      className="text-muted-foreground hover:text-white transition-colors"
+                    >
+                      {item.name}
+                    </TrackedLink>
                   </li>
                 ))}
               </ul>
@@ -73,14 +108,16 @@ export function Footer() {
               <ul className="space-y-3">
                 {navigation.community.map((item) => (
                   <li key={item.name}>
-                    <Link
+                    <TrackedLink
                       href={item.href}
+                      cta={item.cta}
+                      section="footer"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-white transition-colors"
                     >
                       {item.name}
-                    </Link>
+                    </TrackedLink>
                   </li>
                 ))}
               </ul>
@@ -100,6 +137,17 @@ export function Footer() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  {/* GDPR wants withdrawing consent as easy as giving it, so the
+                      reset lives one click away instead of "clear your site data". */}
+                  <button
+                    type="button"
+                    onClick={resetCookieConsent}
+                    className="text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  >
+                    Cookie settings
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
@@ -110,24 +158,28 @@ export function Footer() {
         {/* Footer Bottom */}
         <div className="flex text-center flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
-            <Link
+            <TrackedLink
               href={discordInviteLink}
+              cta="discord"
+              section="footer"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-white transition-colors"
             >
               <FaDiscord className="h-6 w-6" />
               <span className="sr-only">Discord</span>
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href={githubLink}
+              cta="github"
+              section="footer"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-white transition-colors"
             >
               <FaGithub className="h-6 w-6" />
               <span className="sr-only">GitHub</span>
-            </Link>
+            </TrackedLink>
           </div>
           <p className="text-sm text-muted-foreground">
             &copy; {currentYear} StreamWizard. All rights reserved.

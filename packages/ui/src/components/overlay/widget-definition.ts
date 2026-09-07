@@ -4,13 +4,12 @@ import type { OverlayItem, OverlayItemConfig, RootOverlayItemType } from "./type
 export interface WidgetRendererProps {
   item: OverlayItem;
   /**
-   * Canvas zoom level from the editor (0.1–2). Renderers receive this so internal
-   * pixel calculations (drag handle offsets, hit-test areas) remain correct at any
-   * zoom level. The canvas wrapper applies `transform: scale(zoom)` on the scene
-   * container — the renderer's root element must NOT apply its own scale transform.
-   * Live overlay always omits this (effectively zoom=1).
+   * Renderers always draw at raw scene pixels. Two CSS transforms sit above
+   * them: `WidgetScaleFrame` scales content to the item's rendered box, and the
+   * editor canvas scales the whole scene by its zoom. A renderer must never
+   * apply a scale of its own or multiply its px by either factor.
    */
-  zoom?: number;
+  isEditor?: boolean;
 }
 
 export interface WidgetBaseDefinition<T extends RootOverlayItemType = RootOverlayItemType> {

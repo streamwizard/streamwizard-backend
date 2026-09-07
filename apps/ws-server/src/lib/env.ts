@@ -12,6 +12,10 @@ const schema = z.object({
   // Monitor (optional — live WS inspector)
   MONITOR_SECRET: z.string().min(1).optional(),
 
+  // Trusted server-to-server consumers (optional — obs-auto-switcher).
+  // Gates both the `role=consumer` WS upgrade and POST /internal/broadcast.
+  CONSUMER_SECRET: z.string().min(1).optional(),
+
   // Sentry
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_RELEASE: z.string().optional(),

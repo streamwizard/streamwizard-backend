@@ -12,3 +12,5 @@ export {
   type TextAlignSelectProps,
   type TextAlignOption,
 } from "./text-align-select";
+export { GroupLabel, SectionTitle } from "./panel-labels";
+export { MediaField } from "./media-field";

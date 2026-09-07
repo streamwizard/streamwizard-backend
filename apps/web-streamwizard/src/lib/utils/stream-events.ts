@@ -1,4 +1,4 @@
-import { LucideIcon, Tv, UserPlus, MessageSquare, Zap, Swords, Ban, Gift, Bell, Settings, Users, Megaphone, AlertCircle, CheckCircle2, HandMetal, Scissors, Flag } from "lucide-react";
+import { LucideIcon, Tv, UserPlus, MessageSquare, Zap, Swords, Ban, Gift, Bell, Settings, Users, Megaphone, AlertCircle, CheckCircle2, HandMetal, Scissors, Flag, ArrowLeftRight } from "lucide-react";
 
 export const SUB_EVENT_TYPES = [
   "channel.subscribe",
@@ -66,6 +66,7 @@ const EVENT_TYPE_CONFIG: Record<StreamEventType, { label: string; color: string;
   "channel.channel_points_custom_reward.remove": { label: "Reward Removed", color: "bg-cyan-600", icon: HandMetal },
   "channel.channel_points_custom_reward_redemption.update": { label: "Redemption Updated", color: "bg-cyan-600", icon: HandMetal },
   "channel.shoutout.receive": { label: "Shoutout Received", color: "bg-fuchsia-600", icon: Megaphone },
+  "obs.scene_switch": { label: "Scene Switch", color: "bg-sky-500", icon: ArrowLeftRight },
   clip: { label: "Clip", color: "bg-teal-500", icon: Scissors },
   marker: { label: "Marker", color: "bg-yellow-500", icon: Flag },
 };
@@ -194,6 +195,14 @@ export function getStreamEventDisplayInfo(event: StreamEvent): StreamEventDispla
     case "marker": {
       const description = data.description as string | undefined;
       result.subtitle = description || null;
+      break;
+    }
+
+    case "obs.scene_switch": {
+      const fromScene = data.from_scene as string | undefined;
+      const toScene = data.to_scene as string | undefined;
+      if (fromScene && toScene) result.subtitle = `${fromScene} → ${toScene}`;
+      else if (toScene) result.subtitle = toScene;
       break;
     }
   }

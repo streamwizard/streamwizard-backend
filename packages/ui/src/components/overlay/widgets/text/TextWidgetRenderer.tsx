@@ -6,7 +6,6 @@ import type { OverlayItem } from "../../types";
 
 export type WidgetRenderProps = {
   item: OverlayItem;
-  zoom?: number;
 };
 
 function justifyForAlign(align: "left" | "center" | "right"): string {
@@ -15,7 +14,7 @@ function justifyForAlign(align: "left" | "center" | "right"): string {
   return "center";
 }
 
-export function TextWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
+export function TextWidgetRenderer({ item }: WidgetRenderProps) {
   const cfg = asTextWidgetConfig(item.config);
   const fontFamily = resolvedTextWidgetFontFamily(cfg);
   useGoogleFont(fontFamily);
@@ -32,7 +31,7 @@ export function TextWidgetRenderer({ item, zoom = 1 }: WidgetRenderProps) {
         boxSizing: "border-box",
         padding: "4px 8px",
         color: cfg.color,
-        fontSize: cfg.fontSize * zoom,
+        fontSize: cfg.fontSize,
         fontWeight: cfg.fontWeight,
         fontFamily: `"${fontFamily}", sans-serif`,
         textAlign: cfg.align,

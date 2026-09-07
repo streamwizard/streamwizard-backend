@@ -2,7 +2,7 @@ import { loadOverlaySceneByOverlayId } from "@/actions/overlay";
 import { OverlaySceneCanvas, overlayItemFromDbRow } from "@repo/ui/overlay";
 import { ClipsWidgetContainer } from "@/components/widgets/clips-widget/ClipsWidgetContainer";
 import { CustomWidgetContainer } from "@/components/widgets/custom-widget/CustomWidgetContainer";
-import { PhoneOverlayCanvas } from "./PhoneOverlayCanvas";
+import { GpsOverlayCanvas } from "@/components/gps-overlay-canvas";
 import { notFound } from "next/navigation";
 
 const OVERLAY_WIDGETS = [
@@ -12,13 +12,10 @@ const OVERLAY_WIDGETS = [
 
 export default async function OverlayByIdPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ overlayId: string }>;
-  searchParams: Promise<{ token?: string }>;
 }) {
   const { overlayId } = await params;
-  const { token = "" } = await searchParams;
 
   const result = await loadOverlaySceneByOverlayId(overlayId);
 
@@ -58,15 +55,16 @@ export default async function OverlayByIdPage({
     );
   }
 
-  // Phone overlays collect GPS on-device and feed it directly to IRL widgets.
+  // GPS overlays collect GPS on-device, feed it directly to IRL widgets, and
+  // publish it over the WS using the scene's own subscriber token.
   const renderMode = (result.scene as Record<string, unknown>).render_mode;
-  if (renderMode === "phone") {
+  if (renderMode === "gps") {
     return (
       <div style={{ minHeight: "100vh", background: "transparent" }}>
-        <PhoneOverlayCanvas
+        <GpsOverlayCanvas
           scene={result.scene}
           items={result.items}
-          token={token}
+          token={result.scene.subscriber_token}
         />
       </div>
     );

@@ -1,0 +1,42 @@
+{
+ "ingest": {
+  "id": "1533000910500790272",
+  "title": "The ingest server: where your stream lands"
+ },
+ "onboarding": {
+  "id": "1533000953001934970",
+  "title": "Setting it up the first time"
+ },
+ "tab-sources": {
+  "id": "1533001026238414971",
+  "title": "The Sources tab"
+ },
+ "tab-performance": {
+  "id": "1533001052230783038",
+  "title": "The Performance tab"
+ },
+ "tab-files": {
+  "id": "1533001077744468129",
+  "title": "The Files tab"
+ },
+ "browser-sources": {
+  "id": "1533001102239469670",
+  "title": "Browser sources: alerts and widgets"
+ },
+ "tab-switcher": {
+  "id": "1533001119821857020",
+  "title": "The Auto Switcher tab"
+ },
+ "container": {
+  "id": "1533001237484798035",
+  "title": "Starting and stopping your container"
+ },
+ "deck": {
+  "id": "1533001271970369599",
+  "title": "The deck: your phone as a remote"
+ },
+ "hub": {
+  "id": "1533001332418674730",
+  "title": "Start here: StreamWizard cloud OBS"
+ }
+}

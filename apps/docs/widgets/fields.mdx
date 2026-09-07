@@ -1,0 +1,108 @@
+---
+title: "Fields"
+description: "Settings for your widget that anyone can change from the overlay editor. No code required on their end."
+---
+
+Fields are your widget's settings panel. You declare them as JSON in the
+**Fields** tab; they show up as inputs when someone selects the widget on an
+overlay. Values reach your code two ways:
+
+- **In HTML and Extra CSS**: `{{fieldName}}` is replaced with the value.
+- **In JS**: the global `fieldData` object, e.g. `fieldData.accentColor`.
+
+## Example
+
+```json
+{
+  "accentColor": { "type": "colorpicker", "label": "Accent color", "value": "#9e7aff" },
+  "alertImage":  { "type": "image", "label": "Alert image", "value": "" },
+  "alertSound":  { "type": "audio", "label": "Alert sound", "value": "" },
+  "duration":    { "type": "slider", "label": "Seconds on screen", "value": 5, "min": 2, "max": 15, "step": 1 },
+  "showRaids":   { "type": "checkbox", "label": "Show raids", "value": true },
+  "greeting":    { "type": "text", "label": "Greeting", "value": "hi chat" }
+}
+```
+
+## Field types
+
+| Type | Input shown | Value |
+|------|-------------|-------|
+| `text` | text box | string |
+| `number` | number box | number |
+| `checkbox` | switch | boolean |
+| `colorpicker` | color swatch | hex string |
+| `slider` | slider (uses `min`/`max`/`step`) | number |
+| `dropdown` | select (uses `options`) | string |
+| `googleFont` | font picker | font family string |
+| `image` | media library picker | file URL string |
+| `audio` | media library picker | file URL string |
+| `video` | media library picker | file URL string |
+| `hidden` | nothing (internal value) | anything |
+| `group` | collapsible section (uses `fields`) | — (holds other fields) |
+
+`image`, `audio`, and `video` open the user's [media library](/overlays/media-library),
+so streamers pick their own files without editing code.
+
+Dropdown options: `"options": [{ "value": "left", "label": "Left" }, ...]`.
+
+## Grouping fields
+
+A long settings panel is easier to use in sections. Give a field
+`"type": "group"` and put its settings in `fields`, and the panel shows a
+collapsible section — the same thing the built-in alert widget does with follows,
+subs and cheers.
+
+```json
+{
+  "follow": {
+    "type": "group",
+    "label": "Follow",
+    "fields": {
+      "followText":  { "type": "text", "label": "Message", "value": "Thanks {name}!" },
+      "followColor": { "type": "colorpicker", "label": "Colour", "value": "#9e7aff" }
+    }
+  },
+  "sub": {
+    "type": "group",
+    "label": "Subscription",
+    "fields": {
+      "subText": { "type": "text", "label": "Message", "value": "Welcome {name}!" }
+    }
+  }
+}
+```
+
+Groups are presentation only. A grouped field keeps its plain key everywhere
+else, so the example above is still `{{followText}}` in HTML and
+`fieldData.followText` in JS — never `fieldData.follow.followText`. That means
+field keys stay unique across the whole widget, and you can reorganise your
+panel into groups without touching your code.
+
+Groups can hold groups, up to five levels deep.
+
+## Reading fields in JS
+
+```js
+addEventListener('onWidgetLoad', (e) => {
+  const fieldData = e.detail.fieldData; // also available as a global
+  document.getElementById('title').style.color = fieldData.accentColor;
+
+  if (fieldData.alertSound) {
+    new Audio(fieldData.alertSound).play();
+  }
+});
+```
+
+Defaults come from `value` in the schema; per-overlay overrides are merged in
+before your widget loads.
+
+When the streamer edits a setting while the widget is running, `onFieldsUpdate`
+fires with the new values. Handle it to update in place — otherwise the editor
+reloads your widget to show the change, restarting your script.
+
+```js
+addEventListener('onFieldsUpdate', (e) => {
+  const fieldData = e.detail.fieldData;
+  document.getElementById('title').style.color = fieldData.accentColor;
+});
+```

@@ -2,21 +2,18 @@ import { createAdminClient } from "@repo/supabase/next/admin";
 import { overlayItemFromDbRow, toPublicOverlayApiItems } from "@/types/overlays";
 import { NextRequest, NextResponse } from "next/server";
 import { getActiveOverlaySceneBySlug, getAllOverlayItemsByScene } from "@repo/supabase/queries/overlays";
+import { overlayCorsHeaders } from "@/lib/overlay-cors";
+import { reportError } from "@repo/sentry";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: overlayCorsHeaders(request) });
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const CORS_HEADERS = overlayCorsHeaders(request);
   try {
     const { slug } = await params;
     const supabase = createAdminClient();
@@ -46,7 +43,7 @@ export async function GET(
       slug: scene.slug,
       width: scene.width,
       height: scene.height,
-      items: toPublicOverlayApiItems(overlayItems),
+      items: toPublicOverlayApiItems(overlayItems, scene),
     };
 
     return NextResponse.json(payload, {
@@ -56,7 +53,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error fetching overlay:", error);
+    reportError(error, "api/overlays/[slug]");
     return NextResponse.json(
       {
         error:

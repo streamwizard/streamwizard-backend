@@ -33,159 +33,15 @@ import {
   deleteWidget,
   getWidgets,
   getApprovedLibraryEntries,
+  getWidgetTemplates,
+  installWidgetTemplate,
   installWidgetFromLibrary,
 } from "@/actions/widgets";
-import type { Widget } from "@/actions/widgets";
-import { buildWidgetSrcdoc, mergeFieldValues } from "@repo/ui/overlay";
-import type { WidgetFieldSchema } from "@repo/ui/overlay";
-import { Plus, Pencil, Trash2, Code2, Download } from "lucide-react";
-
-const DEFAULT_WIDGET_HTML = `<!--
-  StreamWizard Widget — HTML
-  ─────────────────────────────────────────────────────────────
-  Styling  → Tailwind CSS classes work everywhere (e.g. text-white, flex, rounded-xl)
-  Animation → gsap and TextPlugin are available in the JS tab
-  Fields   → add custom fields in the Fields tab, then reference them
-             in the JS tab via fieldData.yourFieldName
-  ─────────────────────────────────────────────────────────────
--->
-
-<!-- Wrapper — targeted by gsap.from('#widget', ...) in the JS tab -->
-<div id="widget" class="flex flex-col items-center justify-center w-full h-full gap-2 p-6 opacity-0">
-
-  <!-- Event label, e.g. "New Follower!" -->
-  <p id="label" class="text-white/60 text-sm font-medium uppercase tracking-widest">
-    New Follower!
-  </p>
-
-  <!-- Username populated by JS: usernameEl.textContent = event.name -->
-  <p id="username" class="text-white text-4xl font-bold drop-shadow-lg">
-    StreamWizard
-  </p>
-
-  <!-- Supporting message, e.g. "just followed!" or "cheered 100 bits!" -->
-  <p id="message" class="text-white/70 text-xl">
-    just followed!
-  </p>
-
-</div>`;
-
-const DEFAULT_WIDGET_JS = `/*
- * StreamWizard Widget — JavaScript
- *
- * Available globals:
- *   gsap        — GSAP animation library
- *   TextPlugin  — GSAP text animation
- *
- * Register TextPlugin if you want to animate text content:
- *   gsap.registerPlugin(TextPlugin);
- */
-
-// ─── Widget load ────────────────────────────────────────────────────────────
-// Fires once when the widget is mounted. Use this to set initial state
-// and run your intro animation.
-//
-window.addEventListener('onWidgetLoad', function(obj) {
-  const fieldData = obj.detail.fieldData;
-
-  // Access your custom fields:
-  // document.getElementById('username').style.color = fieldData.primaryColor;
-
-  // Intro animation — fade + slide up (widget starts at opacity-0 in HTML)
-  gsap.to('#widget', {
-    opacity: 1,
-    y: 0,
-    duration: 0.5,
-    ease: 'power2.out'
-  });
-});
-
-
-// ─── Stream events ──────────────────────────────────────────────────────────
-// Fires on every stream event. Use a timeline to sequence
-// your animate-in, hold, and animate-out.
-//
-window.addEventListener('onEventReceived', function(obj) {
-  const listener = obj.detail.listener;
-  const event = obj.detail.event;
-
-  if (listener === 'follower-latest') {
-    showAlert(event.name, 'just followed!', 'New Follower!');
-  }
-
-  if (listener === 'subscriber-latest') {
-    const months = event.amount > 1 ? \`for \${event.amount} months!\` : 'just subscribed!';
-    showAlert(event.name, months, 'New Subscriber!');
-  }
-
-  if (listener === 'cheer-latest') {
-    showAlert(event.name, \`cheered \${event.amount} bits!\`, 'Cheer!');
-  }
-
-  if (listener === 'tip-latest') {
-    showAlert(event.name, \`tipped $\${event.amount}!\`, 'New Tip!');
-  }
-
-  if (listener === 'raid-latest') {
-    showAlert(event.name, \`raided with \${event.amount} viewers!\`, 'Incoming Raid!');
-  }
-});
-
-
-// ─── Helper: show alert with GSAP timeline ──────────────────────────────────
-// Animate in → hold → animate out.
-//
-function showAlert(username, message, label = 'Alert') {
-  const labelEl    = document.getElementById('label');
-  const usernameEl = document.getElementById('username');
-  const messageEl  = document.getElementById('message');
-  if (labelEl)    labelEl.textContent    = label;
-  if (usernameEl) usernameEl.textContent = username;
-  if (messageEl)  messageEl.textContent  = message;
-
-  const tl = gsap.timeline();
-
-  // Animate in
-  tl.fromTo('#widget',
-    { opacity: 0, scale: 0.9, y: 10 },
-    { opacity: 1, scale: 1,   y: 0,  duration: 0.4, ease: 'back.out(1.5)' }
-  );
-
-  // Hold
-  tl.to('#widget', { duration: 3 });
-
-  // Animate out
-  tl.to('#widget',
-    { opacity: 0, scale: 0.9, y: -10, duration: 0.3, ease: 'power2.in' }
-  );
-}
-
-
-// ─── Session updates ────────────────────────────────────────────────────────
-// Fires when session stats change (follower count, sub count, goals etc.)
-// Useful for goal bars and stat displays.
-//
-window.addEventListener('onSessionUpdate', function(obj) {
-  const session = obj.detail.session;
-
-  // Example: update a follower count display
-  // const count = session['follower-session']?.count ?? 0;
-  // document.getElementById('follower-count').textContent = count;
-});`;
-
-interface LibraryEntry {
-  id: string;
-  title: string;
-  description: string;
-  tags: string[];
-  installs: number;
-  widgets: {
-    html: string;
-    js: string;
-    extra_css: string;
-    fields: WidgetFieldSchema;
-  };
-}
+import type { WidgetTemplate, Widget } from "@/actions/widgets";
+import { Plus, Pencil, Trash2, Code2, Sparkles } from "lucide-react";
+import { primeWidgetCache } from "@/components/overlays/widgets/custom/widget-cache";
+import { LibraryCard, type LibraryEntry } from "./library-card";
+import { DEFAULT_WIDGET_HTML, DEFAULT_WIDGET_JS } from "./new-widget-template";
 
 interface WidgetLibraryModalProps {
   open: boolean;
@@ -197,6 +53,7 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
   const router = useRouter();
   const [myWidgets, setMyWidgets] = useState<Widget[]>([]);
   const [libraryEntries, setLibraryEntries] = useState<LibraryEntry[]>([]);
+  const [widgetTemplates, setWidgetTemplates] = useState<WidgetTemplate[]>([]);
   const [loadingMine, setLoadingMine] = useState(false);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [search, setSearch] = useState("");
@@ -211,8 +68,11 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
     setLoadingMine(true);
     getWidgets().then(({ data }) => {
       setMyWidgets(data ?? []);
+      // Adding one to the canvas should render it without a second fetch.
+      primeWidgetCache(data ?? []);
       setLoadingMine(false);
     });
+    getWidgetTemplates().then(({ data }) => setWidgetTemplates(data ?? []));
     setLoadingLibrary(true);
     getApprovedLibraryEntries().then(({ data }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,6 +113,21 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
     router.push(`/dashboard/widgets/${id}`);
   }
 
+  function handleUseWidgetTemplate(templateId: string, addToCanvas: boolean) {
+    setInstallingId(templateId);
+    startTransition(async () => {
+      const { data } = await installWidgetTemplate(templateId);
+      setInstallingId(null);
+      if (!data) return;
+      setMyWidgets((prev) => [data, ...prev]);
+      primeWidgetCache([data]);
+      if (addToCanvas) {
+        onAddToCanvas(data.id);
+        onOpenChange(false);
+      }
+    });
+  }
+
   function handleInstall(entryId: string) {
     setInstallingId(entryId);
     startTransition(async () => {
@@ -260,6 +135,7 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
       setInstallingId(null);
       if (data) {
         setMyWidgets((prev) => [data, ...prev]);
+        primeWidgetCache([data]);
       }
     });
   }
@@ -284,8 +160,45 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
         <Tabs defaultValue="personal" className="flex flex-col flex-1 min-h-0">
           <TabsList className="shrink-0">
             <TabsTrigger value="personal">My Widgets</TabsTrigger>
+            <TabsTrigger value="starters">Starters</TabsTrigger>
             <TabsTrigger value="public">Public Library</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="starters" className="flex-1 overflow-y-auto mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Ready-made widgets. Use one as-is or open the code and make it yours.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {widgetTemplates.map((widgetTemplate) => (
+                <div key={widgetTemplate.id} className="rounded-lg border bg-card p-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                    <h4 className="text-sm font-semibold">{widgetTemplate.name}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex-1">{widgetTemplate.description}</p>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      disabled={installingId === widgetTemplate.id}
+                      onClick={() => handleUseWidgetTemplate(widgetTemplate.id, true)}
+                    >
+                      Add to canvas
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={installingId === widgetTemplate.id}
+                      onClick={() => handleUseWidgetTemplate(widgetTemplate.id, false)}
+                      title="Copies it to My Widgets without placing it"
+                    >
+                      Save only
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
 
           <TabsContent value="personal" className="flex-1 overflow-y-auto mt-4 space-y-4">
             <div className="flex justify-end">
@@ -432,63 +345,3 @@ export function WidgetLibraryModal({ open, onOpenChange, onAddToCanvas }: Widget
   );
 }
 
-function LibraryCard({
-  entry,
-  onInstall,
-  isInstalling,
-}: {
-  entry: LibraryEntry;
-  onInstall: () => void;
-  isInstalling: boolean;
-}) {
-  const srcdoc = buildWidgetSrcdoc(
-    entry.widgets.html,
-    entry.widgets.js,
-    entry.widgets.extra_css,
-    entry.widgets.fields,
-    mergeFieldValues(entry.widgets.fields, {})
-  );
-
-  return (
-    <div className="group flex flex-col rounded-xl border border-border bg-card overflow-hidden hover:border-primary/50 hover:shadow-md transition-all duration-200">
-      {/* Live preview */}
-      <div className="relative h-40 bg-black shrink-0 overflow-hidden">
-        <iframe
-          srcDoc={srcdoc}
-          sandbox="allow-scripts"
-          className="absolute inset-0 w-full h-full border-0"
-          style={{ pointerEvents: "none", background: "transparent", colorScheme: "normal" }}
-          title={entry.title}
-        />
-        {/* installs badge */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white/70">
-          <Download className="h-2.5 w-2.5" />
-          {entry.installs}
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-col flex-1 px-4 pt-3 pb-4 gap-3">
-        <div>
-          <p className="font-semibold text-sm leading-snug truncate">{entry.title}</p>
-          {entry.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{entry.description}</p>
-          )}
-          {entry.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {entry.tags.map((t) => (
-                <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">
-                  {t}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Button size="sm" className="mt-auto w-full text-xs" onClick={onInstall} disabled={isInstalling}>
-          {isInstalling ? "Installing…" : "Install"}
-        </Button>
-      </div>
-    </div>
-  );
-}

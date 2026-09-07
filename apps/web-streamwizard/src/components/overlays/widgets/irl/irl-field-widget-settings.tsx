@@ -5,7 +5,7 @@ import {
   GoogleFontSelect,
   TextAlignSelect,
 } from "@/components/overlays/inspector-fields";
-import { Label, Slider, Switch } from "@repo/ui";
+import { ColorPicker, Label, Slider, Switch } from "@repo/ui";
 import {
   Select,
   SelectContent,
@@ -110,11 +110,10 @@ export function IrlFieldWidgetSettings({ item, updateItem }: OverlayInspectorApp
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Color</Label>
-              <input
-                type="color"
-                value={cfg.color.length === 7 ? cfg.color : "#ffffff"}
-                onChange={(e) => patchConfig({ color: e.target.value })}
-                className="h-9 w-full rounded-md border border-input bg-background cursor-pointer"
+              <ColorPicker
+                value={cfg.color}
+                onChange={(color) => patchConfig({ color })}
+                aria-label="Text color"
               />
             </div>
             <FontWeightSelect

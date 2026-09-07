@@ -15,8 +15,8 @@ export function StreamStatsStep({ value, onChange }: StreamStatsStepProps) {
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">Show stream stats?</h2>
         <p className="text-sm text-muted-foreground">
-          Peak viewers can mess with your head mid-grind. Turn this off and we'll show your last
-          stream's clips instead. Change it any time in Settings.
+          Peak viewers can mess with your head mid-grind. Turn this off and we&apos;ll show your last
+          stream&apos;s clips instead. Change it any time in Settings.
         </p>
       </div>
       <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">

@@ -1,27 +1,30 @@
 "use server";
 
-import { getAuthContext } from "@/lib/auth";
-import { createAdminClient } from "@repo/supabase/next/admin";
 import { revalidatePath } from "next/cache";
+import { reportError } from "@repo/sentry";
+import {
+  getWidgetTemplates as getWidgetTemplateRows,
+  getWidgetTemplateById,
+} from "@repo/supabase/queries/overlay-templates";
+import {
+  deleteOverlayWidget,
+  incrementWidgetInstalls,
+  insertLibraryEntry,
+  insertOverlayWidget,
+  insertOverlayWidgetInstance,
+  overlayWidgetColumns,
+  selectApprovedLibraryEntries,
+  selectApprovedLibraryEntry,
+  selectOverlayWidget,
+  selectOverlayWidgets,
+  selectOverlayWidgetsByIds,
+  selectWidgetInstanceByItem,
+  updateOverlayWidget,
+} from "@repo/supabase/queries/overlay-widgets";
 import type { WidgetFieldSchema } from "@repo/ui/overlay";
-import { getLatestSubscriberToken } from "@repo/supabase/queries/overlays";
+import { tryAuthContext } from "@/lib/auth";
 
-export async function getActiveSubscriberToken(): Promise<{ token: string | null; error: string | null }> {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { token: null, error: "Unauthorized" };
-  }
-  const { data } = await getLatestSubscriberToken(supabase, user.id);
-  return { token: data?.subscriber_token ?? null, error: null };
-}
-
-async function requireAdminContext() {
-  const { user } = await getAuthContext();
-  if (user.app_metadata?.is_admin !== true) throw new Error("Forbidden");
-  return createAdminClient();
-}
+const ERROR_SCOPE = "actions/widgets";
 
 export interface Widget {
   id: string;
@@ -64,34 +67,34 @@ export interface OverlayWidgetInstance {
 // --- Widget CRUD ---
 
 export async function getWidgets() {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
-  }
-  const { data, error } = await supabase
-    .from("widgets")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data, error } = await selectOverlayWidgets(ctx.supabase, ctx.user.id);
+  if (error) reportError(error, ERROR_SCOPE);
   return { data: data as unknown as Widget[] | null, error: error?.message ?? null };
 }
 
 export async function getWidget(id: string) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
-  }
-  const { data, error } = await supabase
-    .from("widgets")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data, error } = await selectOverlayWidget(ctx.supabase, id, ctx.user.id);
+  if (error) reportError(error, ERROR_SCOPE);
   return { data: data as unknown as Widget | null, error: error?.message ?? null };
+}
+
+/** Batch form of getWidget, for warming a whole scene's widgets in one trip. */
+export async function getWidgetsByIds(ids: string[]) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return { data: [] as Widget[], error: null };
+
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data, error } = await selectOverlayWidgetsByIds(ctx.supabase, ctx.user.id, unique);
+  if (error) reportError(error, ERROR_SCOPE);
+  return { data: data as unknown as Widget[] | null, error: error?.message ?? null };
 }
 
 export async function createWidget(input: {
@@ -103,28 +106,26 @@ export async function createWidget(input: {
   fields?: WidgetFieldSchema;
   tags?: string[];
 }) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
-  }
-  const { data, error } = await supabase
-    .from("widgets")
-    .insert({
-      user_id: user.id,
-      name: input.name,
-      description: input.description ?? "",
-      html: input.html ?? "",
-      js: input.js ?? "",
-      extra_css: input.extra_css ?? "",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fields: (input.fields ?? {}) as any,
-      tags: input.tags ?? [],
-    })
-    .select()
-    .single();
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data, error } = await insertOverlayWidget(
+    ctx.supabase,
+    overlayWidgetColumns(
+      {
+        name: input.name,
+        description: input.description ?? "",
+        html: input.html ?? "",
+        js: input.js ?? "",
+        extra_css: input.extra_css ?? "",
+        fields: input.fields ?? {},
+        tags: input.tags ?? [],
+      },
+      ctx.user.id,
+    ),
+  );
   revalidatePath("/dashboard/widget-library");
+  if (error) reportError(error, ERROR_SCOPE);
   return { data: data as unknown as Widget | null, error: error?.message ?? null };
 }
 
@@ -138,225 +139,161 @@ export async function updateWidget(
     extra_css: string;
     fields: WidgetFieldSchema;
     tags: string[];
-  }>
+  }>,
 ) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { error: "Unauthorized" };
-  }
-  const { error } = await supabase
-    .from("widgets")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update({ ...updates, updated_at: new Date().toISOString() } as any)
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const ctx = await tryAuthContext();
+  if (!ctx) return { error: "Unauthorized" };
+
+  const { error } = await updateOverlayWidget(ctx.supabase, id, ctx.user.id, {
+    ...updates,
+    fields: updates.fields as never,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) reportError(error, ERROR_SCOPE);
   return { error: error?.message ?? null };
 }
 
 export async function deleteWidget(id: string) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { error: "Unauthorized" };
-  }
-  const { error } = await supabase
-    .from("widgets")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+  const ctx = await tryAuthContext();
+  if (!ctx) return { error: "Unauthorized" };
+
+  const { error } = await deleteOverlayWidget(ctx.supabase, id, ctx.user.id);
   revalidatePath("/dashboard/widget-library");
+  if (error) reportError(error, ERROR_SCOPE);
   return { error: error?.message ?? null };
 }
 
 // --- Overlay Widget Instances ---
 
-export async function getOrCreateWidgetInstance(
-  overlayItemId: string,
-  widgetId: string
-) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
-  }
-  const { data: existing } = await supabase
-    .from("overlay_widget_instances")
-    .select("*")
-    .eq("overlay_item_id", overlayItemId)
-    .eq("user_id", user.id)
-    .single();
+export async function getOrCreateWidgetInstance(overlayItemId: string, widgetId: string) {
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data: existing } = await selectWidgetInstanceByItem(ctx.supabase, overlayItemId, ctx.user.id);
   if (existing) return { data: existing as OverlayWidgetInstance, error: null };
 
-  const { data, error } = await supabase
-    .from("overlay_widget_instances")
-    .insert({
-      overlay_item_id: overlayItemId,
-      widget_id: widgetId,
-      user_id: user.id,
-      field_values: {},
-    })
-    .select()
-    .single();
+  const { data, error } = await insertOverlayWidgetInstance(ctx.supabase, {
+    overlay_item_id: overlayItemId,
+    widget_id: widgetId,
+    user_id: ctx.user.id,
+    field_values: {},
+  });
+  if (error) reportError(error, ERROR_SCOPE);
   return { data: data as unknown as OverlayWidgetInstance | null, error: error?.message ?? null };
-}
-
-export async function updateWidgetInstanceFieldValues(
-  instanceId: string,
-  fieldValues: Record<string, unknown>
-) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { error: "Unauthorized" };
-  }
-  const { error } = await supabase
-    .from("overlay_widget_instances")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .update({ field_values: fieldValues as any, updated_at: new Date().toISOString() })
-    .eq("id", instanceId)
-    .eq("user_id", user.id);
-  return { error: error?.message ?? null };
 }
 
 // --- Library ---
 
-export async function getApprovedLibraryEntries(opts?: {
-  search?: string;
-  tags?: string[];
-}) {
-  let supabase;
-  try {
-    ({ supabase } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
-  }
-  let query = supabase
-    .from("widget_library_entries")
-    .select("*, widgets(*)")
-    .eq("is_approved", true)
-    .order("installs", { ascending: false });
+export async function getApprovedLibraryEntries() {
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
 
-  if (opts?.search) {
-    query = query.or(`title.ilike.%${opts.search}%,description.ilike.%${opts.search}%`);
-  }
-  const { data, error } = await query;
+  const { data, error } = await selectApprovedLibraryEntries(ctx.supabase);
+  if (error) reportError(error, ERROR_SCOPE);
   return { data, error: error?.message ?? null };
 }
 
 export async function publishWidgetToLibrary(
   widgetId: string,
-  input: { title: string; description: string; tags: string[] }
+  input: { title: string; description: string; tags: string[] },
 ) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { error: "Unauthorized" };
-  }
-  const { error } = await supabase.from("widget_library_entries").insert({
+  const ctx = await tryAuthContext();
+  if (!ctx) return { error: "Unauthorized" };
+
+  const { error } = await insertLibraryEntry(ctx.supabase, {
     widget_id: widgetId,
-    user_id: user.id,
+    user_id: ctx.user.id,
     title: input.title,
     description: input.description,
     tags: input.tags,
-    is_approved: false,
   });
+  if (error) reportError(error, ERROR_SCOPE);
   return { error: error?.message ?? null };
 }
 
-export async function installWidgetFromLibrary(entryId: string) {
-  let supabase, user;
-  try {
-    ({ supabase, user } = await getAuthContext());
-  } catch {
-    return { data: null, error: "Unauthorized" };
+export interface WidgetTemplate {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  tags: string[];
+}
+
+/**
+ * Widget templates, shown as the library's Starters tab. Source (html/js/css/fields) is deliberately left
+ * out — installing copies it server-side, so the client never needs it.
+ */
+export async function getWidgetTemplates() {
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data, error } = await getWidgetTemplateRows(ctx.supabase);
+  if (error) {
+    reportError(error, ERROR_SCOPE);
+    return { data: null, error: error.message };
   }
 
-  const { data: entry, error: entryError } = await supabase
-    .from("widget_library_entries")
-    .select("*, widgets(*)")
-    .eq("id", entryId)
-    .eq("is_approved", true)
-    .single();
+  return {
+    data: (data ?? []).map((s) => ({
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      description: s.description,
+      tags: s.tags,
+    })) satisfies WidgetTemplate[],
+    error: null,
+  };
+}
+
+/** Copy a widget template into an `overlay_widgets` row the user owns and can edit. */
+export async function installWidgetTemplate(templateId: string) {
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data: widgetTemplate, error: templateError } = await getWidgetTemplateById(ctx.supabase, templateId);
+  if (templateError) {
+    reportError(templateError, ERROR_SCOPE);
+    return { data: null, error: templateError.message };
+  }
+  if (!widgetTemplate) return { data: null, error: "Widget template not found" };
+
+  const { data: installed, error: installError } = await insertOverlayWidget(
+    ctx.supabase,
+    overlayWidgetColumns(widgetTemplate, ctx.user.id),
+  );
+
+  if (installError) {
+    reportError(installError, ERROR_SCOPE);
+    return { data: null, error: installError.message };
+  }
+
+  return { data: installed as unknown as Widget, error: null };
+}
+
+export async function installWidgetFromLibrary(entryId: string) {
+  const ctx = await tryAuthContext();
+  if (!ctx) return { data: null, error: "Unauthorized" };
+
+  const { data: entry, error: entryError } = await selectApprovedLibraryEntry(ctx.supabase, entryId);
 
   if (entryError || !entry) {
     return { data: null, error: entryError?.message ?? "Entry not found" };
   }
 
-  const source = (entry as unknown as { widgets: Widget }).widgets;
+  const source = (entry as unknown as { overlay_widgets: Widget }).overlay_widgets;
 
-  const { data: forked, error: forkError } = await supabase
-    .from("widgets")
-    .insert({
-      user_id: user.id,
-      name: source.name,
-      description: source.description,
-      html: source.html,
-      js: source.js,
-      extra_css: source.extra_css,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fields: source.fields as any,
-      tags: source.tags,
-    })
-    .select()
-    .single();
+  const { data: forked, error: forkError } = await insertOverlayWidget(
+    ctx.supabase,
+    overlayWidgetColumns(source, ctx.user.id),
+  );
 
-  if (forkError) return { data: null, error: forkError.message };
+  if (forkError) {
+    reportError(forkError, ERROR_SCOPE);
+    return { data: null, error: forkError.message };
+  }
 
-  await supabase.rpc("increment_widget_installs", { entry_id: entryId });
+  await incrementWidgetInstalls(ctx.supabase, entryId);
 
   revalidatePath("/dashboard/widget-library");
   return { data: forked as unknown as Widget, error: null };
-}
-
-// --- Admin moderation ---
-
-export async function getPendingLibraryEntries() {
-  let adminClient;
-  try {
-    adminClient = await requireAdminContext();
-  } catch {
-    return { data: null, error: "Forbidden" };
-  }
-  const { data, error } = await adminClient
-    .from("widget_library_entries")
-    .select("*, widgets(*)")
-    .eq("is_approved", false)
-    .order("created_at", { ascending: true });
-  return { data, error: error?.message ?? null };
-}
-
-export async function approveLibraryEntry(entryId: string) {
-  let adminClient;
-  try {
-    adminClient = await requireAdminContext();
-  } catch {
-    return { error: "Forbidden" };
-  }
-  const { error } = await adminClient
-    .from("widget_library_entries")
-    .update({ is_approved: true })
-    .eq("id", entryId);
-  revalidatePath("/dashboard/admin/widget-library");
-  return { error: error?.message ?? null };
-}
-
-export async function rejectLibraryEntry(entryId: string) {
-  let adminClient;
-  try {
-    adminClient = await requireAdminContext();
-  } catch {
-    return { error: "Forbidden" };
-  }
-  const { error } = await adminClient
-    .from("widget_library_entries")
-    .delete()
-    .eq("id", entryId);
-  revalidatePath("/dashboard/admin/widget-library");
-  return { error: error?.message ?? null };
 }

@@ -23,11 +23,18 @@ export default function NotFound() {
         textAlign: "center",
       }}
     >
+      <img
+        src="/logo.png"
+        alt=""
+        width={40}
+        height={40}
+        style={{ opacity: 0.6, marginBottom: 20 }}
+      />
       <p style={{ margin: 0, fontSize: 13, letterSpacing: "0.08em", opacity: 0.5 }}>
         404
       </p>
       <h1 style={{ margin: "12px 0 0", fontSize: 22, fontWeight: 600 }}>
-        Page not found
+        No overlay here
       </h1>
       <p
         style={{
@@ -38,19 +45,8 @@ export default function NotFound() {
           opacity: 0.75,
         }}
       >
-        This host only serves overlay URLs from your StreamWizard dashboard,
-        for example a path like `/overlay/` followed by your scene UUID or
-        slug. If you followed a link here, it may be wrong or expired.
-      </p>
-      <p style={{ margin: "24px 0 0", fontSize: 14, opacity: 0.55 }}>
-        <a
-          href="https://streamwizard.org"
-          style={{ color: "#93c5fd", textDecoration: "none" }}
-          rel="noopener noreferrer"
-        >
-          streamwizard.org
-        </a>
-        {" — dashboard & account"}
+        This link doesn&rsquo;t point at a real overlay. Grab the correct URL
+        from your StreamWizard dashboard and drop it back into OBS.
       </p>
     </div>
   );

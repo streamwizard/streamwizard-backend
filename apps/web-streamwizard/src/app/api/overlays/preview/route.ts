@@ -1,6 +1,7 @@
 import { GetClipDownloadURL } from "@/actions/twitch/clips";
 import { createClient } from "@repo/supabase/next/server";
 import { NextRequest, NextResponse } from "next/server";
+import { reportError } from "@repo/sentry";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       portrait_url: clip.portrait_download_url,
     });
   } catch (error) {
-    console.error("Error fetching clip preview URL:", error);
+    reportError(error, "api/overlays/preview");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }

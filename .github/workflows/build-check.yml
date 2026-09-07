@@ -23,10 +23,12 @@ jobs:
             dockerfile: apps/web-streamwizard/Dockerfile
           - name: web-overlay
             dockerfile: apps/web-overlay/Dockerfile
+          - name: web-admin
+            dockerfile: apps/web-admin/Dockerfile
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
 

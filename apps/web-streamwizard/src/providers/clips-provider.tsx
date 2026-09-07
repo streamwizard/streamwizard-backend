@@ -3,7 +3,7 @@ import { addClipToFolder, removeClipFromFolder } from "@/actions/supabase/clips/
 import { getFolderDisplayName } from "@/lib/utils/clip-folders";
 import { Database } from "@repo/supabase";
 import { useRouter } from "next/navigation";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
 import { toast } from "sonner";
 import { useSession } from "./session-provider";
 
@@ -30,7 +30,9 @@ interface Props {
 }
 
 export function ClipFolderProvider({ children, ClipFolders }: Props) {
-  const [folders, setFolders] = useState<Database["public"]["Tables"]["clip_folders"]["Row"][]>(ClipFolders);
+  // The folder list is owned by the server component above us; mirroring it into
+  // state only bought an extra render per prop change.
+  const folders = ClipFolders;
   const { id: userId } = useSession();
   const router = useRouter();
 
@@ -90,10 +92,6 @@ export function ClipFolderProvider({ children, ClipFolders }: Props) {
       }
     );
   };
-
-  useEffect(() => {
-    setFolders(ClipFolders);
-  }, [ClipFolders]);
 
   return (
     <FolderContext.Provider value={{ folders, getAvailableFolders, getRemovableFolders, getFolderLabel, AddToFolder, handleRemoveClipFromFolder }}>

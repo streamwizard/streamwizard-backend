@@ -14,6 +14,8 @@ import { BroadcasterProfileStrip } from "@/components/stream-analytics/broadcast
 import { StatsRow } from "@/components/stream/StatsRow";
 import { RecentClipsSection } from "@/components/stream/RecentClipsSection";
 import { ViewerChartSection } from "@/components/stream/ViewerChartSection";
+import { HourlyStatsSection } from "@/components/stream/HourlyStatsSection";
+import { CategoryStatsSection } from "@/components/stream/CategoryStatsSection";
 import { ActivityFeedSection } from "@/components/stream/ActivityFeed";
 import { RecentStreams } from "@/components/stream/RecentStreams";
 import { StreamInfoPanel } from "@/components/stream/StreamInfoPanel";
@@ -38,6 +40,14 @@ function StatsRowSkeleton() {
 
 function ChartSkeleton() {
   return <Skeleton className="h-72 w-full rounded-xl" />;
+}
+
+function HourlyStatsSkeleton() {
+  return <Skeleton className="h-72 w-full rounded-xl" />;
+}
+
+function CategoryStatsSkeleton() {
+  return <Skeleton className="h-64 w-full rounded-xl" />;
 }
 
 function FeedSkeleton() {
@@ -72,7 +82,7 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-semibold tracking-tight">Nothing here yet.</h2>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Go stream something. Viewers, clips, chat activity — we'll track it all while you're live.
+              Go stream something. Viewers, clips, chat activity — we&apos;ll track it all while you&apos;re live.
             </p>
           </div>
         </div>
@@ -166,6 +176,20 @@ export default async function DashboardPage() {
         <div className="flex min-w-0 flex-col gap-4">
           <Suspense fallback={<ChartSkeleton />}>
             <ViewerChartSection streamId={stream.stream_id} broadcasterId={broadcasterId} />
+          </Suspense>
+
+          {stream.stream_started_at && (
+            <Suspense fallback={<HourlyStatsSkeleton />}>
+              <HourlyStatsSection
+                streamId={stream.stream_id}
+                broadcasterId={broadcasterId}
+                streamStartedAt={stream.stream_started_at}
+              />
+            </Suspense>
+          )}
+
+          <Suspense fallback={<CategoryStatsSkeleton />}>
+            <CategoryStatsSection streamId={stream.stream_id} broadcasterId={broadcasterId} />
           </Suspense>
 
           <Suspense fallback={<FeedSkeleton />}>

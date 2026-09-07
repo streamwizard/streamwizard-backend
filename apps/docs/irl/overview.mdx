@@ -1,0 +1,51 @@
+---
+title: "IRL streaming overview"
+description: "Stream from anywhere on a phone connection. StreamWizard runs OBS in the cloud for you."
+---
+
+IRL streaming means your encoder is a phone in your pocket, not a PC at home.
+That brings two problems: mobile connections drop, and you have nowhere to run
+OBS. StreamWizard solves both.
+
+## How it works
+
+Your phone streams to a StreamWizard ingest server over SRT or SRTLA. A cloud
+OBS instance, running in its own container just for you, picks up that feed and
+streams it to Twitch. You control that OBS from the dashboard or from your
+phone.
+
+<img src="/images/irl/irl-flow-light.svg" alt="Phone streams over SRT or SRTLA to the ingest server, which feeds your cloud OBS, which streams to Twitch. The dashboard and phone deck control the cloud OBS." className="block dark:hidden" />
+<img src="/images/irl/irl-flow-dark.svg" alt="Phone streams over SRT or SRTLA to the ingest server, which feeds your cloud OBS, which streams to Twitch. The dashboard and phone deck control the cloud OBS." className="hidden dark:block" />
+
+Because OBS runs in the cloud, your stream survives things that would kill a
+home setup: your phone can drop to one bar, switch networks, or die completely,
+and your Twitch stream stays up. The auto switcher moves to a "be right back"
+scene until your signal comes back.
+
+## The pieces
+
+- **Ingest server**: receives your phone's feed. You get one stream key, and
+  two URLs for it: SRT on port 8888 and SRTLA on port 5000. Which one you use
+  depends on your setup, see [SRT or SRTLA](/irl/irl-pro#srt-or-srtla).
+- **Cloud OBS**: your own OBS instance in a container. Scenes, sources,
+  overlays, uploaded files, all of it persists between sessions. You see and
+  control it from the dashboard, including a live view of the actual OBS
+  window.
+- **Auto switcher**: watches your incoming bitrate, ping and packet loss, and
+  switches scenes when your connection degrades or drops. Tuned for moving
+  connections, so a short dip doesn't bounce your viewers between scenes.
+- **The deck**: a phone remote at [streamwizard.org/deck](https://streamwizard.org/deck).
+  Go live, end stream, switch scenes with your thumb. Installable as an app.
+
+## What you need
+
+- A StreamWizard account with Cloud OBS access
+- An Android phone with [IRL Pro](https://irlpro.app), or a dedicated bonding
+  encoder (Belabox, Moblin, IRLToolkit)
+- A Twitch account connected to StreamWizard
+
+## Set it up
+
+1. [Set up your cloud OBS](/irl/cloud-obs) — about two minutes of clicking
+2. [Set up IRL Pro on Android](/irl/irl-pro) — point the app at your ingest URL
+3. [Learn the deck](/irl/deck) — the controls you'll actually use on the street

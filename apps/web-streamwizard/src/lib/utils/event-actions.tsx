@@ -1,6 +1,7 @@
 "use client";
 
 import TwitchClipModal from "@/components/modals/twitch-clip-modal";
+import { openTwitchUrl } from "@/lib/utils/open-twitch-url";
 import { StreamEvent, StreamEventType } from "@/types/stream-events";
 import { LucideIcon, Scissors, ExternalLink, Copy, Flag, Crosshair, Play } from "lucide-react";
 import { toast } from "sonner";
@@ -50,9 +51,7 @@ const clipActions: EventAction[] = [
     handler: (event) => {
       const data = event.event_data as Record<string, unknown> | null;
       const url = data?.url as string | undefined;
-      if (url) {
-        window.open(url, "_blank");
-      }
+      openTwitchUrl(url);
     },
   },
 

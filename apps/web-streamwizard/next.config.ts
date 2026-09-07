@@ -2,54 +2,25 @@ import "./src/lib/env";
 import path from "path";
 import { withSentryConfig } from "@sentry/nextjs";
 
-function buildCsp(): string {
-  const supabaseUrl = process.env.SUPABASE_URL ?? "";
-  // Supabase realtime uses WebSocket — derive wss:// from the https:// URL
-  const supabaseWs = supabaseUrl.replace(/^https:\/\//, "wss://");
-  const wsServerUrl = process.env.WS_SERVER_URL ?? "";
-
-  const directives: string[] = [
-    "default-src 'self'",
-    // Next.js App Router requires unsafe-inline for hydration scripts.
-    // Monaco Editor requires unsafe-eval for its language service workers and
-    // loads its core files from jsdelivr CDN (no custom loader is configured).
-    // player.twitch.tv is needed for the Twitch embedded player script.
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://player.twitch.tv https://cdn.jsdelivr.net",
-    // Monaco Editor spawns language workers via blob: URLs
-    "worker-src blob:",
-    // Next.js inlines critical styles; Google Fonts and Monaco (via jsdelivr) load external stylesheets
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-    // Google Fonts actual font files
-    "font-src 'self' https://fonts.gstatic.com",
-    // Twitch CDN images + data URIs used by the UI
-    "img-src 'self' data: https://static-cdn.jtvnw.net https://vod-secure.twitch.tv https://clips-media-assets2.twitch.tv",
-    // R2 CDN for video assets (light mode transition WebM, future overlay assets)
-    `media-src 'self' ${process.env.NEXT_PUBLIC_CDN_URL}`,
-    // PostHog and Sentry are proxied through /ingest and /monitoring so 'self' covers them.
-    // Monaco fetches worker scripts and additional resources from jsdelivr CDN.
-    [
-      "connect-src 'self'",
-      supabaseUrl,
-      supabaseWs,
-      wsServerUrl,
-      "https://cdn.jsdelivr.net",
-    ]
-      .filter(Boolean)
-      .join(" "),
-    // Twitch embedded player and clips use iframes served from these origins
-    "frame-src https://player.twitch.tv https://clips.twitch.tv",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "upgrade-insecure-requests",
-  ];
-
-  return directives.join("; ");
+// A CDN var that isn't a parseable URL (unset in CI, typo'd in an env file)
+// would otherwise throw here and fail the whole config load, taking the build
+// down with an "Invalid URL" that names neither the variable nor the value.
+function remotePatternFor(url: string | undefined) {
+  if (!url) return [];
+  try {
+    return [{ protocol: "https" as const, hostname: new URL(url).hostname }];
+  } catch {
+    console.warn(`[next.config] ignoring unparseable CDN URL: ${url}`);
+    return [];
+  }
 }
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
+  // Allows accessing the dev server (and its HMR websocket) from the LAN IP
+  // in addition to localhost/127.0.0.1, e.g. when testing from another device.
+  allowedDevOrigins: ["127.0.0.1", "10.10.10.73"],
   turbopack: {
     root: path.resolve(__dirname, "../.."),
   },
@@ -60,11 +31,20 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy", value: buildCsp() },
+          // Content-Security-Policy is set per-request in src/proxy.ts so
+          // script-src can carry a nonce instead of 'unsafe-inline'.
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // cdn.streamwizard.org 403s any request whose Referer is not a
+          // streamwizard.org origin, so on localhost every CDN asset (landing
+          // page demo clips, the theme-transition WebMs) fails to load. Sending
+          // no referrer at all passes that check, so dev drops the header.
+          // Staging/production keep the stricter cross-origin policy.
+          {
+            key: "Referrer-Policy",
+            value: process.env.NODE_ENV === "development" ? "no-referrer" : "strict-origin-when-cross-origin",
+          },
         ],
       },
     ];
@@ -90,9 +70,20 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.SUPABASE_URL ?? "",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.SUPABASE_PUBLIC_KEY ?? "",
     NEXT_PUBLIC_WS_SERVER_URL: process.env.WS_SERVER_URL ?? "",
-    NEXT_PUBLIC_SENTRY_DSN: process.env.SENTRY_DSN ?? "",
+    NEXT_PUBLIC_SENTRY_DSN: process.env.SENTRY_DSN_WEB_STREAMWIZARD ?? process.env.SENTRY_DSN ?? "",
+    // Inlined into the client bundle so browser-side Sentry events carry the
+    // real deploy environment (staging vs production) — NODE_ENV is
+    // "production" for both. getSentryOptions falls back through ALERT_ENV
+    // and NODE_ENV when this is empty.
+    SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT ?? process.env.ALERT_ENV ?? "",
+    // Same reason as SENTRY_ENVIRONMENT: without inlining, the client bundle
+    // reads process.env.SENTRY_RELEASE as undefined and browser events carry
+    // no release, so they never line up with the uploaded source maps.
+    SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY ?? process.env.POSTHOG_KEY ?? "",
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? process.env.POSTHOG_HOST ?? "https://eu.i.posthog.com",
+    NEXT_PUBLIC_ASSET_CDN_URL:
+      process.env.NEXT_PUBLIC_ASSET_CDN_URL ?? process.env.ASSET_CDN_URL ?? process.env.NEXT_PUBLIC_CDN_URL ?? "",
   },
   images: {
     remotePatterns: [
@@ -108,6 +99,8 @@ const nextConfig = {
         protocol: "https",
         hostname: "clips-media-assets2.twitch.tv",
       },
+      ...remotePatternFor(process.env.NEXT_PUBLIC_CDN_URL),
+      ...remotePatternFor(process.env.NEXT_PUBLIC_ASSET_CDN_URL),
     ],
   },
 };
@@ -118,4 +111,12 @@ export default process.env.NODE_ENV === "development"
       silent: !process.env.CI,
       widenClientFileUpload: true,
       tunnelRoute: "/monitoring",
+      // Source map upload. Without these three the build still succeeds but
+      // every staging/production stack trace stays minified and unreadable.
+      // SENTRY_AUTH_TOKEN is a *build-time* secret — it must reach the Docker
+      // build (Dokploy build arg), not just the runtime env.
+      org: "streamwizard",
+      project: "web-streamwizard",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: { deleteSourcemapsAfterUpload: true },
     });

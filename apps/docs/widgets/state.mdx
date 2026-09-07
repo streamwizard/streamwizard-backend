@@ -1,0 +1,147 @@
+---
+title: "Widget state"
+description: "Keep counters, totals, and progress between streams with StreamWizard.state."
+---
+
+Widgets reload every time the overlay loads. Anything in a variable is gone.
+`StreamWizard.state` stores a JSON blob per placed widget, so death counters
+and sub goals survive OBS restarts and stream ends.
+
+## The API
+
+```js
+// Load what you saved last time (null on first run)
+const state = await StreamWizard.state.get();
+let deaths = state?.deaths ?? 0;
+
+// Save it back (overwrites the whole blob)
+await StreamWizard.state.set({ deaths });
+```
+
+Two calls. `get()` returns your saved object or `null`; `set()` replaces it.
+Spread the old state if you're only changing one key.
+
+## A complete counter
+
+```js
+let deaths = 0;
+
+window.addEventListener('onWidgetLoad', async () => {
+  const state = await StreamWizard.state.get().catch(() => null);
+  deaths = state?.deaths ?? 0;
+  render();
+});
+
+window.addEventListener('onEventReceived', (e) => {
+  if (e.detail.listener !== 'channel.channel_points_custom_reward_redemption.add') return;
+  if (e.detail.event.reward.title !== 'Add death') return;
+  deaths++;
+  render();
+  StreamWizard.state.set({ deaths });
+});
+
+function render() {
+  document.getElementById('count').textContent = deaths;
+}
+```
+
+## Good to know
+
+- **Per placement**: two copies of the same widget on different overlays have
+  separate state.
+- **Editor preview has no state**: `get`/`set` throw there, because the
+  preview isn't attached to an overlay. Wrap in `try/catch` or `.catch()` if
+  you test in the editor a lot.
+- **Don't save on every frame**: batch it. Save after a change settles, not
+  inside an animation loop.
+- Older widgets using `window.StreamWizard.stateUrl` with manual `fetch`
+  still work; `state.get`/`set` is the same API with the plumbing done.
+
+## Channel state: `StreamWizard.userState`
+
+`StreamWizard.state` is private to one placed widget. `StreamWizard.userState`
+is shared across the whole channel, stored key by key, and **written by
+StreamWizard's servers too** — which is the part that matters. A widget only
+receives events while it is open, so anything you derive from an event is wrong
+the moment the overlay was closed when it fired. Channel state is still there
+when the widget comes back.
+
+```js
+// One key at a time
+const deaths = await StreamWizard.userState.get('deaths');
+await StreamWizard.userState.set('current_game', 'Elden Ring');
+
+// Or everything at once
+const all = await StreamWizard.userState.getAll();
+```
+
+Keys are 1–64 characters of `a-z`, `0-9` or `_`. Values are any JSON up to 8KB,
+and a channel can hold 200 keys.
+
+### Counters: use `increment`
+
+Never build a counter with `get` then `set` — two writers racing (a mod
+command and a widget, or two open overlays) lose updates. `increment` adds on
+the server atomically and resolves to the new value:
+
+```js
+const newDeaths = await StreamWizard.userState.increment('deaths');      // +1
+await StreamWizard.userState.increment('deaths', -1);                    // undo
+```
+
+A key that doesn't exist yet starts from 0, so the first increment just works.
+Incrementing a key that holds a non-number rejects with an error. `delete(key)`
+removes a key entirely.
+
+### Live updates: `subscribe`
+
+Every channel-state change — from this widget, another widget, StreamWizard's
+servers, or (soon) chat commands — is pushed to open overlays the moment it
+lands. No polling:
+
+```js
+window.addEventListener('onWidgetLoad', async () => {
+  deaths = (await StreamWizard.userState.get('deaths')) ?? 0;
+  render();
+
+  StreamWizard.userState.subscribe('deaths', (value) => {
+    deaths = value ?? 0;   // null = key was deleted
+    render();
+  });
+});
+```
+
+`subscribe(key, cb)` and `onChange(cb)` (all keys, `sys.` included) both
+return an unsubscribe function. Registering is safe anywhere — in the editor
+preview there is no socket, so the callback simply never fires. The raw frame
+also arrives as an `onEventReceived` with listener `streamwizard.user_state`
+and event `{ key, value, updatedAt }`, if you prefer one event handler.
+
+### Server-written keys
+
+Keys beginning `sys.` are written by StreamWizard and are read-only — a widget
+that could write them could lie about what the channel is doing.
+
+| Key | Value |
+|-----|-------|
+| `sys.stream_id` | The current Twitch stream id, or `null` when offline. |
+| `sys.stream_started_at` | ISO timestamp the stream started. |
+| `sys.is_live` | `true` while live. |
+
+This is how to react to something that happened while you were closed. Rather
+than resetting a total on `stream.online` — which does nothing if the overlay
+opens later — record which stream the total belongs to and compare on load:
+
+```js
+addEventListener('onWidgetLoad', async () => {
+  const [saved, savedStream, currentStream] = await Promise.all([
+    StreamWizard.userState.get('total'),
+    StreamWizard.userState.get('total_stream_id'),
+    StreamWizard.userState.get('sys.stream_id'),
+  ]);
+
+  // Unknown stream id means keep what you had. Zeroing on "I don't know"
+  // throws away a real total whenever the lookup fails.
+  total = currentStream && savedStream !== currentStream ? 0 : (saved ?? 0);
+});
+```

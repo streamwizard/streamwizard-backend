@@ -1,20 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ClipsWidgetRenderer,
-  type ClipDataRow,
   type ClipsWidgetConfig,
+  type NextClipResult,
+  type ClipRotationCursor,
   DEFAULT_CLIPS_WIDGET_CONFIG,
 } from "@repo/ui/overlay";
 import type { OverlayWidgetProps } from "@repo/ui/overlay";
-import { loadOverlayClipPlaylistForWidget } from "@/actions/clips";
-import { getClipDownloadUrl } from "@/actions/twitch";
+import { getNextOverlayClip, type ClipCursor } from "@/actions/clips";
 import type { Json } from "@repo/supabase";
-
-function proxyUrl(signedUrl: string): string {
-  return `/api/video?url=${encodeURIComponent(signedUrl)}`;
-}
 
 function parseCompositeConfig(raw: unknown): ClipsWidgetConfig {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
@@ -29,86 +25,55 @@ export function ClipsWidgetContainer({ scene, item }: OverlayWidgetProps) {
   // item.config is already the composite config (display fields merged server-side by overlay action)
   const config = useMemo(() => parseCompositeConfig(item.config), [item.config]);
 
-  const refreshMs = Math.min(3600, Math.max(10, config.refreshIntervalSeconds)) * 1000;
-  const [refreshEpoch, setRefreshEpoch] = useState(0);
-
-  useEffect(() => {
-    const iv = window.setInterval(() => setRefreshEpoch((e) => e + 1), refreshMs);
-    return () => window.clearInterval(iv);
-  }, [refreshMs]);
-
-  const clipQueryKey = useMemo(
-    () =>
-      JSON.stringify({
-        sceneUserId,
-        refreshEpoch,
-        sourceMode: config.sourceMode,
-        folderIds: config.folderIds,
-        gameIds: config.gameIds,
-        creatorIds: config.creatorIds,
-        timeWindow: config.timeWindow,
-        customDateRange: config.customDateRange,
-        sort: config.sort,
-        maxClips: config.maxClips,
-        minViewCount: config.minViewCount,
-        isFeaturedOnly: config.isFeaturedOnly,
-      }),
-    [sceneUserId, refreshEpoch, config]
-  );
-
-  const [clips, setClips] = useState<ClipDataRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-
-    loadOverlayClipPlaylistForWidget(sceneUserId, item.config as unknown as Json).then(
-      (rows) => {
-        if (cancelled) return;
-        const mapped: ClipDataRow[] = rows.map((r) => ({
-          clipId: r.twitchClipId,
-          broadcasterId: r.broadcasterId,
-          title: r.title,
-          creatorName: r.creator_name,
-          gameName: r.game_name,
-          createdAtTwitch: r.created_at_twitch,
-          viewCount: r.view_count,
-          durationSec: r.duration,
-        }));
-        setClips(mapped);
-        setLoading(false);
-      }
-    );
-
-    return () => { cancelled = true; };
-  }, [clipQueryKey, sceneUserId, item.config]);
-
-  const urlCacheRef = useRef<Record<string, string>>({});
-
-  const resolveClipUrl = useCallback(
-    async (clipId: string, broadcasterId: string): Promise<string | null> => {
-      const cached = urlCacheRef.current[clipId];
-      if (cached) return cached;
-
+  const fetchNextClip = useCallback(
+    async (
+      cursor: ClipRotationCursor,
+      excludeClipIds: string[]
+    ): Promise<NextClipResult | null> => {
       try {
-        const signedUrl = await getClipDownloadUrl(clipId, broadcasterId);
-        const proxied = proxyUrl(signedUrl);
-        urlCacheRef.current[clipId] = proxied;
-        return proxied;
-      } catch {
+        const next = await getNextOverlayClip(
+          sceneUserId,
+          item.config as unknown as Json,
+          (cursor as ClipCursor | null) ?? null,
+          excludeClipIds
+        );
+        if (!next) {
+          // Either the filters match nothing, or Twitch refused a download URL
+          // for every clip we tried. The server side logs which; from here they
+          // look identical.
+          console.warn("[clips] getNextOverlayClip returned null", {
+            sceneUserId,
+            sort: config.sort,
+            timeWindow: config.timeWindow,
+            hadCursor: cursor != null,
+            excludedCount: excludeClipIds.length,
+          });
+          return null;
+        }
+
+        return {
+          clip: {
+            clipId: next.clip.twitchClipId,
+            broadcasterId: next.clip.broadcasterId,
+            title: next.clip.title,
+            creatorName: next.clip.creator_name,
+            gameName: next.clip.game_name,
+            createdAtTwitch: next.clip.created_at_twitch,
+            viewCount: next.clip.view_count,
+            durationSec: next.clip.duration,
+          },
+          videoUrl: next.proxyUrl,
+          cursor: next.cursor,
+        };
+      } catch (err) {
+        // The renderer keeps showing the current clip and asks again on the next
+        // transition — a failed fetch must never blank the overlay.
+        console.error("[clips] getNextOverlayClip threw", err);
         return null;
       }
     },
-    []
+    [sceneUserId, item.config, config.sort, config.timeWindow]
   );
 
-  return (
-    <ClipsWidgetRenderer
-      clips={clips}
-      loading={loading}
-      config={config}
-      resolveClipUrl={resolveClipUrl}
-    />
-  );
+  return <ClipsWidgetRenderer config={config} fetchNextClip={fetchNextClip} />;
 }

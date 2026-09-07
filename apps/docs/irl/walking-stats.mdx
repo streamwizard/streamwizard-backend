@@ -1,0 +1,181 @@
+---
+title: "Walking stats from your phone's GPS"
+description: "Speed, distance, location and weather along the bottom of your IRL stream."
+---
+
+The **Walking stats** overlay is a bar across the bottom of your stream with
+four modules: how fast you're moving, how far you've walked, where you are, and
+what the weather is doing. All of it comes from the GPS in the phone you're
+already streaming with.
+
+It's a GPS overlay, which means it renders on the phone rather than in your
+cloud OBS. You add it to IRL Pro as a web overlay, the phone reads its own
+location, and the bar is burned into the video you send.
+
+This one is optional. Your IRL stream works fine without it, and it does put
+your location on stream, so skip it if you'd rather not broadcast where you
+are.
+
+## 1. Create the overlay
+
+<Steps>
+  <Step title="New overlay, type GPS">
+    **Dashboard → Overlay Editor**, then **New Overlay**. Name it, and this
+    time switch the type to **GPS**. The template list narrows to the ones
+    that make sense for GPS. Pick **Walking stats**.
+
+    <Frame caption="GPS type, Walking stats template.">
+      <img src="/images/irl/walking-01-new-overlay-dialog.png" alt="Create New Overlay dialog with GPS type and the Walking stats template" style={{ maxWidth: "520px" }} />
+    </Frame>
+  </Step>
+  <Step title="Copy the URL">
+    The ready dialog says it plainly: this one is opened on the phone, not
+    added to OBS. Copy the URL and get it onto your phone.
+
+    <Frame caption="No OBS steps here. The phone is the browser source.">
+      <img src="/images/irl/walking-02-overlay-ready.png" alt="Your overlay is ready dialog for a GPS overlay" style={{ maxWidth: "520px" }} />
+    </Frame>
+
+    Treat the URL like a password. It's a live feed of where you are.
+  </Step>
+  <Step title="Turn it on">
+    Flip the overlay's switch to active on its card, the same as any other
+    overlay. The card carries a **GPS** badge so you can tell them apart.
+
+    <Frame caption="Active, with the GPS badge.">
+      <img src="/images/irl/walking-07-overlay-card.png" alt="Overlay card with GPS badge, set to active" style={{ maxWidth: "480px" }} />
+    </Frame>
+  </Step>
+</Steps>
+
+## 2. Make it look how you want
+
+Open the editor. With no GPS around, which is any desktop browser, the modules
+sit at zero and `--`.
+
+<Frame caption="The bar spans the full 1920x1080 canvas and sits at the bottom.">
+  <img src="/images/irl/walking-03-editor-canvas.png" alt="Overlay editor with the walking stats bar" />
+</Frame>
+
+To see it move, select the widget and turn on **Preview demo motion**. It
+walks a fake route so speed, distance, location and weather all fill in.
+
+<Frame caption="Demo motion on. The route is canned, it isn't reading your location.">
+  <img src="/images/irl/walking-04-editor-demo-motion.png" alt="Editor with demo motion running and live values in the bar" />
+</Frame>
+
+<Warning>
+Turn demo motion back off before you stream. It overrides real GPS, so your
+viewers would watch a fake walk through Amsterdam while you're somewhere else.
+</Warning>
+
+### The settings worth knowing
+
+The top of the fields panel covers the bar itself: unit system (metric or
+imperial), width, height, corner radius, background colour and opacity, font,
+module gap and alignment.
+
+<Frame caption="Bar settings, top of the panel.">
+  <img src="/images/irl/walking-05-widget-fields.png" alt="Walking stats general settings" style={{ maxWidth: "330px" }} />
+</Frame>
+
+Below that, each module has its own group: **Speed**, **Weather**,
+**Distance**, **Location**. Every one can be switched off on its own, so a bar
+with only speed and distance is two toggles away. Inside a group you get its
+label text, label position, font sizes and colours.
+
+<Frame caption="One group per module. Turn off what you don't want.">
+  <img src="/images/irl/walking-06-module-groups.png" alt="Walking stats module groups with Speed expanded" style={{ maxWidth: "330px" }} />
+</Frame>
+
+There are a lot of knobs here and most of them are self-explanatory, so play
+with them rather than reading about them. The few that behave in ways you
+can't guess:
+
+- **Update speed and distance**: on every GPS fix (default, smoothest), on a
+  time step, or after a set distance. The last two are for when a jittery
+  signal makes the numbers twitch.
+- **Reset distance**: never, when the stream goes live, or every time the
+  widget loads. "When stream goes live" is what most people want; per-stream
+  distance, not a number that grows for months.
+- **Ignore fixes worse than (m)**: throws away fixes with poor accuracy, so a
+  bad reading doesn't teleport you 200 metres and spike your speed. Default 60
+  metres.
+- **When GPS drops**: dim the bar, hide it, or leave it. Dim is honest without
+  being dramatic.
+- **Speed smoothing**: higher is calmer, lower reacts faster. GPS speed is
+  noisy at walking pace, which is why the default is not zero.
+
+Save when you're happy. The phone picks up changes the next time the overlay
+loads.
+
+## 3. Add it to IRL Pro
+
+<Steps>
+  <Step title="Let web overlays use your location">
+    This is the step that catches people out. Web overlays can't read GPS
+    until you allow it: gear icon, **Advanced options**, scroll to
+    **WebViews**, and turn on **Web overlay geo enabled**.
+
+    Android asks for the location permission the first time. Pick **Precise**
+    and **While using the app**. Approximate accuracy is useless for a speed
+    readout.
+
+    <Frame caption="Precise, while using the app.">
+      <img src="/images/irl/irl-pro-geo-permission.png" alt="Android location permission dialog for IRL Pro" style={{ maxWidth: "420px" }} />
+    </Frame>
+
+    <Frame caption="Web overlay geo enabled, under WebViews.">
+      <img src="/images/irl/irl-pro-geo-setting.png" alt="IRL Pro advanced options with web overlay geo enabled" style={{ maxWidth: "420px" }} />
+    </Frame>
+  </Step>
+  <Step title="Add the overlay">
+    **Overlays → Web Overlays → New web overlay**. Name it, paste the URL, and
+    set **Width** to `1920` and **Height** to `1080` under WebView options.
+    The app defaults to 1280x720 and the overlay is a 1920x1080 canvas, so the
+    default puts the bar at the wrong size and in the wrong place.
+
+    Leave **View mode** on **Preview + stream**. This one is meant for your
+    viewers, unlike the
+    [switcher monitor](/irl/switcher-monitor), which stays on Preview.
+
+    <Frame caption="Preview + stream, and 1920x1080.">
+      <img src="/images/irl/irl-pro-walking-form.png" alt="IRL Pro web overlay settings for the walking stats overlay" style={{ maxWidth: "420px" }} />
+    </Frame>
+  </Step>
+  <Step title="Save and tick it">
+    **Save**, then tick it in the list. Both overlays can run at once; IRL Pro
+    recommends staying under 3 or 4 web overlays, since each one is a browser
+    running on the phone that's already encoding your video.
+
+    <Frame caption="Both ticked. The switcher monitor stays private, this one goes out.">
+      <img src="/images/irl/irl-pro-walking-list.png" alt="IRL Pro web overlay list with both overlays enabled" style={{ maxWidth: "420px" }} />
+    </Frame>
+  </Step>
+</Steps>
+
+Back on the camera screen the bar appears along the bottom with your real
+speed, distance, location and weather.
+
+<Frame caption="Live on the phone. Location blurred here, your viewers see the real thing.">
+  <img src="/images/irl/irl-pro-walking-preview.png" alt="IRL Pro preview with the walking stats bar along the bottom" />
+</Frame>
+
+Check your cloud OBS output before adjusting anything, not just the phone
+preview: IRL Pro crops what it shows you on screen, but it sends the full,
+correct frame to OBS. The bar can look fine on the phone and still sit wrong
+in what actually goes out, or the other way around.
+
+If the bar sits half off the bottom edge in OBS, raise **Distance from
+bottom (px)** on the widget until it clears. 20 to 40 is usually enough.
+
+## When the numbers stay at zero
+
+- **Web overlay geo enabled** is off, or Android denied the location
+  permission. That's the cause nine times out of ten.
+- Location set to **Approximate** instead of Precise. Speed and distance need
+  precise fixes.
+- Indoors with no sky view. GPS needs a few seconds outside to get a fix, and
+  the bar dims itself when fixes stop arriving.
+- **Preview demo motion** is still on from the editor, in which case you're
+  watching a fake walk rather than yours.

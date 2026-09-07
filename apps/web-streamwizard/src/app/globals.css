@@ -13,26 +13,21 @@
   }
 }
 @source "../../../../packages/ui/src";
+@source "../../../../packages/obs-web/src";
 
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Container configuration */
-  --container-center: true;
-  --container-padding: 1rem;
-  --container-screen-sm: 640px;
-  --container-screen-md: 768px;
-  --container-screen-lg: 1024px;
-  --container-screen-xl: 1280px;
-
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-border-beam: border-beam calc(var(--duration) * 1s) infinite linear;
   --animate-marquee: marquee var(--duration) infinite linear;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-shimmer: shimmer 1.8s infinite;
+  --animate-flow-dash: flow-dash 1s linear infinite;
 }
 
 @keyframes accordion-down {
@@ -74,6 +69,19 @@
   }
   to {
     transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* Dash period matches stroke-dasharray="6 8" (14), so the loop is seamless. */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -14;
   }
 }
 
@@ -238,6 +246,13 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-geist-sans), sans-serif;
+  }
+
+  /* Tailwind v4 preflight sets buttons to cursor: default. Restore the pointer
+     so anything clickable (badges, chips, tabs, buttons) reads as clickable. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 
   /* Light mode canvas + elevated surfaces */

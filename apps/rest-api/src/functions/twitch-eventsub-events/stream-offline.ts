@@ -6,6 +6,8 @@ import type { StreamOfflineEvent } from "@repo/schemas";
 import { syncTwitch } from "../sync-twitch";
 import { streamEventsLogger } from "@repo/logger";
 import { viewerCountPoller } from "../../services/viewer-count-poller";
+import { notifyStreamStatus } from "../../lib/ws-server";
+import { setStreamUserState } from "../../lib/user-state";
 
 export const handleStreamOffline = async (event: StreamOfflineEvent, TwitchAPI: TwitchApi) => {
   // Stop polling viewer counts for this broadcaster
@@ -17,6 +19,11 @@ export const handleStreamOffline = async (event: StreamOfflineEvent, TwitchAPI: 
     is_live: false,
     broadcaster_name: event.broadcaster_user_name,
   });
+
+  // Clear stream_id on a still-connected GPS overlay room so fixes logged
+  // after the stream ends aren't attributed to it.
+  await notifyStreamStatus(event.broadcaster_user_id, null);
+  await setStreamUserState(event.broadcaster_user_id, null);
 
   // log the stream offline event
   await streamEventsLogger.logTwitchEvent({

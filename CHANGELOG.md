@@ -7,12 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Demo mode: fire fake events at any widget from the overlay or widget editor, including looping simulators for a moving GPS track and a chat feed. Widgets no longer need their own demo mode.
 - Twitch OAuth configured for local development
 
 ### Changed
 - Dropped legacy app token columns from the database schema
 
 ### Fixed
+- IRL field widgets never showed live GPS or went offline: the geo frame nests its status inside `payload`, but the consumer read it from the top level
 - Auto-bootstrap Twitch app token on fresh deploy
 - Missing `auth.users` trigger migrations
 - CI build checks and PR workflows
