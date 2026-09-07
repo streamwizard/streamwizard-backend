@@ -7,6 +7,11 @@ on:
     paths:
       - 'supabase/migrations/**'
   workflow_dispatch:
+    inputs:
+      include_all:
+        description: "Also apply out-of-order (past-dated) migrations — needed once after merging feature branches out of timestamp order. Leave off for normal deploys."
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -15,6 +20,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@4819d808ab99e5cde19a0637a16536a4038fad73 # v4
@@ -24,8 +31,30 @@ jobs:
         with:
           version: 2.104.0
 
+      # Same rules as the staging workflow: a plain `db push` refuses local
+      # migrations older than production's latest applied version, which is
+      # also what catches a corrupt history table. Only pass include_all when a
+      # past-dated migration is known and intended.
+      - name: Resolve push flags
+        run: |
+          FLAGS="--yes"
+          if [ "$INCLUDE_ALL" = "true" ]; then
+            FLAGS="$FLAGS --include-all"
+          fi
+          echo "FLAGS=$FLAGS" >> "$GITHUB_ENV"
+        env:
+          INCLUDE_ALL: ${{ inputs.include_all }}
+
+      # Lists exactly what would be applied and fails on out-of-order or
+      # unknown remote versions before anything touches production.
+      - name: Dry run against Production Supabase
+        run: |
+          doppler run --command="supabase db push --db-url \$SUPABASE_DB_URL --dry-run $FLAGS"
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
       - name: Push Migrations to Production Supabase
         run: |
-          doppler run --command="supabase db push --db-url \$SUPABASE_DB_URL --yes"
+          doppler run --command="supabase db push --db-url \$SUPABASE_DB_URL $FLAGS"
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
