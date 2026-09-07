@@ -74,3 +74,6 @@ next-env.d.ts
 **/.impeccable/
 **/.claude/settings.json
 **/.claude/skills/
+
+# SEO audit output (large, generated; keep local only)
+docs/seo-audits/
