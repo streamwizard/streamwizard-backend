@@ -42,7 +42,6 @@ const EXPORT_TABLES: ExportSpec[] = [
   { key: "clip_folder_junction", table: "clip_folder_junction", ownedBy: "user_id" },
   { key: "twitch_clip_syncs", table: "twitch_clip_syncs", ownedBy: "user_id" },
   { key: "commands", table: "commands", ownedBy: "channel_id" },
-  { key: "smp_players", table: "smp_players", ownedBy: "user_id" },
   { key: "vods", table: "vods", ownedBy: "broadcaster_id" },
   { key: "stream_events", table: "stream_events", ownedBy: "broadcaster_id" },
   { key: "stream_viewer_counts", table: "stream_viewer_counts", ownedBy: "broadcaster_id" },
