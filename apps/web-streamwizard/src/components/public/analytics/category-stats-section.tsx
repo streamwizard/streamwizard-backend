@@ -37,8 +37,9 @@ export function CategoryStatsSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">By category</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Which game carried the stream.</h2>
           <p className="mt-4 text-muted-foreground">
-            Streamed a game, then went Just Chatting? Each category gets its own numbers, so you can
-            see which half your viewers actually showed up for.
+            Category stats split duration, average and peak viewers, follows, subs and bits per Twitch
+            category you streamed under. Streamed a game, then went Just Chatting? Each half gets its
+            own numbers, so you can see which one your viewers actually showed up for.
           </p>
         </div>
 

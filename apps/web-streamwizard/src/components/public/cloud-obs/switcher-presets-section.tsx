@@ -17,8 +17,9 @@ export function SwitcherPresetsSection() {
             Three presets. <br /> Or every number, yours.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Pick how twitchy it is and get on with your stream. The exact thresholds are below, because you are going to
-            ask anyway.
+            Three presets set the bitrate floor, the ping ceiling, the dropped-packet limit and how many bad seconds
+            trigger a switch, and a custom mode lets you set every number yourself. Pick how twitchy it is and get on
+            with your stream. The exact thresholds are below, because you are going to ask anyway.
           </p>
         </div>
 

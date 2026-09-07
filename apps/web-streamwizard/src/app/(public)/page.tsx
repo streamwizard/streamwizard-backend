@@ -11,18 +11,18 @@ import { AnalyticsDemo } from "@/components/public/home/analytics-demo";
 import { Faq, FAQ_ITEMS } from "@/components/public/home/faq";
 import { FinalCta } from "@/components/public/home/final-cta";
 
-const TITLE = "Cloud OBS, Overlays, Clips & Analytics for Twitch";
+const TITLE = "Cloud OBS, Overlays, Clips, VODs & Analytics for Twitch";
 const DESCRIPTION =
   "Cloud OBS for IRL streaming, overlays, clip folders, VOD clipping, and stream analytics for Twitch. Open source and built in public.";
 
 // No openGraph/twitter block: see the root layout for why. The social card
 // gets this title plus og:site_name for the brand, and the file-based image.
 export const metadata: Metadata = {
-  // Absolute, so the root's `%s – StreamWizard` template does not append the
-  // brand: those 15 characters would push the title past where Google
-  // truncates and cost the fourth pillar. A home page gets its site name
-  // derived from og:site_name and the WebSite node instead, both below.
-  title: { absolute: TITLE },
+  // Plain, so the root's `%s – StreamWizard` template appends the brand like
+  // every other page (SW-304). The five pillars come first; if Google clips
+  // the tail it clips the brand, which og:site_name and the WebSite node
+  // below already carry.
+  title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: absoluteUrl("/") },
 };

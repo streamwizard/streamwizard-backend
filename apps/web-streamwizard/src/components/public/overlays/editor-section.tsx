@@ -16,7 +16,8 @@ export function EditorSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">The editor</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">An editor, not a settings form.</h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Drag widgets on a canvas, snap them to guides, lock what should stay put, undo the mistake.
+            The overlay editor is a visual canvas with guides, locking and undo, and it outputs one browser source
+            URL for OBS. Drag widgets on, snap them to guides, lock what should stay put, undo the mistake.
           </p>
         </div>
 

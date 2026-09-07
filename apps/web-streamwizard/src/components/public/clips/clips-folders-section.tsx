@@ -48,7 +48,8 @@ export function ClipsFoldersSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">Folders</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Folders in folders, as deep as the chaos goes.</h2>
           <p className="mt-4 text-muted-foreground">
-            Build the tree your library actually needs, then file each clip wherever it fits.
+            Clip folders nest to any depth, and one clip can sit in several folders at once. Build the tree your
+            library actually needs, then file each clip wherever it fits.
           </p>
         </div>
 

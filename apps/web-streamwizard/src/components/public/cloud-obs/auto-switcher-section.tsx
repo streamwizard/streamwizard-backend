@@ -20,9 +20,9 @@ export function AutoSwitcherSection() {
             You walk under a bridge. <br /> Chat never sees the frozen frame.
           </h2>
           <p className="mt-4 text-muted-foreground">
-            It watches the signal arriving at your ingest and moves your OBS to a fallback scene when the connection
-            goes bad, then comes back once it is properly stable. Here it is doing exactly that, once a second, on a
-            walk that goes wrong. Or grab a slider and break the signal yourself.
+            The auto switcher checks the stats at your ingest once a second, moves your cloud OBS to a fallback scene
+            when the connection goes bad, and switches back once it is properly stable. Here it is doing exactly that
+            on a walk that goes wrong. Or grab a slider and break the signal yourself.
           </p>
         </div>
 

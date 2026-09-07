@@ -24,9 +24,9 @@ export function ClipLibrarySection() {
             <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">After the cut</p>
             <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Saved. It&apos;s in your clip library now.</h2>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              The clip you just cut lands next to everything chat clipped: folders you name, filters
-              that stack, downloads in landscape and portrait, and a URL to copy from the clip&apos;s
-              own menu.
+              Clips you cut from a VOD save straight into your StreamWizard clip library, next to
+              everything chat clipped: folders you name, filters that stack, downloads in landscape
+              and portrait, and a URL to copy from the clip&apos;s own menu.
             </p>
             <div className="mt-8">
               <Button

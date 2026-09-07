@@ -13,8 +13,8 @@ import { ViewerEventsDemo } from "./viewer-events-demo";
 const FEATURES = [
   {
     icon: LineChart,
-    title: "A dot per minute",
-    body: "Viewer counts are sampled while you are live, so the line shows the whole arc: the slow start, the raid bump, the drop when you said one more game.",
+    title: "A dot every five minutes",
+    body: "Viewer counts are sampled every five minutes while you are live, so the line shows the whole arc: the slow start, the raid bump, the drop when you said one more game.",
   },
   {
     icon: Pin,
@@ -36,8 +36,9 @@ export function ViewerGraphSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">The graph</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">The line knows why it moved.</h2>
           <p className="mt-4 text-muted-foreground">
-            Twitch tells you the peak. This graph tells you the minute it happened and what caused
-            it, because the events sit right on the line.
+            The viewer graph plots your viewer count across the whole stream, with every follow, sub,
+            raid and clip pinned to the minute it happened. Twitch tells you the peak. This graph
+            tells you when and what caused it, because the events sit right on the line.
           </p>
         </div>
 

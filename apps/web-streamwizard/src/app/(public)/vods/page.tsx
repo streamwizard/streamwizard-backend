@@ -9,6 +9,7 @@ import { VodsClipCreationSection } from "@/components/public/vods/vods-clip-crea
 import { ClipLibrarySection } from "@/components/public/vods/clip-library-section";
 import { VodsFaqSection, VODS_FAQ_ITEMS } from "@/components/public/vods/vods-faq-section";
 import { FinalCta } from "@/components/public/home/final-cta";
+import { FeatureTrustStrip } from "@/components/public/layout/feature-trust-strip";
 
 /*
  * The VODs product page: hero, the landing page's band as the overview (its
@@ -20,7 +21,7 @@ import { FinalCta } from "@/components/public/home/final-cta";
 export const metadata: Metadata = {
   title: "Clip from your Twitch VODs",
   description:
-    "Every follow, sub, raid and ad break marked on your VOD timeline. Click an event to jump there, zoom in to 20x, and drag a 5 to 60 second selection into a real Twitch clip.",
+    "Every follow, sub, raid and ad break marked on your VOD timeline. Jump to an event, zoom to 20x, and drag a 5 to 60 second selection into a real Twitch clip.",
   alternates: { canonical: absoluteUrl("/vods") },
 };
 
@@ -63,6 +64,7 @@ export default function VodsPage() {
       <VodsClipCreationSection />
       <ClipLibrarySection />
       <VodsFaqSection />
+      <FeatureTrustStrip path="/vods" tone="amber" />
       <FinalCta />
     </div>
   );

@@ -10,11 +10,18 @@ import { TimelineEntry, TimelineItem } from "@/components/public/roadmap/timelin
 import { githubLink } from "@/lib/constant";
 import { BETA, PLANNED, SHIPPED } from "./roadmap-data";
 
+/*
+ * Out of the index on purpose (SW-308): the page is ~300 words of lane chips
+ * and is kept dateless by design, so it would only ever rank as a thin page.
+ * `follow` stays on so the links out (product pages, the issue tracker) still
+ * pass. It is absent from PUBLIC_ROUTES for the same reason.
+ */
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
     "What StreamWizard ships today across cloud OBS, overlays, clips, VOD clipping and analytics, and where the live issue tracker lives.",
   alternates: { canonical: absoluteUrl("/roadmap") },
+  robots: { index: false, follow: true },
 };
 
 /* Lane marker sitting on the spine; bg-background masks the line behind it. */

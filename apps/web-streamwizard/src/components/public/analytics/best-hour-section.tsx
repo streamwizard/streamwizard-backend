@@ -37,8 +37,9 @@ export function BestHourSection() {
           <p className="font-mono text-xs tracking-widest text-purple-300 uppercase">The best hour</p>
           <h2 className="mt-3 text-3xl font-bold sm:text-4xl">One hour won. You get told why.</h2>
           <p className="mt-4 text-muted-foreground">
-            Every stream has an hour that outperformed the rest. StreamWizard names it and explains
-            what it won on, in a sentence, not a spreadsheet.
+            StreamWizard splits each stream into hours, scores every hour on average viewers and on
+            follows, subs, raids and redemptions, and names the winner with its reason. In a sentence,
+            not a spreadsheet.
           </p>
         </div>
 
