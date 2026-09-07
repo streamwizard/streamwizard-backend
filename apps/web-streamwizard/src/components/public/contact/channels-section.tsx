@@ -6,7 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { SectionView } from "@/components/public/analytics/section-view";
 import { TrackedLink } from "@/components/public/analytics/tracked-link";
 import { Reveal } from "@/components/public/home/reveal";
-import { discordInviteLink, docsLink, githubLink } from "@/lib/constant";
+import { discordInviteLink, docsLink, githubLink, twitchChannelLink } from "@/lib/constant";
 
 const channels: {
   name: string;
@@ -88,6 +88,23 @@ export function ChannelsSection() {
               privacy policy
             </Link>
             , not in Discord.
+          </p>
+          {/* Plain text on purpose: the one place outside the legal pages that
+              says who runs this and from where (SW-305). The streamer name,
+              not the legal one; the legal notice carries that. */}
+          <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-muted-foreground">
+            StreamWizard is built and operated by{" "}
+            <TrackedLink
+              href={twitchChannelLink}
+              cta="twitch"
+              section="contact_channels"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground underline underline-offset-4 transition-colors hover:text-muted-foreground"
+            >
+              Jochemwhite
+            </TrackedLink>{" "}
+            in the Netherlands, on servers in the EU.
           </p>
         </Reveal>
       </SectionView>

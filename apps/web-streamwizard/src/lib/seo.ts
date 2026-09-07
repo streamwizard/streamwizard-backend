@@ -1,4 +1,5 @@
 import { discordInviteLink, docsLink, githubLink, twitchChannelLink } from "@/lib/constant";
+import { LEGAL_OPERATOR } from "@/lib/legal";
 import { env } from "@/lib/env";
 import { FREE_TIER_OFFER_DESCRIPTION } from "@/lib/pricing";
 import type { FaqItem } from "@/components/public/home/faq-accordion";
@@ -118,13 +119,21 @@ export function organizationSchema(): Record<string, unknown> {
     url: absoluteUrl("/"),
     logo: absoluteUrl("/logo.png"),
     foundingDate: "2024",
+    /* The same operator the legal notice discloses, so the entity has a named
+     * person behind it (SW-305). */
+    founder: {
+      "@type": "Person",
+      name: LEGAL_OPERATOR,
+      alternateName: "Jochemwhite",
+      sameAs: [twitchChannelLink],
+    },
     address: { "@type": "PostalAddress", addressCountry: "NL" },
     sameAs: [discordInviteLink, githubLink, twitchChannelLink],
   };
 }
 
 /** lastModified for a public route, so schema dates and the sitemap agree. */
-function routeLastModified(path: string): string | undefined {
+export function routeLastModified(path: string): string | undefined {
   return PUBLIC_ROUTES.find((route) => route.path === path)?.lastModified;
 }
 
@@ -152,6 +161,9 @@ export function aboutPageSchema({ description }: { description: string }): Recor
 /**
  * The contact page as an entity. Support is a Discord ticket, not an email
  * address or a phone number, so the contact point carries the invite URL.
+ * No `email` on purpose (SW-305): the page has none, and a schema field the
+ * page contradicts is worse than none. The operator lives on the
+ * organization node's `founder`.
  */
 export function contactPageSchema(): Record<string, unknown> {
   return {
