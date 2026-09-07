@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { discordInviteLink, docsLink, githubLink, productLinks } from "@/lib/constant";
+import { discordInviteLink, docsLink, githubLink, pricingLink, productLinks } from "@/lib/constant";
 import { resetCookieConsent } from "@repo/posthog";
 import { TrackedLink } from "../analytics/tracked-link";
 import { Separator } from "@repo/ui";
@@ -17,6 +17,7 @@ const navigation = {
     { name: "Clips", href: productLinks.clips, cta: "clips" },
     { name: "VOD clipping", href: productLinks.vods, cta: "vods" },
     { name: "Analytics", href: productLinks.analytics, cta: "analytics" },
+    { name: "Pricing", href: pricingLink, cta: "pricing" },
     { name: "Docs", href: docsLink, cta: "docs" },
   ],
   company: [

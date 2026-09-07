@@ -82,6 +82,12 @@ export const productLinks = {
 } as const;
 
 /**
+ * The pricing page. Not in productLinks: that object is one entry per pillar,
+ * and pricing is the page about all of them.
+ */
+export const pricingLink = "/pricing";
+
+/**
  * Deep links for the cross-page doors. A band that names one section on another
  * page ("see the clips rotator") should land on that section, not on the top of
  * the page and a second scroll.
