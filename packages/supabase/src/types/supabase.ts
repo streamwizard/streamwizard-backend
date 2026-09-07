@@ -9,60 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      _clip_uuid_migration_backup_folders: {
-        Row: {
-          created_at: string | null
-          href: string | null
-          id: number | null
-          name: string | null
-          parent_folder_id: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          href?: string | null
-          id?: number | null
-          name?: string | null
-          parent_folder_id?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          href?: string | null
-          id?: number | null
-          name?: string | null
-          parent_folder_id?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      _clip_uuid_migration_backup_junction: {
-        Row: {
-          clip_id: string | null
-          created_at: string | null
-          folder_id: number | null
-          id: number | null
-          user_id: string | null
-        }
-        Insert: {
-          clip_id?: string | null
-          created_at?: string | null
-          folder_id?: number | null
-          id?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          clip_id?: string | null
-          created_at?: string | null
-          folder_id?: number | null
-          id?: number | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       alert_events: {
         Row: {
           created_at: string
@@ -940,13 +886,6 @@ export type Database = {
             columns: ["node_id"]
             isOneToOne: false
             referencedRelation: "ingest_nodes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ingest_node_api_keys_node_id_fkey"
-            columns: ["node_id"]
-            isOneToOne: false
-            referencedRelation: "ingest_servers"
             referencedColumns: ["id"]
           },
         ]
@@ -2277,175 +2216,6 @@ export type Database = {
         }
         Relationships: []
       }
-      smp_actions: {
-        Row: {
-          action: string
-          created_at: string
-          description: string | null
-          id: string
-          metadata: Json | null
-          name: string
-          trigger: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          name: string
-          trigger?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          metadata?: Json | null
-          name?: string
-          trigger?: string | null
-        }
-        Relationships: []
-      }
-      smp_channelpoints_templates: {
-        Row: {
-          action: string | null
-          background_color: string | null
-          cost: number
-          created_at: string
-          global_cooldown_seconds: number | null
-          id: string
-          is_enabled: boolean | null
-          is_global_cooldown_enabled: boolean | null
-          is_max_per_stream_enabled: boolean | null
-          is_max_per_user_per_stream_enabled: boolean | null
-          is_user_input_required: boolean | null
-          max_per_stream: number | null
-          max_per_user_per_stream: number | null
-          prompt: string | null
-          should_redemptions_skip_request_queue: boolean | null
-          title: string
-        }
-        Insert: {
-          action?: string | null
-          background_color?: string | null
-          cost: number
-          created_at?: string
-          global_cooldown_seconds?: number | null
-          id?: string
-          is_enabled?: boolean | null
-          is_global_cooldown_enabled?: boolean | null
-          is_max_per_stream_enabled?: boolean | null
-          is_max_per_user_per_stream_enabled?: boolean | null
-          is_user_input_required?: boolean | null
-          max_per_stream?: number | null
-          max_per_user_per_stream?: number | null
-          prompt?: string | null
-          should_redemptions_skip_request_queue?: boolean | null
-          title: string
-        }
-        Update: {
-          action?: string | null
-          background_color?: string | null
-          cost?: number
-          created_at?: string
-          global_cooldown_seconds?: number | null
-          id?: string
-          is_enabled?: boolean | null
-          is_global_cooldown_enabled?: boolean | null
-          is_max_per_stream_enabled?: boolean | null
-          is_max_per_user_per_stream_enabled?: boolean | null
-          is_user_input_required?: boolean | null
-          max_per_stream?: number | null
-          max_per_user_per_stream?: number | null
-          prompt?: string | null
-          should_redemptions_skip_request_queue?: boolean | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "smp_channelpoints_templates_action_fkey"
-            columns: ["action"]
-            isOneToOne: false
-            referencedRelation: "smp_actions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      smp_players: {
-        Row: {
-          broadcaster_id: string | null
-          created_at: string
-          id: string
-          is_online: boolean
-          minecraft_player_uuid: string | null
-          user_id: string
-        }
-        Insert: {
-          broadcaster_id?: string | null
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          minecraft_player_uuid?: string | null
-          user_id?: string
-        }
-        Update: {
-          broadcaster_id?: string | null
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          minecraft_player_uuid?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "smp_players_broadcaster_id_fkey"
-            columns: ["broadcaster_id"]
-            isOneToOne: false
-            referencedRelation: "integrations_twitch"
-            referencedColumns: ["twitch_user_id"]
-          },
-          {
-            foreignKeyName: "smp_players_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      smp_triggers: {
-        Row: {
-          action_id: string | null
-          conditions: Json
-          created_at: string
-          event_type: string
-          id: string
-        }
-        Insert: {
-          action_id?: string | null
-          conditions?: Json
-          created_at?: string
-          event_type: string
-          id?: string
-        }
-        Update: {
-          action_id?: string | null
-          conditions?: Json
-          created_at?: string
-          event_type?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "smp_triggers_action_id_fkey"
-            columns: ["action_id"]
-            isOneToOne: false
-            referencedRelation: "smp_actions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       stream_events: {
         Row: {
           broadcaster_id: string
@@ -2949,30 +2719,7 @@ export type Database = {
       }
     }
     Views: {
-      ingest_servers: {
-        Row: {
-          host: string | null
-          id: string | null
-          name: string | null
-          srt_port: number | null
-          srtla_port: number | null
-        }
-        Insert: {
-          host?: never
-          id?: string | null
-          name?: string | null
-          srt_port?: never
-          srtla_port?: never
-        }
-        Update: {
-          host?: never
-          id?: string | null
-          name?: string | null
-          srt_port?: never
-          srtla_port?: never
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       add_clip_to_folder: {
