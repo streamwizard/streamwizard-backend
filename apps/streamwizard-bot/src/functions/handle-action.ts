@@ -1,4 +1,5 @@
 import { TwitchApi } from "@repo/twitch-api";
+import { reportError } from "@repo/sentry";
 import { TwitchActionHandlers } from "./twitch-actions";
 
 export interface ActionEvent {
@@ -23,12 +24,21 @@ export async function handleAction(
 ) {
   const moduleHandlers = ActionRegistry[action.module];
   if (!moduleHandlers) {
-    console.error(`No module registered for '${action.module}'`);
+    // A miswired action silently does nothing at all — the streamer sees a
+    // command that "works" and changes nothing. Report, don't just log.
+    reportError(new Error(`No module registered for '${action.module}'`), "handle-action.unknown-module", {
+      module: action.module,
+      broadcaster_id,
+    });
     return;
   }
   const handler = moduleHandlers[action.action];
   if (!handler) {
-    console.error(`No action handler for '${action.module} + ${action.action}'`);
+    reportError(
+      new Error(`No action handler for '${action.module} + ${action.action}'`),
+      "handle-action.unknown-action",
+      { module: action.module, action: action.action, broadcaster_id },
+    );
     return;
   }
 

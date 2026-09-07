@@ -1,0 +1,1815 @@
+---
+title: "Event reference"
+description: "Every event your widget can receive, with its exact payload shape."
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Regenerate from packages/schemas: bun run scripts/generate-widget-event-docs.ts */}
+
+Every event arrives through the `onEventReceived` listener. `detail.listener`
+is the event name below, `detail.event` is the payload. The widget editor
+autocompletes all of these, so you rarely need to memorize them.
+
+```js
+addEventListener('onEventReceived', (e) => {
+  if (e.detail.listener === 'channel.follow') {
+    console.log(e.detail.event.user_name, 'just followed');
+  }
+});
+```
+
+Events prefixed `channel.` and `stream.` are Twitch EventSub payloads,
+relayed as-is. Events prefixed `streamwizard.` come from StreamWizard itself
+(GPS, ingest stats, and other IRL data).
+
+## `streamwizard.geo`
+
+```ts
+type StreamWizardGeoEvent = {
+    status: "connected";
+    payload: {
+        latitude: number;
+        longitude: number;
+        altitude: number | null;
+        speed: number | null;
+        heading: number | null;
+        accuracy: number;
+        timestamp: number;
+    };
+} | {
+    status: "offline";
+};
+```
+
+## `streamwizard.ingest_stats`
+
+```ts
+type IngestStatsPayload = {
+    session_id: string;
+    protocol: "rtmp" | "srt" | "srtla";
+    node_id?: string | undefined;
+    stream_key_id?: string | undefined;
+    label?: string | undefined;
+    kbps?: number | undefined;
+    mbps_recv_rate?: number | undefined;
+    mbps_bandwidth?: number | undefined;
+    mbps_max_bw?: number | undefined;
+    rtt_ms?: number | undefined;
+    pkt_recv?: number | undefined;
+    pkt_recv_loss?: number | undefined;
+    pkt_recv_drop?: number | undefined;
+    pkt_recv_retrans?: number | undefined;
+    pkt_recv_belated?: number | undefined;
+    pkt_recv_undecrypt?: number | undefined;
+    pkt_reorder_distance?: number | undefined;
+    ms_rcv_buf?: number | undefined;
+    byte_rcv_buf?: number | undefined;
+    pkt_flight_size?: number | undefined;
+    pkt_recv_loss_total?: number | undefined;
+    pkt_recv_drop_total?: number | undefined;
+    pkt_recv_undecrypt_total?: number | undefined;
+    byte_recv_total?: number | undefined;
+    loss_pct?: number | undefined;
+    drop_pct?: number | undefined;
+    retrans_pct?: number | undefined;
+    [x: string]: unknown;
+};
+```
+
+## `streamwizard.auto_switcher_status`
+
+```ts
+type AutoSwitcherStatus = {
+    state: "idle" | "startup" | "live" | "degraded" | "offline" | "override";
+    armed: boolean;
+    override: {
+        scene_uuid: string;
+        scene_name: string | null;
+        expires_at: string | null;
+    } | null;
+    selected_session: {
+        session_id: string;
+        label: string | null;
+    } | null;
+    streaks: {
+        bitrate: {
+            bad: number;
+            good: number;
+        };
+        rtt: {
+            bad: number;
+            good: number;
+        };
+        loss: {
+            bad: number;
+            good: number;
+        };
+    };
+    thresholds: {
+        bitrate_min_kbps: number;
+        rtt_max_ms: number;
+        loss_max_pct: number;
+        bitrate_trigger_polls: number;
+        rtt_trigger_polls: number;
+        loss_trigger_polls: number;
+        bitrate_recover_polls: number;
+        rtt_recover_polls: number;
+        loss_recover_polls: number;
+        bitrate_startup_polls: number;
+        rtt_startup_polls: number;
+        loss_startup_polls: number;
+        offline_timeout_seconds: number;
+    };
+    warning_shown: boolean;
+    latest: {
+        kbps: number | null;
+        rtt_ms: number | null;
+        loss_pct: number | null;
+        at: number;
+    } | null;
+    last_switch: {
+        at: number;
+        from_scene: string | null;
+        to_scene: string;
+        reason: "auto_fallback" | "auto_recover" | "auto_offline" | "auto_stop" | "override" | "manual";
+        detail: string;
+        session_id: string | null;
+        label: string | null;
+    } | null;
+    last_error: string | null;
+    offline_since: number | null;
+    auto_stop_deadline: number | null;
+};
+```
+
+## `streamwizard.obs_instance_lifecycle`
+
+```ts
+type ObsInstanceLifecyclePayload = {
+    instanceId: string;
+    action: "starting" | "started" | "stopping" | "stopped" | "error" | "deleted";
+    at: string;
+};
+```
+
+## `streamwizard.obs_scene_changed`
+
+```ts
+type ObsSceneChangedPayload = {
+    instanceId: string;
+    sceneName: string;
+    sceneUuid: string;
+    at: string;
+};
+```
+
+## `channel.update`
+
+```ts
+type ChannelUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    language: string;
+    category_id: string;
+    category_name: string;
+    content_classification_labels: string[];
+};
+```
+
+## `channel.follow`
+
+```ts
+type ChannelFollowEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    followed_at: string;
+};
+```
+
+## `channel.ad_break.begin`
+
+```ts
+type ChannelAdBreakBeginEvent = {
+    duration_seconds: string;
+    started_at: string;
+    is_automatic: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    requester_user_id: string;
+    requester_user_login: string;
+    requester_user_name: string;
+};
+```
+
+## `channel.subscribe`
+
+```ts
+type ChannelSubscribeEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    tier: "1000" | "2000" | "3000";
+    is_gift: boolean;
+};
+```
+
+## `channel.subscription.end`
+
+```ts
+type ChannelSubscriptionEndEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    tier: "1000" | "2000" | "3000";
+    is_gift: boolean;
+};
+```
+
+## `channel.subscription.gift`
+
+```ts
+type ChannelSubscriptionGiftEvent = {
+    user_id: string | null;
+    user_login: string | null;
+    user_name: string | null;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    total: number;
+    tier: "1000" | "2000" | "3000";
+    cumulative_total: number | null;
+    is_anonymous: boolean;
+};
+```
+
+## `channel.subscription.message`
+
+```ts
+type ChannelSubscriptionMessageEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    tier: "1000" | "2000" | "3000";
+    message: {
+        text: string;
+        emotes: {
+            begin: number;
+            end: number;
+            id: string;
+        }[];
+    };
+    cumulative_months: number;
+    streak_months: number | null;
+    duration_months: number;
+};
+```
+
+## `channel.cheer`
+
+```ts
+type ChannelCheerEvent = {
+    is_anonymous: boolean;
+    user_id: string | null;
+    user_login: string | null;
+    user_name: string | null;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    message: string;
+    bits: number;
+};
+```
+
+## `channel.raid`
+
+```ts
+type ChannelRaidEvent = {
+    from_broadcaster_user_id: string;
+    from_broadcaster_user_login: string;
+    from_broadcaster_user_name: string;
+    to_broadcaster_user_id: string;
+    to_broadcaster_user_login: string;
+    to_broadcaster_user_name: string;
+    viewers: number;
+};
+```
+
+## `channel.ban`
+
+```ts
+type ChannelBanEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    moderator_user_id: string;
+    moderator_user_login: string;
+    moderator_user_name: string;
+    reason: string;
+    banned_at: string;
+    ends_at: string | null;
+    is_permanent: boolean;
+};
+```
+
+## `channel.unban`
+
+```ts
+type ChannelUnbanEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    moderator_user_id: string;
+    moderator_user_login: string;
+    moderator_user_name: string;
+};
+```
+
+## `channel.unban_request.create`
+
+```ts
+type ChannelUnbanRequestCreateEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    text: string;
+    created_at: string;
+};
+```
+
+## `channel.unban_request.resolve`
+
+```ts
+type ChannelUnbanRequestResolveEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    moderator_user_id: string;
+    moderator_user_login: string;
+    moderator_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    resolution_text: string | null;
+    status: "approved" | "denied" | "canceled";
+};
+```
+
+## `channel.shared_chat.begin`
+
+```ts
+type ChannelSharedChatBeginEvent = {
+    session_id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    host_broadcaster_user_id: string;
+    host_broadcaster_user_login: string;
+    host_broadcaster_user_name: string;
+    participants: {
+        broadcaster_user_id: string;
+        broadcaster_user_name: string;
+        broadcaster_user_login: string;
+    }[];
+};
+```
+
+## `channel.shared_chat.update`
+
+```ts
+type ChannelSharedChatUpdateEvent = {
+    session_id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    host_broadcaster_user_id: string;
+    host_broadcaster_user_login: string;
+    host_broadcaster_user_name: string;
+    participants: {
+        broadcaster_user_id: string;
+        broadcaster_user_name: string;
+        broadcaster_user_login: string;
+    }[];
+};
+```
+
+## `channel.shared_chat.end`
+
+```ts
+type ChannelSharedChatEndEvent = {
+    session_id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    host_broadcaster_user_id: string;
+    host_broadcaster_user_login: string;
+    host_broadcaster_user_name: string;
+};
+```
+
+## `channel.chat.clear`
+
+```ts
+type ChannelChatClearEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+};
+```
+
+## `channel.chat.clear_user_messages`
+
+```ts
+type ChannelChatClearUserMessagesEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    target_user_id: string;
+    target_user_name: string;
+    target_user_login: string;
+};
+```
+
+## `channel.chat.message`
+
+```ts
+type ChannelChatMessageEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    chatter_user_id: string;
+    chatter_user_login: string;
+    chatter_user_name: string;
+    message_id: string;
+    message: {
+        text: string;
+        fragments: {
+            type: "text" | "cheermote" | "emote" | "mention";
+            text: string;
+            cheermote?: ({
+                prefix: string;
+                bits: number;
+                tier: number;
+            } | null) | undefined;
+            emote?: ({
+                id: string;
+                emote_set_id: string;
+            } | null) | undefined;
+            mention?: ({
+                user_id: string;
+                user_name: string;
+                user_login: string;
+            } | null) | undefined;
+        }[];
+    };
+    color: string;
+    badges: {
+        set_id: string;
+        id: string;
+        info: string;
+    }[];
+    message_type: "text" | "channel_points_highlighted" | "channel_points_sub_only" | "user_intro" | "power_ups_message_effect" | "power_ups_gigantified_emote";
+    cheer?: ({
+        bits: number;
+    } | null) | undefined;
+    reply?: ({
+        parent_message_id: string;
+        parent_message_body: string;
+        parent_user_id: string;
+        parent_user_name: string;
+        parent_user_login: string;
+        thread_message_id: string;
+        thread_user_id: string;
+        thread_user_name: string;
+        thread_user_login: string;
+    } | null) | undefined;
+    channel_points_custom_reward_id?: (string | null) | undefined;
+    source_broadcaster_user_id?: (string | null) | undefined;
+    source_broadcaster_user_login?: (string | null) | undefined;
+    source_broadcaster_user_name?: (string | null) | undefined;
+    source_message_id?: (string | null) | undefined;
+    source_badges?: ({
+        set_id: string;
+        id: string;
+        info: string;
+    }[] | null) | undefined;
+    is_source_only?: (boolean | null) | undefined;
+};
+```
+
+## `channel.chat.message_delete`
+
+```ts
+type ChannelChatMessageDeleteEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    target_user_id: string;
+    target_user_name: string;
+    target_user_login: string;
+    message_id: string;
+};
+```
+
+## `channel.chat.notification`
+
+```ts
+type ChannelChatNotificationEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    chatter_user_id: string;
+    chatter_user_login: string;
+    chatter_user_name: string;
+    chatter_is_anonymous: boolean;
+    color: string;
+    badges: {
+        set_id: string;
+        id: string;
+        info: string;
+    }[];
+    system_message: string;
+    message_id: string;
+    message: {
+        text: string;
+        fragments: {
+            type: "text" | "cheermote" | "emote" | "mention";
+            text: string;
+            cheermote?: ({
+                prefix: string;
+                bits: number;
+                tier: number;
+            } | null) | undefined;
+            emote?: ({
+                id: string;
+                emote_set_id: string;
+            } | null) | undefined;
+            mention?: ({
+                user_id: string;
+                user_name: string;
+                user_login: string;
+            } | null) | undefined;
+        }[];
+    };
+    notice_type: "sub" | "resub" | "sub_gift" | "community_sub_gift" | "gift_paid_upgrade" | "prime_paid_upgrade" | "pay_it_forward" | "raid" | "unraid" | "announcement" | "bits_badge_tier" | "charity_donation" | "watch_streak" | "shared_chat_sub" | "shared_chat_resub" | "shared_chat_sub_gift" | "shared_chat_community_sub_gift" | "shared_chat_gift_paid_upgrade" | "shared_chat_prime_paid_upgrade" | "shared_chat_pay_it_forward" | "shared_chat_raid" | "shared_chat_announcement";
+    sub: {
+        sub_plan: string;
+        is_gift: boolean;
+    } | null;
+    resub: {
+        cumulative_months: number;
+        duration_months: number;
+        streak_months: number | null;
+        sub_plan: string;
+        is_gift: boolean;
+        gifter_is_anonymous: boolean | null;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null;
+    sub_gift: {
+        duration_months: number;
+        cumulative_total: number | null;
+        recipient_user_id: string;
+        recipient_user_name: string;
+        recipient_user_login: string;
+        sub_plan: string;
+        community_gift_id: string | null;
+    } | null;
+    community_sub_gift: {
+        id: string;
+        total: number;
+        sub_plan: string;
+        cumulative_total: number | null;
+    } | null;
+    gift_paid_upgrade: {
+        gifter_is_anonymous: boolean;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null;
+    prime_paid_upgrade: {
+        sub_plan: string;
+    } | null;
+    pay_it_forward: {
+        gifter_is_anonymous: boolean;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null;
+    raid: {
+        user_id: string;
+        user_name: string;
+        user_login: string;
+        viewer_count: number;
+        profile_image_url: string;
+    } | null;
+    unraid: null;
+    announcement: {
+        color: string;
+    } | null;
+    bits_badge_tier: {
+        tier: number;
+    } | null;
+    charity_donation: {
+        charity_name: string;
+        amount: {
+            value: number;
+            decimal_places: number;
+            currency: string;
+        };
+    } | null;
+    watch_streak: {
+        consecutive_months: number;
+    } | null;
+    shared_chat_sub?: ({
+        sub_plan: string;
+        is_gift: boolean;
+    } | null) | undefined;
+    shared_chat_resub?: ({
+        cumulative_months: number;
+        duration_months: number;
+        streak_months: number | null;
+        sub_plan: string;
+        is_gift: boolean;
+        gifter_is_anonymous: boolean | null;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null) | undefined;
+    shared_chat_sub_gift?: ({
+        duration_months: number;
+        cumulative_total: number | null;
+        recipient_user_id: string;
+        recipient_user_name: string;
+        recipient_user_login: string;
+        sub_plan: string;
+        community_gift_id: string | null;
+    } | null) | undefined;
+    shared_chat_community_sub_gift?: ({
+        id: string;
+        total: number;
+        sub_plan: string;
+        cumulative_total: number | null;
+    } | null) | undefined;
+    shared_chat_gift_paid_upgrade?: ({
+        gifter_is_anonymous: boolean;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null) | undefined;
+    shared_chat_prime_paid_upgrade?: ({
+        sub_plan: string;
+    } | null) | undefined;
+    shared_chat_pay_it_forward?: ({
+        gifter_is_anonymous: boolean;
+        gifter_user_id: string | null;
+        gifter_user_name: string | null;
+        gifter_user_login: string | null;
+    } | null) | undefined;
+    shared_chat_raid?: ({
+        user_id: string;
+        user_name: string;
+        user_login: string;
+        viewer_count: number;
+        profile_image_url: string;
+    } | null) | undefined;
+    shared_chat_unraid?: null | undefined;
+    shared_chat_announcement?: ({
+        color: string;
+    } | null) | undefined;
+    shared_chat_bits_badge_tier?: ({
+        tier: number;
+    } | null) | undefined;
+    shared_chat_charity_donation?: ({
+        charity_name: string;
+        amount: {
+            value: number;
+            decimal_places: number;
+            currency: string;
+        };
+    } | null) | undefined;
+    source_broadcaster_user_id?: (string | null) | undefined;
+    source_broadcaster_user_login?: (string | null) | undefined;
+    source_broadcaster_user_name?: (string | null) | undefined;
+    source_message_id?: (string | null) | undefined;
+    source_badges?: ({
+        set_id: string;
+        id: string;
+        info: string;
+    }[] | null) | undefined;
+    is_source_only?: (boolean | null) | undefined;
+};
+```
+
+## `channel.chat_settings.update`
+
+```ts
+type ChannelChatSettingsUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    emote_mode: boolean;
+    follower_mode: boolean;
+    follower_mode_duration_minutes: number | null;
+    slow_mode: boolean;
+    slow_mode_wait_time_seconds: number | null;
+    subscriber_mode: boolean;
+    unique_chat_mode: boolean;
+};
+```
+
+## `channel.chat.user_message_hold`
+
+```ts
+type ChannelChatUserMessageHoldEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    message_id: string;
+    message: {
+        text: string;
+        fragments: {
+            type: "text" | "cheermote" | "emote" | "mention";
+            text: string;
+            cheermote?: ({
+                prefix: string;
+                bits: number;
+                tier: number;
+            } | null) | undefined;
+            emote?: ({
+                id: string;
+                emote_set_id: string;
+            } | null) | undefined;
+            mention?: ({
+                user_id: string;
+                user_name: string;
+                user_login: string;
+            } | null) | undefined;
+        }[];
+    };
+};
+```
+
+## `channel.chat.user_message_update`
+
+```ts
+type ChannelChatUserMessageUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    status: "approved" | "denied" | "invalid";
+    message_id: string;
+    message: {
+        text: string;
+        fragments: {
+            type: "text" | "cheermote" | "emote" | "mention";
+            text: string;
+            cheermote?: ({
+                prefix: string;
+                bits: number;
+                tier: number;
+            } | null) | undefined;
+            emote?: ({
+                id: string;
+                emote_set_id: string;
+            } | null) | undefined;
+            mention?: ({
+                user_id: string;
+                user_name: string;
+                user_login: string;
+            } | null) | undefined;
+        }[];
+    };
+};
+```
+
+## `channel.channel_points_custom_reward.add`
+
+```ts
+type ChannelPointsCustomRewardAddEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    is_enabled: boolean;
+    is_paused: boolean;
+    is_in_stock: boolean;
+    title: string;
+    cost: number;
+    prompt: string;
+    is_user_input_required: boolean;
+    should_redemptions_skip_request_queue: boolean;
+    cooldown_expires_at: string | null;
+    redemptions_redeemed_current_stream: number | null;
+    max_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    max_per_user_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    global_cooldown: {
+        is_enabled: boolean;
+        seconds: number;
+    };
+    background_color: string;
+    image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    } | null;
+    default_image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    };
+};
+```
+
+## `channel.channel_points_custom_reward.update`
+
+```ts
+type ChannelPointsCustomRewardUpdateEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    is_enabled: boolean;
+    is_paused: boolean;
+    is_in_stock: boolean;
+    title: string;
+    cost: number;
+    prompt: string;
+    is_user_input_required: boolean;
+    should_redemptions_skip_request_queue: boolean;
+    cooldown_expires_at: string | null;
+    redemptions_redeemed_current_stream: number | null;
+    max_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    max_per_user_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    global_cooldown: {
+        is_enabled: boolean;
+        seconds: number;
+    };
+    background_color: string;
+    image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    } | null;
+    default_image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    };
+};
+```
+
+## `channel.channel_points_custom_reward.remove`
+
+```ts
+type ChannelPointsCustomRewardRemoveEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    is_enabled: boolean;
+    is_paused: boolean;
+    is_in_stock: boolean;
+    title: string;
+    cost: number;
+    prompt: string;
+    is_user_input_required: boolean;
+    should_redemptions_skip_request_queue: boolean;
+    cooldown_expires_at: string | null;
+    redemptions_redeemed_current_stream: number | null;
+    max_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    max_per_user_per_stream: {
+        is_enabled: boolean;
+        value: number;
+    };
+    global_cooldown: {
+        is_enabled: boolean;
+        seconds: number;
+    };
+    background_color: string;
+    image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    } | null;
+    default_image: {
+        url_1x: string;
+        url_2x: string;
+        url_4x: string;
+    };
+};
+```
+
+## `channel.channel_points_custom_reward_redemption.add`
+
+```ts
+type ChannelPointsCustomRewardRedemptionAddEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    user_input: string;
+    status: "unfulfilled" | "fulfilled" | "canceled";
+    reward: {
+        id: string;
+        title: string;
+        cost: number;
+        prompt: string;
+    };
+    redeemed_at: string;
+};
+```
+
+## `channel.channel_points_custom_reward_redemption.update`
+
+```ts
+type ChannelPointsCustomRewardRedemptionUpdateEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    user_input: string;
+    status: "unfulfilled" | "fulfilled" | "canceled";
+    reward: {
+        id: string;
+        title: string;
+        cost: number;
+        prompt: string;
+    };
+    redeemed_at: string;
+};
+```
+
+## `channel.guest_star_session.begin`
+
+```ts
+type ChannelGuestStarSessionBeginEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    session_id: string;
+    started_at: string;
+};
+```
+
+## `channel.guest_star_session.end`
+
+```ts
+type ChannelGuestStarSessionEndEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    session_id: string;
+    started_at: string;
+    ended_at: string;
+};
+```
+
+## `channel.guest_star_guest.update`
+
+```ts
+type ChannelGuestStarGuestUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    session_id: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    guest_user_id: string;
+    guest_user_name: string;
+    guest_user_login: string;
+    slot_id: string;
+    state: "invited" | "accepted" | "ready" | "backstage" | "live" | "removed";
+    host_video_enabled: boolean;
+    host_audio_enabled: boolean;
+    host_volume: number;
+};
+```
+
+## `channel.guest_star_settings.update`
+
+```ts
+type ChannelGuestStarSettingsUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    is_moderator_send_live_enabled: boolean;
+    slot_count: number;
+    is_browser_source_audio_enabled: boolean;
+    group_layout: "tiled" | "screenshare";
+};
+```
+
+## `channel.poll.begin`
+
+```ts
+type ChannelPollBeginEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    choices: {
+        id: string;
+        title: string;
+    }[];
+    bits_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    channel_points_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    started_at: string;
+    ends_at: string;
+};
+```
+
+## `channel.poll.progress`
+
+```ts
+type ChannelPollProgressEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    choices: {
+        id: string;
+        title: string;
+        bits_votes: number;
+        channel_points_votes: number;
+        votes: number;
+    }[];
+    bits_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    channel_points_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    started_at: string;
+    ends_at: string;
+};
+```
+
+## `channel.poll.end`
+
+```ts
+type ChannelPollEndEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    choices: {
+        id: string;
+        title: string;
+        bits_votes: number;
+        channel_points_votes: number;
+        votes: number;
+    }[];
+    bits_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    channel_points_voting: {
+        is_enabled: boolean;
+        amount_per_vote: number;
+    };
+    status: "completed" | "archived" | "terminated";
+    started_at: string;
+    ended_at: string;
+};
+```
+
+## `channel.prediction.begin`
+
+```ts
+type ChannelPredictionBeginEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    outcomes: {
+        id: string;
+        title: string;
+        color: "blue" | "pink";
+    }[];
+    started_at: string;
+    locks_at: string;
+};
+```
+
+## `channel.prediction.progress`
+
+```ts
+type ChannelPredictionProgressEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    outcomes: {
+        id: string;
+        title: string;
+        color: "blue" | "pink";
+        users: number;
+        channel_points: number;
+        top_predictors: {
+            user_id: string;
+            user_name: string;
+            user_login: string;
+            channel_points_won: number | null;
+            channel_points_used: number;
+        }[];
+    }[];
+    started_at: string;
+    locks_at: string;
+};
+```
+
+## `channel.prediction.lock`
+
+```ts
+type ChannelPredictionLockEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    outcomes: {
+        id: string;
+        title: string;
+        color: "blue" | "pink";
+        users: number;
+        channel_points: number;
+        top_predictors: {
+            user_id: string;
+            user_name: string;
+            user_login: string;
+            channel_points_won: number | null;
+            channel_points_used: number;
+        }[];
+    }[];
+    started_at: string;
+    locked_at: string;
+};
+```
+
+## `channel.prediction.end`
+
+```ts
+type ChannelPredictionEndEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    title: string;
+    winning_outcome_id: string;
+    outcomes: {
+        id: string;
+        title: string;
+        color: "blue" | "pink";
+        users: number;
+        channel_points: number;
+        top_predictors: {
+            user_id: string;
+            user_name: string;
+            user_login: string;
+            channel_points_won: number | null;
+            channel_points_used: number;
+        }[];
+    }[];
+    status: "resolved" | "canceled";
+    started_at: string;
+    ended_at: string;
+};
+```
+
+## `channel.moderator.add`
+
+```ts
+type ChannelModeratorAddEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+};
+```
+
+## `channel.moderator.remove`
+
+```ts
+type ChannelModeratorRemoveEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+};
+```
+
+## `channel.warning.send`
+
+```ts
+type ChannelWarningSendEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    moderator_user_id: string;
+    moderator_user_login: string;
+    moderator_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    reason: string | null;
+    chat_rules_cited: string[] | null;
+};
+```
+
+## `channel.warning.acknowledge`
+
+```ts
+type ChannelWarningAcknowledgeEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+};
+```
+
+## `channel.suspicious_user.message`
+
+```ts
+type ChannelSuspiciousUserMessageEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    user_id: string;
+    user_name: string;
+    user_login: string;
+    low_trust_status: "active_monitoring" | "restricted";
+    shared_ban_channel_ids: string[];
+    types: ("ban_evader" | "shared_ban")[];
+    ban_evasion_evaluation: "likely" | "unlikely" | "possible";
+    message: {
+        message_id: string;
+        text: string;
+        fragments: {
+            type: "text" | "cheermote" | "emote";
+            text: string;
+            cheermote: {
+                prefix: string;
+                bits: number;
+                tier: number;
+            } | null;
+            emote: {
+                id: string;
+                emote_set_id: string;
+            } | null;
+        }[];
+    };
+};
+```
+
+## `channel.suspicious_user.update`
+
+```ts
+type ChannelSuspiciousUserUpdateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    user_id: string;
+    user_name: string;
+    user_login: string;
+    low_trust_status: "active_monitoring" | "restricted" | "none";
+};
+```
+
+## `channel.vip.add`
+
+```ts
+type ChannelVipAddEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+};
+```
+
+## `channel.vip.remove`
+
+```ts
+type ChannelVipRemoveEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+};
+```
+
+## `channel.hype_train.begin`
+
+```ts
+type ChannelHypeTrainBeginEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    total: number;
+    top_contributions: {
+        user_id: string;
+        user_login: string;
+        user_name: string;
+        type: "bits" | "subscription" | "other";
+        total: number;
+    }[];
+    shared_train_participants: unknown | null;
+    level: number;
+    started_at: string;
+    is_shared_train: boolean;
+    type: string;
+    progress: number;
+    goal: number;
+    expires_at: string;
+    all_time_high_level?: number | undefined;
+    all_time_high_total?: number | undefined;
+};
+```
+
+## `channel.hype_train.progress`
+
+```ts
+type ChannelHypeTrainProgressEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    total: number;
+    top_contributions: {
+        user_id: string;
+        user_login: string;
+        user_name: string;
+        type: "bits" | "subscription" | "other";
+        total: number;
+    }[];
+    shared_train_participants: unknown | null;
+    level: number;
+    started_at: string;
+    is_shared_train: boolean;
+    type: string;
+    progress: number;
+    goal: number;
+    expires_at: string;
+};
+```
+
+## `channel.hype_train.end`
+
+```ts
+type ChannelHypeTrainEndEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    total: number;
+    top_contributions: {
+        user_id: string;
+        user_login: string;
+        user_name: string;
+        type: "bits" | "subscription" | "other";
+        total: number;
+    }[];
+    shared_train_participants: unknown | null;
+    level: number;
+    started_at: string;
+    is_shared_train: boolean;
+    type: string;
+    ended_at: string;
+    cooldown_ends_at: string;
+};
+```
+
+## `channel.shield_mode.begin`
+
+```ts
+type ChannelShieldModeBeginEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    started_at: string;
+};
+```
+
+## `channel.shield_mode.end`
+
+```ts
+type ChannelShieldModeEndEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    ended_at: string;
+};
+```
+
+## `channel.shoutout.create`
+
+```ts
+type ChannelShoutoutCreateEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    moderator_user_id: string;
+    moderator_user_name: string;
+    moderator_user_login: string;
+    to_broadcaster_user_id: string;
+    to_broadcaster_user_name: string;
+    to_broadcaster_user_login: string;
+    started_at: string;
+    viewer_count: number;
+    cooldown_ends_at: string;
+    target_cooldown_ends_at: string;
+};
+```
+
+## `channel.shoutout.receive`
+
+```ts
+type ChannelShoutoutReceiveEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    from_broadcaster_user_id: string;
+    from_broadcaster_user_name: string;
+    from_broadcaster_user_login: string;
+    viewer_count: number;
+    started_at: string;
+};
+```
+
+## `channel.charity_campaign.donate`
+
+```ts
+type ChannelCharityDonateEvent = {
+    id: string;
+    campaign_id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    charity_name: string;
+    charity_description: string;
+    charity_logo: string;
+    charity_website: string;
+    amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+};
+```
+
+## `channel.charity_campaign.start`
+
+```ts
+type ChannelCharityCampaignStartEvent = {
+    id: string;
+    broadcaster_id: string;
+    broadcaster_name: string;
+    broadcaster_login: string;
+    charity_name: string;
+    charity_description: string;
+    charity_logo: string;
+    charity_website: string;
+    current_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+    target_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+    started_at: string;
+};
+```
+
+## `channel.charity_campaign.progress`
+
+```ts
+type ChannelCharityCampaignProgressEvent = {
+    id: string;
+    broadcaster_id: string;
+    broadcaster_name: string;
+    broadcaster_login: string;
+    charity_name: string;
+    charity_description: string;
+    charity_logo: string;
+    charity_website: string;
+    current_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+    target_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+};
+```
+
+## `channel.charity_campaign.stop`
+
+```ts
+type ChannelCharityCampaignStopEvent = {
+    id: string;
+    broadcaster_id: string;
+    broadcaster_name: string;
+    broadcaster_login: string;
+    charity_name: string;
+    charity_description: string;
+    charity_logo: string;
+    charity_website: string;
+    current_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+    target_amount: {
+        value: number;
+        decimal_places: number;
+        currency: string;
+    };
+    stopped_at: string;
+};
+```
+
+## `channel.goal.begin`
+
+```ts
+type ChannelGoalBeginEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    type: "follow" | "subscription" | "subscription_count" | "new_subscription" | "new_subscription_count";
+    description: string;
+    current_amount: number;
+    target_amount: number;
+    started_at: string;
+};
+```
+
+## `channel.goal.progress`
+
+```ts
+type ChannelGoalProgressEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    type: "follow" | "subscription" | "subscription_count" | "new_subscription" | "new_subscription_count";
+    description: string;
+    current_amount: number;
+    target_amount: number;
+    started_at: string;
+};
+```
+
+## `channel.goal.end`
+
+```ts
+type ChannelGoalEndEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_name: string;
+    broadcaster_user_login: string;
+    type: "follow" | "subscription" | "subscription_count" | "new_subscription" | "new_subscription_count";
+    description: string;
+    current_amount: number;
+    target_amount: number;
+    started_at: string;
+    is_achieved: boolean;
+    ended_at: string;
+};
+```
+
+## `conduit.shard.disabled`
+
+```ts
+type ConduitShardDisabledEvent = {
+    conduit_id: string;
+    shard_id: string;
+    status: "webhook_callback_verification_failed" | "webhook_callback_verification_pending" | "notification_failures_exceeded" | "websocket_disconnected" | "websocket_failed_ping_pong" | "websocket_received_inbound_traffic" | "websocket_internal_error" | "websocket_network_timeout" | "websocket_network_error" | "websocket_failed_to_reconnect";
+    transport: {
+        method: "websocket" | "webhook";
+        session_id?: string | undefined;
+        connected_at?: string | undefined;
+        disconnected_at?: string | undefined;
+        callback?: string | undefined;
+    };
+};
+```
+
+## `drop.entitlement.grant`
+
+```ts
+type DropEntitlementGrantEvent = {
+    id: string;
+    data: {
+        organization_id: string;
+        category_id: string;
+        category_name: string;
+        campaign_id: string;
+        user_id: string;
+        user_name: string;
+        user_login: string;
+        entitlement_id: string;
+        benefit_id: string;
+        created_at: string;
+    };
+}[];
+```
+
+## `extension.bits_transaction.create`
+
+```ts
+type ExtensionBitsTransactionCreateEvent = {
+    id: string;
+    extension_client_id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    user_name: string;
+    user_login: string;
+    user_id: string;
+    product: {
+        name: string;
+        sku: string;
+        bits: number;
+        in_development: boolean;
+    };
+};
+```
+
+## `stream.online`
+
+```ts
+type StreamOnlineEvent = {
+    id: string;
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+    type: "live" | "playlist" | "watch_party" | "premiere" | "rerun";
+    started_at: string;
+};
+```
+
+## `stream.offline`
+
+```ts
+type StreamOfflineEvent = {
+    broadcaster_user_id: string;
+    broadcaster_user_login: string;
+    broadcaster_user_name: string;
+};
+```
+
+## `user.authorization.grant`
+
+```ts
+type UserAuthorizationGrantEvent = {
+    client_id: string;
+    user_id: string;
+    user_login: string;
+    user_name: string;
+};
+```
+
+## `user.authorization.revoke`
+
+```ts
+type UserAuthorizationRevokeEvent = {
+    client_id: string;
+    user_id: string;
+    user_login: string | null;
+    user_name: string | null;
+};
+```
+
+## `user.update`
+
+```ts
+type UserUpdateEvent = {
+    user_id: string;
+    user_login: string;
+    user_name: string;
+    email?: string | undefined;
+    email_verified: boolean;
+    description: string;
+};
+```
+
+## `user.whisper.message`
+
+```ts
+type UserWhisperMessageEvent = {
+    from_user_id: string;
+    from_user_login: string;
+    from_user_name: string;
+    to_user_id: string;
+    to_user_login: string;
+    to_user_name: string;
+    whisper_id: string;
+    whisper: {
+        text: string;
+    };
+};
+```

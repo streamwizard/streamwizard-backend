@@ -55,7 +55,7 @@ StreamWizard is a **monorepo** — one repo, multiple apps and shared packages, 
 |-----|--------------|
 | `web-streamwizard` | The dashboard streamers actually log into. Clips, folders, overlays, analytics. Next.js App Router. |
 | `web-overlay` | The OBS browser source. Renders overlay scenes server-side so your stream doesn't drop frames. |
-| `web-monitor` | Internal ops dashboard. Service graphs and metrics — for us, not your viewers. |
+| `web-admin` | Internal ops dashboard. Service graphs and metrics — for us, not your viewers. |
 | `rest-api` | Hono API. Handles Twitch EventSub webhooks and clip sync. |
 | `streamwizard-bot` | The chat bot. Connects to Twitch chat over EventSub and answers commands. |
 | `ws-server` | The real-time event bus. Fans out Twitch events and IRL GPS to overlays over WebSockets. |
@@ -71,7 +71,7 @@ StreamWizard is a **monorepo** — one repo, multiple apps and shared packages, 
 | `types` | Shared TypeScript types — Helix shapes, EventSub payloads, overlay events. |
 | `schemas` | Zod validation schemas. |
 | `logger` | Centralized logging. |
-| `metrics` | Metrics collection for `web-monitor`. |
+| `metrics` | Metrics collection for `web-admin`. |
 | `posthog` | Product analytics wiring. |
 | `sentry` | Error tracking config shared across apps. |
 | `eslint-config` / `typescript-config` | Shared lint and TS config so every package agrees on the rules. |

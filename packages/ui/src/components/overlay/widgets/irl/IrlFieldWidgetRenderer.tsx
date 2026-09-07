@@ -9,7 +9,6 @@ import { useIrlGeoContext } from "../../hooks/use-irl-geo-context";
 export interface IrlFieldWidgetRendererProps {
   item: OverlayItem;
   scene?: OverlayScene;
-  zoom?: number;
 }
 
 type IrlFieldKey = "speed" | "heading" | "altitude" | "latitude" | "longitude" | "accuracy";
@@ -74,7 +73,7 @@ function formatValue(
   }
 }
 
-export function IrlFieldWidgetRenderer({ item, scene, zoom = 1 }: IrlFieldWidgetRendererProps) {
+export function IrlFieldWidgetRenderer({ item, scene }: IrlFieldWidgetRendererProps) {
   const cfg = resolveConfig(item.config);
   const subscriberToken = scene?.subscriber_token ?? "";
   const field = FIELD_FROM_TYPE[item.type as IrlFieldWidgetType] ?? "speed";
@@ -88,7 +87,7 @@ export function IrlFieldWidgetRenderer({ item, scene, zoom = 1 }: IrlFieldWidget
     : wsStatus;
 
   const textAlign = cfg.align as CSSProperties["textAlign"];
-  const fontSize = cfg.fontSize * zoom;
+  const fontSize = cfg.fontSize;
 
   const containerStyle: CSSProperties = {
     width: "100%",
@@ -97,7 +96,7 @@ export function IrlFieldWidgetRenderer({ item, scene, zoom = 1 }: IrlFieldWidget
     alignItems: "center",
     justifyContent:
       cfg.align === "center" ? "center" : cfg.align === "right" ? "flex-end" : "flex-start",
-    padding: `0 ${8 * zoom}px`,
+    padding: "0 8px",
     boxSizing: "border-box",
     color: cfg.color,
     fontFamily: cfg.fontFamily === "monospace" ? "monospace" : `"${cfg.fontFamily}", sans-serif`,
@@ -135,7 +134,7 @@ export function IrlFieldWidgetRenderer({ item, scene, zoom = 1 }: IrlFieldWidget
   return (
     <div style={containerStyle}>
       {cfg.mockData && (
-        <span style={{ fontSize: fontSize * 0.5, opacity: 0.4, marginRight: `${4 * zoom}px` }}>
+        <span style={{ fontSize: fontSize * 0.5, opacity: 0.4, marginRight: "4px" }}>
           MOCK·
         </span>
       )}

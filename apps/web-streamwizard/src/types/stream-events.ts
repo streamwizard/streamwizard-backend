@@ -49,6 +49,9 @@ export type StreamEventType =
   | "channel.shoutout.create"
   | "channel.shoutout.receive"
 
+  // Cloud OBS (logged by the auto switcher, reason "manual" covers deck switches)
+  | "obs.scene_switch"
+
   // Clips
   | "clip"
 

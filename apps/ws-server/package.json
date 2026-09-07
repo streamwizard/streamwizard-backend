@@ -1,6 +1,7 @@
 {
   "name": "@repo/ws-server",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "doppler run --config dev_ws_server -- bun --preload ./src/sentry.ts --hot src/index.ts",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "^1.3.6",
+    "@types/node": "^20",
     "typescript": "5.9.2"
   }
 }

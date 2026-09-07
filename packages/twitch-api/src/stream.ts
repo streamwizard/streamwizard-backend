@@ -25,6 +25,19 @@ export class TwitchStreamsClient extends TwitchApiBaseClient {
     }
 
     /**
+     * Live state for one channel using the app token. /streams is public data,
+     * so this avoids decrypting a broadcaster token on a path that overlay
+     * viewers hit — unlike getStream(), which is for authenticated callers.
+     * @returns The stream object, or undefined when the channel is offline
+     */
+    async getStreamWithAppToken(broadcasterId: string): Promise<Stream | undefined> {
+        const response = await this.appApi().get<GetStreamsResponse>(`/streams`, {
+            params: { user_id: broadcasterId, type: "live", first: 1 },
+        });
+        return response.data.data[0];
+    }
+
+    /**
      * Get a list of streams with full filtering and pagination support
      * @param params - Parameters for filtering and pagination
      * @returns Response containing array of streams and pagination info

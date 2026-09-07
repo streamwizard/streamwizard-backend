@@ -48,6 +48,9 @@ export function VideoTimeline({
   const [localClipSelection, setLocalClipSelection] = useState<ClipSelectionType | null>(null);
   const pendingSelectionRef = useRef<ClipSelectionType | null>(null);
 
+  // Use the in-flight drag position while a handle is held, otherwise the prop.
+  const activeClipSelection = (dragging && localClipSelection) || clipSelection;
+
   // Track when we just finished dragging to prevent click from firing
   const justFinishedDraggingRef = useRef(false);
   // Track if actual movement occurred during drag (to distinguish click from drag)
@@ -75,15 +78,20 @@ export function VideoTimeline({
   const viewStart = viewOffset;
   const viewEnd = Math.min(viewOffset + visibleDuration, totalSeconds);
 
-  // Stable refs for latest values so pan/pinch effect doesn't need them as deps
+  // Stable refs for latest values so pan/pinch effect doesn't need them as deps.
+  // Written after commit rather than during render — a render-phase write can be
+  // thrown away and leaves the handlers reading a value that never shipped.
   const visibleDurationRef = useRef(visibleDuration);
-  visibleDurationRef.current = visibleDuration;
   const totalSecondsRef = useRef(totalSeconds);
-  totalSecondsRef.current = totalSeconds;
   const viewOffsetRef = useRef(viewOffset);
-  viewOffsetRef.current = viewOffset;
   const zoomLevelRef = useRef(zoomLevel);
-  zoomLevelRef.current = zoomLevel;
+
+  useEffect(() => {
+    visibleDurationRef.current = visibleDuration;
+    totalSecondsRef.current = totalSeconds;
+    viewOffsetRef.current = viewOffset;
+    zoomLevelRef.current = zoomLevel;
+  });
 
   // Helper functions (no hooks needed with React Compiler)
   const secondsToPercent = (seconds: number): number => {
@@ -99,16 +107,11 @@ export function VideoTimeline({
     }
   }, [isClipMode]); // Only trigger on mode change
 
-  // Sync local selection when dragging starts
-  useEffect(() => {
-    if (dragging && clipSelection) {
-      setLocalClipSelection({ ...clipSelection });
-      pendingSelectionRef.current = { ...clipSelection };
-    } else if (!dragging) {
-      setLocalClipSelection(null);
-      pendingSelectionRef.current = null;
-    }
-  }, [dragging, clipSelection]);
+  /** Drops the in-flight drag position; the prop is the source of truth again. */
+  const clearLocalSelection = () => {
+    pendingSelectionRef.current = null;
+    setLocalClipSelection(null);
+  };
 
   // Handle clip handle drag - updates local state only (no Zustand = no re-render)
   const handleDrag = (clientX: number) => {
@@ -189,6 +192,7 @@ export function VideoTimeline({
         }, 0);
       }
       hasDraggedRef.current = false;
+      clearLocalSelection();
       setDragging(null);
     };
 
@@ -218,6 +222,7 @@ export function VideoTimeline({
       }
 
       justFinishedDraggingRef.current = true;
+      clearLocalSelection();
       setDragging(null);
       setTimeout(() => {
         justFinishedDraggingRef.current = false;
@@ -416,9 +421,6 @@ export function VideoTimeline({
     const seekTime = getSecondsFromPosition(e.clientX, trackRef.current, viewStart, visibleDuration);
     seek(Math.max(0, Math.min(totalSeconds, seekTime)));
   };
-
-  // Use local selection during drag, otherwise use prop
-  const activeClipSelection = localClipSelection || clipSelection;
 
   // Calculate progress and clip percentages
   const progressPercent = secondsToPercent(currentTime);

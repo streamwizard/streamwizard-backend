@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BadgeSchema } from "./shared";
+import { BadgeSchema, EnrichedUserProfileSchema } from "./shared";
 
 // ─── Shared chat fragment (richer than automod) ──────────────────────────────
 
@@ -18,6 +18,9 @@ const ChatFragmentSchema = z.object({
     .object({
       id: z.string(),
       emote_set_id: z.string(),
+      owner_id: z.string().optional(),
+      /** "static" and/or "animated" — which image formats Twitch has for it. */
+      format: z.array(z.string()).optional(),
     })
     .nullable()
     .optional(),
@@ -72,6 +75,7 @@ export const ChannelChatMessageEventSchema = z.object({
   }),
   color: z.string(),
   badges: z.array(BadgeSchema),
+  ...EnrichedUserProfileSchema.shape,
   message_type: z.enum([
     "text",
     "channel_points_highlighted",
@@ -121,6 +125,49 @@ export const ChannelChatMessageDeleteEventSchema = z.object({
 export type ChannelChatMessageDeleteEvent = z.infer<typeof ChannelChatMessageDeleteEventSchema>;
 
 // ─── channel.chat.notification ──────────────────────────────────────────────
+
+/**
+ * The notice types Twitch documents today. Not exhaustive by contract — the
+ * list is explicitly subject to change and an `unknown` value exists — so treat
+ * this as "the ones worth branching on", never as a closed set.
+ *
+ * The `shared_chat_*` variants are the same notices relayed from another
+ * channel during a shared chat session, not events on this channel.
+ */
+export const CHAT_NOTICE_TYPES = [
+  "sub",
+  "resub",
+  "sub_gift",
+  "community_sub_gift",
+  "gift_paid_upgrade",
+  "prime_paid_upgrade",
+  "pay_it_forward",
+  "raid",
+  "unraid",
+  "announcement",
+  "bits_badge_tier",
+  "charity_donation",
+  "watch_streak",
+  "modiversary",
+  "unknown",
+  "shared_chat_sub",
+  "shared_chat_resub",
+  "shared_chat_sub_gift",
+  "shared_chat_community_sub_gift",
+  "shared_chat_gift_paid_upgrade",
+  "shared_chat_prime_paid_upgrade",
+  "shared_chat_pay_it_forward",
+  "shared_chat_raid",
+  "shared_chat_announcement",
+  "shared_chat_modiversary",
+] as const;
+
+export type ChatNoticeType = (typeof CHAT_NOTICE_TYPES)[number];
+
+/** True for a notice relayed from another channel during shared chat. */
+export function isSharedChatNotice(noticeType: string): boolean {
+  return noticeType.startsWith("shared_chat_");
+}
 
 const SubSchema = z.object({
   sub_plan: z.string(),
@@ -202,36 +249,21 @@ export const ChannelChatNotificationEventSchema = z.object({
   chatter_is_anonymous: z.boolean(),
   color: z.string(),
   badges: z.array(BadgeSchema),
+  ...EnrichedUserProfileSchema.shape,
   system_message: z.string(),
   message_id: z.string(),
   message: z.object({
     text: z.string(),
     fragments: z.array(ChatFragmentSchema),
   }),
-  notice_type: z.enum([
-    "sub",
-    "resub",
-    "sub_gift",
-    "community_sub_gift",
-    "gift_paid_upgrade",
-    "prime_paid_upgrade",
-    "pay_it_forward",
-    "raid",
-    "unraid",
-    "announcement",
-    "bits_badge_tier",
-    "charity_donation",
-    "watch_streak",
-    "shared_chat_sub",
-    "shared_chat_resub",
-    "shared_chat_sub_gift",
-    "shared_chat_community_sub_gift",
-    "shared_chat_gift_paid_upgrade",
-    "shared_chat_prime_paid_upgrade",
-    "shared_chat_pay_it_forward",
-    "shared_chat_raid",
-    "shared_chat_announcement",
-  ]),
+  /**
+   * Deliberately a plain string rather than an enum. Twitch documents this
+   * list as "subject to change" and already ships an `unknown` member, so a
+   * closed enum turns every new notice type Twitch invents into a validation
+   * failure. The known values are exported as CHAT_NOTICE_TYPES for the code
+   * that wants to branch on them.
+   */
+  notice_type: z.string(),
   sub: SubSchema.nullable(),
   resub: ResubSchema.nullable(),
   sub_gift: SubGiftSchema.nullable(),
@@ -245,6 +277,10 @@ export const ChannelChatNotificationEventSchema = z.object({
   bits_badge_tier: BitsBadgeTierSchema.nullable(),
   charity_donation: CharityDonationSchema.nullable(),
   watch_streak: WatchStreakSchema.nullable(),
+  // Twitch documents the notice type but not a payload object for it; kept
+  // permissive so a shape appearing later doesn't fail validation.
+  modiversary: z.unknown().nullable().optional(),
+  shared_chat_modiversary: z.unknown().nullable().optional(),
   shared_chat_sub: SubSchema.nullable().optional(),
   shared_chat_resub: ResubSchema.nullable().optional(),
   shared_chat_sub_gift: SubGiftSchema.nullable().optional(),

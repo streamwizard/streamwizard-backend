@@ -26,11 +26,18 @@ export default function OverlayNotFound() {
         textAlign: "center",
       }}
     >
+      <img
+        src="/logo.png"
+        alt=""
+        width={40}
+        height={40}
+        style={{ opacity: 0.6, marginBottom: 20 }}
+      />
       <p style={{ margin: 0, fontSize: 13, letterSpacing: "0.08em", opacity: 0.5 }}>
         404
       </p>
       <h1 style={{ margin: "12px 0 0", fontSize: 22, fontWeight: 600 }}>
-        Overlay not found
+        This scene doesn&rsquo;t exist
       </h1>
       <p
         style={{
@@ -41,19 +48,8 @@ export default function OverlayNotFound() {
           opacity: 0.75,
         }}
       >
-        There is no overlay scene for this link. Check that the id or slug is
-        correct, that the scene is active (for slug URLs), and copy the overlay
-        URL again from your dashboard.
-      </p>
-      <p style={{ margin: "24px 0 0", fontSize: 14, opacity: 0.55 }}>
-        <a
-          href="https://streamwizard.org"
-          style={{ color: "#93c5fd", textDecoration: "none" }}
-          rel="noopener noreferrer"
-        >
-          streamwizard.org
-        </a>
-        {" — open the dashboard"}
+        Wrong id, wrong slug, or the scene got turned off. Copy the overlay
+        URL again from your StreamWizard dashboard and try that one instead.
       </p>
     </div>
   );

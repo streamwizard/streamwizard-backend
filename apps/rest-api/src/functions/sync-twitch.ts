@@ -1,3 +1,4 @@
+import { reportError } from "@repo/sentry";
 import { supabase, Database } from "@repo/supabase";
 import { getTwitchIntegrationByBroadcasterId, getTwitchIntegrationByUserId } from "@repo/supabase/queries/user";
 import { getClipSync, upsertClipSync, startClipSync, updateClipSyncStatus } from "@repo/supabase/queries/sync";
@@ -71,7 +72,9 @@ export async function syncTwitchClips(user_id: string, TwitchAPI: TwitchApi) {
   const { data: integration, error } = await getTwitchIntegrationByUserId(supabase, user_id);
 
   if (error || !integration || !integration.twitch_user_id) {
-    console.error(error);
+    // The throw below replaces the Supabase error with a generic message, so
+    // report the original first or the actual cause never leaves this frame.
+    if (error) reportError(error, "sync-twitch.integration-lookup", { user_id });
     throw new Error("Twitch integration not found for user");
   }
 

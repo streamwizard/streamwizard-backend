@@ -1,4 +1,5 @@
 "use server";
+import { reportError } from "@repo/sentry";
 import CreateEventSubSubscription from "./create-event-subscription";
 import getSubscriptionFromTwitch from "./get-subscriptions-from-twitch";
 import NeededEventSubscriptions from "./needed-event-subscriptions";
@@ -43,7 +44,6 @@ export default async function checkEventSubscriptions(twitchUserId: string) {
       );
     }
   } catch (error) {
-    console.error(error);
-    // Handle the error (e.g., show a toast notification or retry the operation)
+    reportError(error, "eventsub.checkEventSubscriptions");
   }
 }

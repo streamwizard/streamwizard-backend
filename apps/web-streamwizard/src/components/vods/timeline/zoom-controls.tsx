@@ -21,6 +21,7 @@ export function ZoomControls({ clipCenterPoint, currentTime }: ZoomControlsProps
 
   return (
     <div className="flex items-center justify-end gap-2 mb-2">
+      <span className="hidden text-xs text-muted-foreground sm:inline">Shift + scroll to zoom</span>
       <span className="text-xs text-muted-foreground">Zoom: {zoomLevel.toFixed(1)}x</span>
       <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => zoomOut(centerPoint)} disabled={zoomLevel <= 1}>
         <ZoomOut className="h-3 w-3" />

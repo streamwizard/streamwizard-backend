@@ -1,3 +1,5 @@
+export * from "./src/auto-switcher";
+export * from "./src/auto-switcher-form";
 export * from "./src/automod";
 export * from "./src/channel";
 export * from "./src/channel-points";
@@ -16,4 +18,8 @@ export * from "./src/user";
 
 
 
+export * from "./src/widget-test-events";
+export * from "./src/widget-demo-events";
+export * from "./src/widget-simulator-steps";
 export * from "./src/widget-editor-declarations";
+export * from "./src/widget-editor-lib-declarations";

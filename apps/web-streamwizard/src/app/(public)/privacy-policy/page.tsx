@@ -1,16 +1,19 @@
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { LegalTabs } from "@/components/legal-tabs";
 import { LEGAL_CONTACT_EMAIL } from "@/lib/legal";
+import { absoluteUrl } from "@/lib/seo";
 import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – StreamWizard",
+  // Suffix comes from the root layout's title template.
+  title: "Privacy Policy",
   description:
     "How StreamWizard collects, uses, and protects your personal data.",
+  alternates: { canonical: absoluteUrl("/privacy-policy") },
 };
 
-const LAST_UPDATED = "26 May 2025";
+const LAST_UPDATED = "29 August 2026";
 const CONTACT_EMAIL = LEGAL_CONTACT_EMAIL;
 
 function NormalContent() {
@@ -61,11 +64,17 @@ function NormalContent() {
 
         <h3 className="text-lg font-medium mb-2">Analytics Data</h3>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          We use PostHog (EU region) to collect anonymised page-view events,
-          click interactions, and session recordings. Once you sign in, your
-          PostHog analytics profile is linked to your StreamWizard account ID so
-          we can understand how the product is used. PostHog stores data on EU
-          infrastructure.
+          We use PostHog (EU region) to collect page-view events and click
+          interactions. Your IP address is discarded at ingestion and is never
+          stored with analytics events. If you accept analytics cookies and sign
+          in, your PostHog analytics profile is linked to your StreamWizard
+          account ID so we can understand how the product is used. If you
+          decline, we count page views in cookieless mode instead: no cookies,
+          no identifiers, no profile. Only anonymous, aggregated statistics
+          that cannot be tied to you. We also record a few account-level
+          product events on our servers (for example linking your Discord
+          account or joining our Discord server), tied to your account under
+          legitimate interest. PostHog stores data on EU infrastructure.
         </p>
 
         <h3 className="text-lg font-medium mb-2">
@@ -155,11 +164,11 @@ function NormalContent() {
           </li>
           <li>
             <span className="font-medium text-foreground">PostHog Inc.</span> —
-            product analytics and session replay. We use PostHog's EU region
+            product analytics. We use PostHog&apos;s EU region
             (eu.i.posthog.com). PostHog may process data outside the EEA
             including in the US; this is covered by a signed Data Processing
             Agreement, Standard Contractual Clauses (EU Commission Decision
-            2021/914), and PostHog's participation in the EU-US Data Privacy
+            2021/914), and PostHog&apos;s participation in the EU-US Data Privacy
             Framework.{" "}
             <Link
               href="https://posthog.com/privacy"
@@ -201,7 +210,7 @@ function NormalContent() {
               Twitch Interactive, Inc.
             </span>{" "}
             — OAuth authentication provider. Your use of Twitch is governed by
-            Twitch's own privacy policy.{" "}
+            Twitch&apos;s own privacy policy.{" "}
             <Link
               href="https://www.twitch.tv/p/en/legal/privacy-notice/"
               target="_blank"
@@ -263,7 +272,7 @@ function NormalContent() {
           </li>
           <li>
             <span className="text-foreground font-medium">Erasure</span> —
-            request deletion of your personal data ("right to be forgotten").
+            request deletion of your personal data (&quot;right to be forgotten&quot;).
           </li>
           <li>
             <span className="text-foreground font-medium">Restriction</span> —
@@ -319,14 +328,16 @@ function NormalContent() {
             <span className="text-foreground font-medium">
               Analytics cookies
             </span>{" "}
-            (PostHog) — used to recognise your browser across sessions and power
-            session replay. Stored under our own domain via a reverse proxy to
-            prevent ad-blocker interference.
+            (PostHog) — only set if you accept analytics; used to recognise your
+            browser across sessions. Stored under our own domain via a reverse
+            proxy to prevent ad-blocker interference. If you decline, no
+            analytics cookies or identifiers are stored at all.
           </li>
         </ul>
         <p className="text-muted-foreground leading-relaxed mt-4">
           We do not use advertising, remarketing, or third-party tracking
-          cookies.
+          cookies. Changed your mind about analytics? Cookie settings in the
+          footer clears your choice and asks again.
         </p>
       </section>
 
@@ -346,14 +357,14 @@ function NormalContent() {
             </span>{" "}
             — covered by a signed Data Processing Agreement, EU Standard
             Contractual Clauses (Module 2, Commission Decision 2021/914), and
-            PostHog's self-certification under the EU-US Data Privacy Framework.
+            PostHog&apos;s self-certification under the EU-US Data Privacy Framework.
           </li>
           <li>
             <span className="text-foreground font-medium">
               Twitch Interactive, Inc. (US)
             </span>{" "}
             — data shared as part of OAuth authentication is governed by
-            Twitch's own Privacy Policy and their EU data transfer mechanisms.
+            Twitch&apos;s own Privacy Policy and their EU data transfer mechanisms.
           </li>
         </ul>
         <p className="text-muted-foreground leading-relaxed">
@@ -368,7 +379,7 @@ function NormalContent() {
         </h2>
         <p className="text-muted-foreground leading-relaxed">
           We may update this Privacy Policy from time to time. When we do, we
-          will update the "Last updated" date at the top of this page. We
+          will update the &quot;Last updated&quot; date at the top of this page. We
           encourage you to review this page periodically. Continued use of the
           service after changes constitutes acceptance of the updated policy.
         </p>
@@ -424,25 +435,25 @@ function GenZContent() {
           >
             {CONTACT_EMAIL}
           </a>{" "}
-          if u got beef (or just questions, that's fine too).
+          if u got beef (or just questions, that&apos;s fine too).
         </p>
       </section>
 
       <section>
         <h2 className="text-2xl font-semibold mt-10 mb-4">
-          2. what data we're holding 💾
+          2. what data we&apos;re holding 💾
         </h2>
 
         <h3 className="text-lg font-medium mb-2">ur account stuff</h3>
         <p className="text-muted-foreground leading-relaxed mb-4">
           when u log in via Twitch we get ur Twitch ID, display name, email, pfp
-          URL, and OAuth tokens (encrypted, we're not animals). we only ask for
+          URL, and OAuth tokens (encrypted, we&apos;re not animals). we only ask for
           the scopes we actually need. no weird scope grabs.
         </p>
 
         <h3 className="text-lg font-medium mb-2">the stuff u make</h3>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          clip folders, overlays, widget configs — all that. it's yours. we just
+          clip folders, overlays, widget configs — all that. it&apos;s yours. we just
           hold it for you.
         </p>
 
@@ -450,9 +461,14 @@ function GenZContent() {
           analytics (if u said yes to cookies)
         </h3>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          we use PostHog to see what pages people visit + where they click. once
-          ur logged in we link ur PostHog profile to ur account ID so we can
-          understand what's cooked vs what slaps. EU region only.
+          we use PostHog to see what pages people visit + where they click. ur
+          IP gets dropped at the door, never stored with analytics. once ur
+          logged in we link ur PostHog profile to ur account ID so we can
+          understand what&apos;s cooked vs what slaps. EU region only. said no to
+          cookies? then it&apos;s cookieless mode: no cookies, no profile, ur just
+          an anonymous +1 in the page stats. nothing traces back to u. our
+          servers also log a few account moments (like linking Discord or
+          joining our Discord server) so we know the community is growing.
         </p>
 
         <h3 className="text-lg font-medium mb-2">when things go wrong 💀</h3>
@@ -479,7 +495,7 @@ function GenZContent() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 pr-4 font-medium text-foreground">
-                  what we're doing
+                  what we&apos;re doing
                 </th>
                 <th className="text-left py-2 pr-4 font-medium text-foreground">
                   legal reason (GDPR Art. 6)
@@ -537,8 +553,8 @@ function GenZContent() {
           </li>
           <li>
             <span className="font-medium text-foreground">PostHog Inc.</span> —
-            analytics + session replay. EU region (eu.i.posthog.com). they can
-            process data in the US but it's covered by a signed DPA, Standard
+            analytics. EU region (eu.i.posthog.com). they can
+            process data in the US but it&apos;s covered by a signed DPA, Standard
             Contractual Clauses, and the EU-US Data Privacy Framework. we did
             the paperwork fr.{" "}
             <Link
@@ -580,7 +596,7 @@ function GenZContent() {
             <span className="font-medium text-foreground">
               Twitch Interactive, Inc.
             </span>{" "}
-            — OAuth login provider. ur Twitch usage is covered by Twitch's own
+            — OAuth login provider. ur Twitch usage is covered by Twitch&apos;s own
             policy, not ours.{" "}
             <Link
               href="https://www.twitch.tv/p/en/legal/privacy-notice/"
@@ -701,13 +717,14 @@ function GenZContent() {
               analytics cookies
             </span>{" "}
             (PostHog) — only set if u accepted. recognises ur browser across
-            sessions, powers session replay. runs through our own domain so ad
-            blockers don&apos;t clap it.
+            sessions. runs through our own domain so ad blockers don&apos;t clap
+            it. declined? zero analytics cookies, zero identifiers. fr.
           </li>
         </ul>
         <p className="text-muted-foreground leading-relaxed mt-4">
           zero advertising cookies. zero remarketing. zero selling ur attention
-          to randos. that&apos;s loser behavior ngl.
+          to randos. that&apos;s loser behavior ngl. wanna un-consent? cookie
+          settings in the footer, one click, we ask again.
         </p>
       </section>
 

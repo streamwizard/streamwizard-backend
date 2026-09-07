@@ -1,21 +1,7 @@
 import type { OverlayEventType } from "@repo/types";
-import { supabase } from "@repo/supabase";
-import { getTwitchIntegrationByBroadcasterId } from "@repo/supabase/queries/user";
 import { overlayWsClient } from "../overlay-ws-client";
-
-// broadcaster_user_id (Twitch) → supabase user_id
-const userIdCache = new Map<string, string>();
-
-async function resolveUserId(broadcasterId: string): Promise<string | null> {
-  const cached = userIdCache.get(broadcasterId);
-  if (cached) return cached;
-
-  const { data } = await getTwitchIntegrationByBroadcasterId(supabase, broadcasterId);
-  if (!data?.user_id) return null;
-
-  userIdCache.set(broadcasterId, data.user_id);
-  return data.user_id;
-}
+import { enrichOverlayEvent } from "./enrichOverlayEvent";
+import { resolveUserId } from "./resolveUserId";
 
 export async function broadcastOverlayEvent(
   broadcasterId: string,
@@ -25,5 +11,13 @@ export async function broadcastOverlayEvent(
   const userId = await resolveUserId(broadcasterId);
   if (!userId) return;
 
-  overlayWsClient.send({ userId, type, payload });
+  // Adds badge image URLs and the subject's avatar when they're already
+  // cached. Cache-only and additive, so this never reaches Helix and never
+  // changes a field a widget already reads. It can await a cache read, but
+  // only within its own short budget.
+  overlayWsClient.send({
+    userId,
+    type,
+    payload: await enrichOverlayEvent(broadcasterId, type, payload),
+  });
 }

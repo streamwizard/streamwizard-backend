@@ -8,7 +8,7 @@ Three connection roles share one server, each authenticated differently:
 
 | Role | Auth | Who it is |
 |------|------|-----------|
-| `publisher` | Supabase JWT *or* an `irl_collector_tokens` row | A phone/device sending GPS. One per user room. |
+| `publisher` | Supabase JWT *or* `overlay_scenes.subscriber_token` | The GPS overlay page sending on-device GPS. One per user room. |
 | `subscriber` | `overlay_scenes.subscriber_token` | An OBS overlay. Many per user room. |
 | `bot` | `Bearer <SUPABASE_SERVICE_ROLE_KEY>` | `streamwizard-bot` — one persistent connection, fans Twitch events out to subscribers. |
 

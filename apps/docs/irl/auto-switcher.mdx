@@ -1,0 +1,218 @@
+---
+title: "The auto switcher"
+description: "Watches your connection and switches scenes when it goes bad. Here's exactly how it thinks."
+---
+
+You're walking, you go under a bridge, your bitrate falls off a cliff. Chat
+stares at a frozen frame for forty seconds. The auto switcher is what stops
+that: it watches your incoming signal and moves your OBS to a fallback scene
+when the connection goes bad, then comes back once it's properly stable.
+
+You'll find it in the **Auto Switcher** tab on the Cloud OBS page. The
+container has to be running to open it; the scene pickers read the real scene
+list from your OBS.
+
+## What it reads
+
+The ingest server measures your incoming stream once a second and hands the
+switcher three numbers:
+
+- **Bitrate** in kbps. A floor: below it counts as bad.
+- **Ping (RTT)** in milliseconds. A ceiling.
+- **Packet loss** as a percentage. A ceiling. This is measured as packets
+  that were actually given up on, damage your viewers can see, not raw
+  radio loss that SRT quietly repairs. Cellular connections routinely lose
+  and recover several percent without anyone noticing, so raw loss was
+  never a useful signal.
+
+Each second, every metric is scored good or bad against its limit. On plain
+RTMP only bitrate arrives, so only bitrate is judged. One more reason to
+[stream SRT or SRTLA](/irl/irl-pro#srt-or-srtla).
+
+## How it decides
+
+It never reacts to one bad second. Everything runs on streaks:
+
+- **Falling back**: if any one metric has been bad for its trigger count in
+  a row, the switcher leaves your live scene.
+- **Coming back**: all three metrics must be good for the recover count in
+  a row. One bad second resets the whole streak.
+- **Startup**: a fresh stream is checked before it's allowed on your live
+  scene. Bad from the first second means it opens on the fallback instead
+  of showing chat a mess.
+- **Offline**: if samples stop arriving entirely for the offline timeout,
+  the stream counts as gone, not just bad, and you land on your connection
+  lost scene.
+
+Recovery is deliberately slower than falling back. The ingest holds a 4
+second buffer, and during an outage that buffer drains; it needs about its
+own depth of good delivery to refill. Switch back faster than that and your
+viewers get a stuttering picture. That's also why a stream that flaps
+between scenes every ten seconds is worse than one that waits a few extra
+seconds to be sure.
+
+## The scenes
+
+Two or three, your choice:
+
+- **Live scene**: your normal scene with the feed in it.
+- **Connection lost scene**: your BRB screen.
+- **Low bitrate scene** (3-scene setup only): for rough-but-alive, maybe a
+  cropped camera or a "signal is struggling" banner. On a 2-scene setup,
+  rough and gone both land on the connection lost scene.
+
+Start with two if you're unsure.
+
+<Frame caption="Two scenes or three.">
+  <img src="/images/irl/switcher-02-scene-model.png" alt="Auto switcher scene model choice" />
+</Frame>
+
+Point the pickers at real scenes and save. The switcher tracks scenes by
+their internal id, so renaming a scene in OBS later is fine; deleting one
+makes the picker tell you it's gone so you can re-pick.
+
+<Frame caption="Scene pickers read your actual OBS scene list.">
+  <img src="/images/irl/switcher-03-scene-pickers.png" alt="Auto switcher scene pickers" />
+</Frame>
+
+## Sensitivity presets
+
+Three presets set all the numbers at once. **Balanced** is the default and
+right for most streams.
+
+<Frame caption="Relaxed, Balanced, Fast.">
+  <img src="/images/irl/switcher-04-presets.png" alt="Auto switcher sensitivity presets" />
+</Frame>
+
+The numbers behind them:
+
+|                | Relaxed | Balanced | Fast |
+| -------------- | ------- | -------- | ---- |
+| Bitrate floor  | 300 kbps | 500 kbps | 800 kbps |
+| Ping max       | 2000 ms | 1500 ms  | 1000 ms |
+| Loss max       | 2%      | 1%       | 0.5% |
+| Switch after   | 6s bad  | 4s bad   | 2s bad |
+| Back after     | 15s good | 8s good | 5s good |
+| Startup check  | 8s      | 6s       | 4s |
+| Offline after  | 10s quiet | 7s quiet | 5s quiet |
+
+The ping ceilings look high next to other tools, and that's on purpose: the
+4 second ingest buffer absorbs latency spikes from tower handovers that
+would otherwise trigger a switch on an ordinary walk. The bitrate floors
+look low for the same reason: adaptive encoders like IRL Pro ride down to
+500-1000 kbps in bad spots and stay watchable, so the floor is a last-resort
+signal, not the primary one.
+
+Pick **Relaxed** for mobile in a city, where short dips are normal life.
+Pick **Fast** for a connection that's usually stable, where a drop means
+something actually broke. Save, and the engine picks the change up within a
+second, mid-stream, no restart.
+
+You don't need a laptop to change this. [The deck](/irl/deck) has the same
+three presets in its bottom bar, so you can loosen things up the moment you
+walk into a packed venue and tighten them again on the way out.
+
+## Advanced thresholds
+
+If no preset fits, flip on **Advanced mode** for the raw table. It starts
+from whichever preset you had, so flipping the switch changes nothing by
+itself. One sample arrives per second, so every count in the table is really
+"this many seconds in a row".
+
+<Frame caption="The advanced threshold matrix.">
+  <img src="/images/irl/switcher-05-advanced-matrix.png" alt="Auto switcher advanced thresholds" />
+</Frame>
+
+- **Limit**: what counts as bad. Bitrate is a floor, ping and loss are
+  ceilings.
+- **Trigger**: seconds a metric must be bad before leaving your live scene.
+- **Recover**: seconds every metric must be good before coming back.
+- **Startup**: the check a new stream passes before it's allowed on the
+  live scene.
+- **Offline after**: seconds of complete silence that count as gone. Keep
+  it above 5; OBS still has about 4 seconds of buffered good video when
+  stats stop, and cutting away sooner abandons a picture that's still fine.
+
+When you edit, change one row at a time; change all three and you learn
+nothing. Some rules of thumb:
+
+- Switches too often? Raise **trigger** seconds before you loosen limits.
+- Comes back too eagerly and drops again? Raise **recover**. But don't
+  park it at 20-30 seconds: the good streak resets to zero on a single bad
+  sample, so a huge recover count can leave a perfectly usable stream stuck
+  on the backup scene.
+- Keep the bitrate floor well under what you normally stream at, or every
+  small dip becomes a scene change.
+
+## The extras
+
+Four options under the settings, all optional. Logging is the only one on
+by default.
+
+<Frame caption="Logging, chat notices, warning source, auto stop.">
+  <img src="/images/irl/switcher-06-extras.png" alt="Auto switcher extras" />
+</Frame>
+
+- **Logging** puts every switch in your activity feed and VOD timeline with
+  the reason. Useful the morning after, when you want to know whether it
+  was you or the connection.
+- **Chat notices** post in your channel as you, not as a bot, so chat
+  hears what's going on without you typing. You write three messages:
+  quality dropped, signal lost, back live. Four placeholders work in all
+  of them: `{bitrate}` in kbps, `{rtt}` in ms, `{loss}` as a percentage,
+  `{scene}` for where it switched. Chat gets told once per switch, not
+  once per second. "Back live" only goes out if chat heard about a problem
+  first, and only within 10 minutes of it. Going from Starting Soon to
+  your live scene is not a recovery, and a stream that ended half an hour
+  ago shouldn't open the next one with an all clear.
+- **Warning source** is a source in your live scene, an "unstable
+  connection" banner for example, that appears after two bad seconds and
+  disappears after five good ones, without any scene switch. The polite
+  warning before the real fallback.
+- **Auto stop** ends the OBS stream output after a set number of minutes
+  offline, 1 to 120. Nobody needs three hours of BRB loop. Your container
+  and scenes are left alone.
+
+There's also a field to **pin one stream key label**, so the switcher
+judges that stream only and ignores anything else arriving at your ingest.
+
+## The status card
+
+While a stream is arriving, the status card shows the state, which stream
+key it's watching, and three progress bars, one per metric. Live, the bars
+fill toward a switch; recovering, they fill toward going back. The same
+status is available as an overlay widget in the Overlay Editor if you want
+it on stream. The quickest way in is **New Overlay → Auto switcher monitor**,
+which drops the widget on a canvas already set up for it. It hides itself
+while everything is healthy, so it costs you nothing on screen until it has
+something to say.
+
+A red **Problem** line is the engine's last error, usually a scene switch
+that couldn't reach your OBS. It retries every few seconds by itself; if it
+sticks, restart the container.
+
+## Watching it from the street
+
+You can't see the status card while you're out filming. The **Auto switcher
+monitor** overlay puts the same information on your phone's own preview,
+visible to you and not to your viewers. See
+[switcher status on your phone](/irl/switcher-monitor).
+
+## When nothing switches
+
+Work down this list:
+
+1. Is the switcher on, and did you actually hit save?
+2. Are scenes picked? Without a live and a connection lost scene there's
+   nothing to switch between.
+3. Does the badge say **OBS Connected**?
+4. Is a stream arriving, or does the status card say "Waiting for stream"?
+5. Are you holding a scene? "Held by you" means it's standing down on
+   purpose.
+6. "This scene no longer exists" means you deleted it in OBS. Pick a new
+   one and save.
+
+Still stuck? Open a ticket in [our Discord](https://discord.gg/streamwizard).
+We answer fast, usually faster than your stream takes to reconnect under a
+bridge. Bring your stream key label and roughly when it happened, and we'll
+dig through the logs with you.

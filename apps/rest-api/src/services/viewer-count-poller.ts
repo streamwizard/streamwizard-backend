@@ -1,3 +1,4 @@
+import { reportError } from "@repo/sentry";
 import { supabase } from "@repo/supabase";
 import { insertViewerCount } from "@repo/supabase/queries/viewer-counts";
 import { TwitchApi } from "@repo/twitch-api";
@@ -31,11 +32,15 @@ class ViewerCountPoller {
     );
 
     // Record initial viewer count immediately
-    this.recordViewerCount(broadcasterId, streamId).catch(console.error);
+    this.recordViewerCount(broadcasterId, streamId).catch((error) =>
+      reportError(error, "viewer-count-poller.start", { broadcasterId, streamId }),
+    );
 
     // Set up interval for periodic polling
     const intervalId = setInterval(() => {
-      this.recordViewerCount(broadcasterId, streamId).catch(console.error);
+      this.recordViewerCount(broadcasterId, streamId).catch((error) =>
+        reportError(error, "viewer-count-poller.tick", { broadcasterId, streamId }),
+      );
     }, POLLING_INTERVAL_MS);
 
     this.activePollers.set(broadcasterId, intervalId);
@@ -108,10 +113,7 @@ class ViewerCountPoller {
           `at offset ${Math.floor(offsetSeconds / 60)}m ${offsetSeconds % 60}s`,
       );
     } catch (error) {
-      console.error(
-        `[ViewerCountPoller] Error recording viewer count for ${broadcasterId}:`,
-        error,
-      );
+      reportError(error, "viewer-count-poller.record", { broadcasterId, streamId });
     }
   }
 }

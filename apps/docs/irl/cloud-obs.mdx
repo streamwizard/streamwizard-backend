@@ -1,0 +1,88 @@
+---
+title: "Cloud OBS setup"
+description: "From nothing to a running cloud OBS with your ingest wired in. The guided setup does most of it."
+---
+
+Head to **Dashboard → IRL → Cloud OBS**. First visit shows a guided setup with
+five steps. It creates your stream key, boots your container, and wires the
+ingest into OBS for you.
+
+<Steps>
+  <Step title="Create an ingest key">
+    Give it a label, something like `phone`, and hit **Create key**. This is
+    the key your phone or encoder authenticates with. You get one key; if it
+    ever leaks, rotate it from the [Ingest keys page](/irl/cloud-obs#your-ingest-urls)
+    and the old one stops working immediately.
+
+    <Frame caption="The guided setup as it first loads.">
+      <img src="/images/irl/onboarding-01-stepper-empty.png" alt="Cloud OBS guided setup, step 1 active" />
+    </Frame>
+  </Step>
+  <Step title="Launch your cloud container">
+    Hit **Launch Cloud OBS**. StreamWizard picks a server and starts your
+    container. Boot usually takes seconds; if you blink you'll land straight
+    on the next step.
+
+    <Frame caption="Key created, launch unlocked.">
+      <img src="/images/irl/onboarding-02-key-created.png" alt="Key created, Launch Cloud OBS button unlocked" />
+    </Frame>
+  </Step>
+  <Step title="OBS boots inside it">
+    Nothing to do here. When the badge flips to **OBS Connected**, StreamWizard
+    has already created a scene named `IRL` with a source called
+    `StreamWizard Ingest` pointed at your feed. Your phone's video shows up
+    there the moment you start streaming.
+
+    <Frame caption="OBS connected, ingest wired in automatically.">
+      <img src="/images/irl/onboarding-04-obs-connected.png" alt="OBS connected badge" />
+    </Frame>
+  </Step>
+  <Step title="Add alert sources (optional)">
+    Paste in widget URLs from your alert provider and pick which scenes show
+    them. Skip it if you want, you can always edit or add alert sources later
+    inside OBS itself.
+
+    <Frame caption="Adding an alert source during setup.">
+      <img src="/images/irl/onboarding-05-alert-sources-step.png" alt="Alert sources step" />
+    </Frame>
+  </Step>
+  <Step title="Open OBS">
+    Hit **Open OBS**. A window opens with the real OBS interface, the same one
+    running in your container. Arrange scenes, add text, whatever you'd do in
+    OBS at home.
+
+    <Frame caption="Your OBS, running in the cloud.">
+      <img src="/images/irl/onboarding-07-obs-viewer.png" alt="OBS viewer window" />
+    </Frame>
+  </Step>
+</Steps>
+
+## Your ingest URLs
+
+**Dashboard → IRL → Ingest keys** shows the two URLs for your key:
+
+- `srt://<your-server>:8888?streamid=<key>` for single-connection setups
+- SRTLA on port 5000 for bonded setups
+
+Which one goes in your phone: see [SRT or SRTLA](/irl/irl-pro#srt-or-srtla).
+From this page you can also copy, rotate or delete the key, and DM it to
+yourself on Discord so you're not retyping a long random string on a phone
+keyboard.
+
+<Frame caption="The Ingest keys page with both URLs.">
+  <img src="/images/irl/onboarding-08-ingest-keys-page.png" alt="Ingest keys page" />
+</Frame>
+
+## The container
+
+The dashboard shows your container's state and a live preview of the OBS
+window. **Stop container** shuts OBS down; your scenes, sources and uploaded
+files survive and come back on the next start.
+
+<Frame caption="Container running with the live OBS preview.">
+  <img src="/images/irl/container-01-running.png" alt="Running container" />
+</Frame>
+
+## Next
+
+Point your phone at the ingest: [set up IRL Pro on Android](/irl/irl-pro).

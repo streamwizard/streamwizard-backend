@@ -2,7 +2,7 @@
   "name": "@repo/sentry",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "^1.3.6",
-    "typescript": "^5.7.3"
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.2"
   }
 }

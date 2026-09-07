@@ -1,9 +1,18 @@
 "use server";
 
+import { reportError } from "@repo/sentry";
+
 import type { ClipsWidgetConfig } from "@/types/overlays";
-import { getAuthContext } from "@/lib/auth";
+import { tryAuthContext } from "@/lib/auth";
 import { getTwitchIntegrationByUserId } from "@repo/supabase/queries/user";
 import { getClipFolderJunctions, getOverlayClips } from "@repo/supabase/queries/clips";
+
+/**
+ * The editor preview only needs enough clips to show the rotation working. The
+ * live widget pages the DB one clip at a time and has no pool, so there is no
+ * user-facing setting to mirror here.
+ */
+const PREVIEW_CLIP_SAMPLE = 25;
 
 export interface PreviewClip {
   id: number;
@@ -23,8 +32,9 @@ export async function getPreviewClips(config: ClipsWidgetConfig): Promise<{
   clips: PreviewClip[];
   error: string | null;
 }> {
-  let supabase, user;
-  try { ({ supabase, user } = await getAuthContext()); } catch { return { clips: [], error: "Unauthorized" }; }
+  const ctx = await tryAuthContext();
+  if (!ctx) return { clips: [], error: "Unauthorized" };
+  const { supabase, user } = ctx;
 
   const { data: twitchIntegration } = await getTwitchIntegrationByUserId(supabase, user.id);
   const twitchUserId = twitchIntegration?.twitch_user_id ?? null;
@@ -52,13 +62,16 @@ export async function getPreviewClips(config: ClipsWidgetConfig): Promise<{
       timeWindow: config.timeWindow,
       customDateRange: config.customDateRange,
       sort: config.sort,
-      maxClips: config.maxClips,
+      limit: PREVIEW_CLIP_SAMPLE,
       broadcasterTwitchId: config.folderIds.length === 0 ? twitchUserId : null,
       clipTwitchIds,
     }
   );
 
-  if (error) return { clips: [], error: error.message };
+  if (error) {
+    reportError(error, "actions/overlays-preview");
+    return { clips: [], error: error.message };
+  }
 
   let result = (clips ?? []) as unknown as PreviewClip[];
 

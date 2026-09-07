@@ -1,4 +1,5 @@
 import type { ChannelChatMessageEvent } from "@repo/schemas";
+import { reportError } from "@repo/sentry";
 
 // Import variable resolvers from separate files
 import { GlobalVariableResolvers, type GlobalContext } from "./variables/global";
@@ -23,7 +24,7 @@ export type ServiceDependencies = {
 };
 
 // Union of all possible contexts (expand this as you add services)
-export type ServiceContext = GlobalContext | TwitchContext; // | YouTubeContext | DiscordContext | SpotifyContext;
+export type ServiceContext = GlobalContext | TwitchContext; // | YouTubeContext | DiscordContext;
 
 // ===== SERVICE CONFIGURATIONS =====
 
@@ -112,7 +113,7 @@ export async function resolveVariables(message: string, ctx: ServiceContext = {}
               : String(value);
       resolvedMessage = resolvedMessage.replace(variable, stringValue);
     } catch (error) {
-      console.error(`Error resolving ${namespace}.${key}:`, error);
+      reportError(error, "resolve-variables", { namespace, key });
       resolvedMessage = resolvedMessage.replace(variable, "");
     }
   }

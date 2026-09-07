@@ -1,5 +1,6 @@
 // ./variables/twitch.ts
 import { TwitchApi } from "@repo/twitch-api";
+import { reportError } from "@repo/sentry";
 import type { BaseContext, VariableResolver, FlexibleResolver } from "../resolveVariables";
 
 // Twitch context requires TwitchApi
@@ -18,7 +19,7 @@ export const TwitchVariableResolvers: Record<
       const count = await twitchApi.followers.getFollowerCount();
       return String(count ?? 0);
     } catch (error) {
-      console.error("Error fetching follower count:", error);
+      reportError(error, "variables.twitch.follower-count");
       return "0";
     }
   },
@@ -40,7 +41,7 @@ export const TwitchVariableResolvers: Record<
       if (days === 1) return "1 day";
       return `${days} days`;
     } catch (error) {
-      console.error("Error fetching follow age:", error);
+      reportError(error, "variables.twitch.follow-age");
       return "";
     }
   },
@@ -74,7 +75,7 @@ export const TwitchVariableResolvers: Record<
       console.log("🔑 Subscriber count:", count);
       return String(count ?? 0);
     } catch (error) {
-      console.error("Error fetching subscriber count:");
+      reportError(error, "variables.twitch.subscriber-count");
       return "0";
     }
   },

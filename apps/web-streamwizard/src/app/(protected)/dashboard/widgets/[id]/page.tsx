@@ -1,6 +1,6 @@
 import { getWidget } from "@/actions/widgets";
 import { notFound } from "next/navigation";
-import { WidgetEditorClient } from "./widget-editor-client";
+import { WidgetEditorClient } from "@/components/widgets/editor/widget-editor-client";
 
 export default async function WidgetEditorPage({
   params,

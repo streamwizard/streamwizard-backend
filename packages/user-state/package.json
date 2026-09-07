@@ -1,0 +1,28 @@
+{
+  "name": "@repo/user-state",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/supabase": "workspace:*",
+    "@repo/types": "workspace:*",
+    "@supabase/supabase-js": "^2.105.1"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.2"
+  }
+}

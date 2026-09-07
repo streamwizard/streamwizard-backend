@@ -1,0 +1,66 @@
+---
+title: "Globals & lifecycle"
+description: "Everything injected into your widget's sandbox: globals, lifecycle events, and bundled libraries."
+---
+
+## Globals
+
+| Global | What it is |
+|--------|-----------|
+| `fieldData` | Values of your [fields](/widgets/fields), defaults merged with the streamer's overrides. |
+| `StreamWizard.state` | `get()` / `set()` persistence for this one placed widget, see [state](/widgets/state). |
+| `StreamWizard.userState` | `get(key)` / `getAll()` / `set(key, value)` / `increment(key, amount?)` / `delete(key)` / `subscribe(key, cb)` / `onChange(cb)` channel-wide state, also written by the server, pushed live to open overlays. See [state](/widgets/state). |
+| `StreamWizard.session` | `{ subscriberToken, overlayItemId }` once the widget runs on an overlay; `null` in the editor preview. |
+| `StreamWizard.stateUrl` | Raw state endpoint. Prefer `StreamWizard.state`. |
+| `StreamWizard.userStateUrl` | Raw channel-state endpoint. Prefer `StreamWizard.userState`. |
+| `gsap` | GSAP 3.12 animation library. |
+| `TextPlugin` | GSAP text animation; call `gsap.registerPlugin(TextPlugin)` first. |
+
+## Lifecycle events
+
+All three arrive as DOM `CustomEvent`s on `window`.
+
+### `onWidgetLoad`
+
+Fires once when the widget mounts.
+
+```js
+addEventListener('onWidgetLoad', (e) => {
+  const { fieldData, channel, session } = e.detail;
+  // channel.user_id: the broadcaster's Twitch user ID
+  // session: { subscriberToken, overlayItemId } or undefined in the preview
+});
+```
+
+### `onEventReceived`
+
+Every live event. `detail.listener` names the event, `detail.event` is the
+payload. The full catalog with exact payload shapes lives in the
+[event reference](/widgets/api/events).
+
+```js
+addEventListener('onEventReceived', (e) => {
+  const { listener, event } = e.detail;
+  if (listener === 'channel.cheer') {
+    console.log(`${event.user_name} cheered ${event.bits} bits`);
+  }
+});
+```
+
+### `onSessionUpdate`
+
+Reserved. Nothing emits it today; don't build on it.
+
+## Bundled libraries
+
+- **Tailwind CSS** via CDN: use utility classes directly in your HTML.
+- **GSAP 3.12.5 + TextPlugin**: timelines, easings, text animation.
+
+No other external scripts load, and the sandbox blocks adding your own script
+tags from other origins. `fetch()` works against the StreamWizard state API,
+your media library files, and the weather/geocoding APIs used by IRL widgets.
+
+## The editor knows all of this
+
+The JS tab autocompletes every global, event name, and payload field on this
+page. When in doubt, type `e.detail.` and read what comes up.

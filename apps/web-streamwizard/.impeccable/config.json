@@ -1,0 +1,50 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "10px",
+        "createdAt": "2026-08-19T11:43:07.907Z",
+        "reason": "DESIGN.md typography prose documents the 10px mono label step (demo tag / dock labels); frontmatter ramp omits it"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "13px",
+        "files": [
+          "src/app/prototypes/hero/proto.css"
+        ],
+        "createdAt": "2026-08-19T11:47:00.871Z",
+        "reason": "PICKER.md verbatim picker chrome in temporary prototype harness; not project design"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/components/public/overlays/alert-box-playground.tsx"
+        ],
+        "createdAt": "2026-08-26T16:03:25.272Z",
+        "reason": "model decision, codebase evidence: purple #9e7aff is the shipped alert widget accent (alert-widget-config.ts default) and the marketing site's house palette; gradients are demo media-tile fixtures matching existing public demos (stream-overlay-demo.tsx, overlay-demo-alert.tsx)"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/public/contact/ticket-flow.tsx"
+        ],
+        "createdAt": "2026-08-27T14:45:31.076Z",
+        "reason": "Discord embed mock: real Discord embeds carry a left color bar, rows quote the bot ticket embed"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/public/contact/link-discord-section.tsx"
+        ],
+        "createdAt": "2026-08-27T14:45:31.146Z",
+        "reason": "Discord embed mock: What-staff-sees rows echo the ticket embed's left color bar"
+      }
+    ]
+  }
+}

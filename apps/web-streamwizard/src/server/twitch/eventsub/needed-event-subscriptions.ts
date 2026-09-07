@@ -16,6 +16,36 @@ const conduitSubscriptions: SubscriptionConfig[] = [
     condition: (userId) => ({ broadcaster_user_id: userId, user_id: userId }),
   },
   {
+    type: "channel.chat.notification",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, user_id: userId }),
+  },
+  {
+    type: "channel.chat.message_delete",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, user_id: userId }),
+  },
+  {
+    type: "channel.chat.clear",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, user_id: userId }),
+  },
+  {
+    type: "channel.chat.clear_user_messages",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, user_id: userId }),
+  },
+  {
+    type: "channel.shoutout.create",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, moderator_user_id: userId }),
+  },
+  {
+    type: "channel.shoutout.receive",
+    version: "1",
+    condition: (userId) => ({ broadcaster_user_id: userId, moderator_user_id: userId }),
+  },
+  {
     type: "channel.follow",
     version: "2",
     condition: (userId) => ({ broadcaster_user_id: userId, moderator_user_id: userId }),

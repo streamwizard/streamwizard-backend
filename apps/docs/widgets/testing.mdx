@@ -1,0 +1,80 @@
+---
+title: "Testing your widget"
+description: "Fire fake events at any widget from the editor — no live stream, no phone, no waiting for a follower."
+---
+
+Waiting for a real follow to check your alert animation is a bad loop. Demo
+mode fires fake events at any widget, from either editor, so you can see what
+your widget does before anyone is watching.
+
+It works on **every** widget, including ones you didn't write. Nothing has to
+be built into the widget for this to work.
+
+## Where it is
+
+- **Widget editor** — the Demo bar sits above the preview.
+- **Overlay editor** — the **Demo** button in the toolbar opens the same bar,
+  and events go to every widget on the canvas at once.
+
+## One-shot events
+
+Pick an event and hit **Fire**. The four events most widgets are built around
+(follow, sub, cheer, raid) have their own buttons.
+
+The picker leads with a **Used by this widget** group — the events your
+widget's source actually references — then lists everything else by category.
+Nothing is hidden; the detected ones just come first.
+
+<Note>
+  Detection reads your JavaScript for listener strings. If you build them at
+  runtime (`'channel.' + kind`) there's nothing to find, and you get the full
+  list instead. Everything still works, it's just less sorted.
+</Note>
+
+### Editing the payload
+
+Open **Payload** to edit the JSON before firing — change the username, the bit
+amount, the message text. Edits stick to that one event and are remembered per
+widget. **Reset payload** puts the default back.
+
+Untouched payloads are rebuilt on every fire, so timestamps and IDs stay fresh.
+
+## Simulators
+
+Some things only make sense in motion. A speed readout, a distance counter, or
+a chat feed can't be judged from a single event.
+
+| Simulator | What it sends |
+| --- | --- |
+| **Moving GPS track** | A `streamwizard.geo` fix every second, walking through Amsterdam at a varying speed |
+| **Chat messages** | A `channel.chat.message` every few seconds, cycling through a handful of chatters |
+
+Press to start, press again to stop. They keep running while the panel is
+collapsed — the toolbar button shows a count so you don't forget one is going.
+
+<Warning>
+  Don't build a demo mode into your widget. A `demoMode` field and a fake-data
+  loop in your own script is exactly what this replaces, and it ships to every
+  viewer. If you have one already, the widget editor will point it out.
+</Warning>
+
+## Local vs Live
+
+**Local** posts straight into the editor preview. Instant, private, no server
+involved.
+
+**Live** sends through StreamWizard's overlay server, so the event travels the
+same path a real one does and reaches **every overlay you have open** —
+including the browser source in OBS. Use it to confirm a widget behaves in OBS,
+not just in the editor.
+
+Live is rate limited to 120 events a minute. A running simulator counts against
+that, so a simulator that trips the limit stops itself rather than retrying
+forever.
+
+## Geo and offline
+
+`streamwizard.geo` carries its own status. **GPS fix** sends a normal reading;
+**GPS offline** sends the frame your widget gets when the IRL phone
+disconnects, so you can check what your bar does when the signal drops without
+unplugging anything.

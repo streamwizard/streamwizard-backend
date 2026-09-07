@@ -63,7 +63,7 @@ export function DeleteAccountSection() {
                   <p>
                     Everything goes — clips, overlays, stream history, integrations. Yes, even the
                     847 clips you were definitely going to sort through one day. No recovery, no undo,
-                    no "wait actually—".
+                    no &quot;wait actually—&quot;.
                   </p>
                   <p>
                     We{"'"}ll scrub your data immediately. Encrypted backups may hang around for up

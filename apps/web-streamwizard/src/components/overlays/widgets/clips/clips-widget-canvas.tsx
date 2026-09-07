@@ -15,7 +15,7 @@ import { ClipVideoPreview } from "./clip-video-preview";
 export function ClipsWidgetCanvas({
   item,
   scene,
-  zoom,
+  screenScale,
   selectedItemId,
   selected,
   selectItem,
@@ -39,7 +39,7 @@ export function ClipsWidgetCanvas({
   return (
     <ClipVideoPreview
       config={buildCompositeClipsConfig(item, scene.items)}
-      zoom={zoom}
+      screenScale={screenScale}
       editable={clipWidgetEditable}
       selectedFieldKey={selectedFieldKey}
       editorClipPlayback={editorClipPlayback}

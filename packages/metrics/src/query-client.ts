@@ -15,6 +15,20 @@ function getQueryApi(): QueryApi {
   return queryApi;
 }
 
+// Flux duration literal: an integer followed by a single unit (ns/us/ms/s/m/h/d/w/y).
+// Query builders interpolate range/window strings directly into Flux source
+// (this client has no parameterized-query support), so anything reaching them
+// from a request (e.g. ?range=, ?window=) must be validated against this
+// shape first — otherwise it's a Flux injection point.
+const FLUX_DURATION_RE = /^\d{1,5}(ns|us|µs|ms|s|m|h|d|w|y)$/;
+
+export function assertValidFluxDuration(value: string, label: string): string {
+  if (!FLUX_DURATION_RE.test(value)) {
+    throw new Error(`Invalid ${label}: "${value}" is not a valid Flux duration`);
+  }
+  return value;
+}
+
 export async function runFluxQuery<T>(
   query: string,
   rowMapper: (row: Record<string, string>) => T

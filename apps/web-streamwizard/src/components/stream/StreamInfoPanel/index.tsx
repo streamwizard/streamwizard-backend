@@ -54,10 +54,16 @@ export function StreamInfoPanel({
   function handleSave() {
     startTransition(async () => {
       try {
-        await updateChannelInfo(broadcasterId, {
+        // The broadcaster is derived from the session server-side; passing an
+        // id from here would only be a suggestion the action ignores.
+        const result = await updateChannelInfo({
           title: title || undefined,
           gameId: gameId || undefined,
         });
+        if (!result.ok) {
+          toast.error(result.error ?? "Couldn't update channel. Try again.");
+          return;
+        }
         toast.success("Channel updated.");
         setEditing(false);
         router.refresh();

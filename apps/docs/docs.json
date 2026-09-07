@@ -33,7 +33,59 @@
                   "clips/folders"
                 ]
               },
+              {
+                "group": "IRL streaming",
+                "pages": [
+                  "irl/overview",
+                  "irl/cloud-obs",
+                  "irl/irl-pro",
+                  "irl/auto-switcher",
+                  "irl/switcher-monitor",
+                  "irl/walking-stats",
+                  "irl/deck"
+                ]
+              },
+              {
+                "group": "Overlays",
+                "pages": [
+                  "overlays/overview",
+                  "overlays/quickstart",
+                  "overlays/alerts",
+                  "overlays/media-library",
+                  "overlays/obs-setup"
+                ]
+              },
               "settings"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Widgets",
+        "groups": [
+          {
+            "group": "Build widgets",
+            "pages": [
+              "widgets/overview",
+              "widgets/quickstart",
+              "widgets/fields",
+              "widgets/state",
+              "widgets/testing",
+              "widgets/publishing"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
+              "widgets/api/globals",
+              "widgets/api/events"
+            ]
+          },
+          {
+            "group": "Recipes",
+            "pages": [
+              "widgets/recipes/alert-box",
+              "widgets/recipes/counter"
             ]
           }
         ]

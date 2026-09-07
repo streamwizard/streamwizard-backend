@@ -6,6 +6,30 @@ export const BadgeSchema = z.object({
   set_id: z.string(),
   id: z.string(),
   info: z.string(),
+  // Added by StreamWizard before dispatch, not sent by Twitch. EventSub gives
+  // only set_id + version, and the badge image lives behind a Helix lookup with
+  // an opaque uuid in the URL, so this is the only way a widget can render the
+  // channel's real artwork. `url` is the StreamElements-compatible alias for
+  // url_2x, so ported code that does badge.url keeps working.
+  //
+  // Optional because resolution is cache-only on the dispatch path: a cold
+  // cache omits them and fills in the background rather than making a Helix
+  // call per chat message. Always guard before use.
+  url: z.string().optional(),
+  url_1x: z.string().optional(),
+  url_2x: z.string().optional(),
+  url_4x: z.string().optional(),
+});
+
+/**
+ * Avatar of the person an event is about, added by StreamWizard before
+ * dispatch. No EventSub payload carries one — resolving it needs GET /helix/users.
+ *
+ * Optional for the same reason as the badge URLs above: cache-only enrichment,
+ * so the first event for an unseen user omits it and the next one has it.
+ */
+export const EnrichedUserProfileSchema = z.object({
+  user_profile_image_url: z.string().optional(),
 });
 
 export const BroadcasterSchema = z.object({

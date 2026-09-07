@@ -19,7 +19,7 @@ body:
       options:
         - web-streamwizard (main web app)
         - web-overlay (Twitch overlay)
-        - web-monitor (monitoring dashboard)
+        - web-admin (monitoring dashboard)
         - rest-api
         - streamwizard-bot
         - ws-server

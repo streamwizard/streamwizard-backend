@@ -4,6 +4,8 @@ import { createClient } from "@repo/supabase/next/server";
 import checkEventSubscriptions from "@/server/twitch/eventsub/check-event-subscriptions";
 import { encryptToken } from "@repo/supabase/crypto";
 import { updateTwitchTokens } from "@repo/supabase/queries/user";
+import { captureServerEvent } from "@repo/posthog/server";
+import { reportError } from "@repo/sentry";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -23,19 +25,44 @@ export async function GET(request: Request) {
       ? rawNext
       : "/dashboard";
 
+  const oauthError = searchParams.get("error");
+  const oauthErrorCode = searchParams.get("error_code");
+  const oauthErrorDescription = searchParams.get("error_description");
+
+  const errorRedirect = (reason: string) =>
+    NextResponse.redirect(`${origin}/auth/auth-code-error?provider=twitch&reason=${reason}`);
+
+  if (oauthError) {
+    console.error("[twitch callback] OAuth provider returned an error", {
+      error: oauthError,
+      error_code: oauthErrorCode,
+      error_description: oauthErrorDescription,
+    });
+  }
+
   if (code) {
     const supabase = await createClient();
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error || !data) {
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      console.error("[twitch callback] exchangeCodeForSession failed", {
+        message: error?.message,
+        status: error?.status,
+        code: error?.code,
+      });
+      return errorRedirect("exchange_failed");
     }
 
     if (
       !data.session?.provider_token ||
       !data.session?.provider_refresh_token
     ) {
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      console.error("[twitch callback] missing provider tokens on session", {
+        hasProviderToken: !!data.session?.provider_token,
+        hasProviderRefreshToken: !!data.session?.provider_refresh_token,
+        userId: data.session?.user?.id,
+      });
+      return errorRedirect("missing_tokens");
     }
 
     // Encrypt tokens before storing
@@ -58,16 +85,33 @@ export async function GET(request: Request) {
     );
 
     if (err) {
-      console.log(err);
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      console.error("[twitch callback] updateTwitchTokens failed", err);
+      return errorRedirect("token_save_failed");
     }
 
     await checkEventSubscriptions(data.session.user.user_metadata.sub);
     if (!error) {
+      // The other side of `login_clicked`: without this the OAuth funnel has a
+      // click and then silence, and drop-off at Twitch is invisible.
+      try {
+        captureServerEvent(data.session.user.id, "login_completed", {
+          destination: next.includes("onboarding") ? "onboarding" : "dashboard",
+        });
+      } catch (phErr) {
+        reportError(phErr, "auth/callback/twitch: posthog capture failed");
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
+  if (oauthError) {
+    return errorRedirect(oauthError === "access_denied" ? "access_denied" : "provider_error");
+  }
+
+  console.error("[twitch callback] no code and no error param on request", {
+    url: requestUrl.toString(),
+  });
+
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  return errorRedirect("missing_code");
 }

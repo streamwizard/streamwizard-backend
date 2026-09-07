@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSessionStore } from "@/stores/session-store";
 import { completeOnboarding } from "@/actions/supabase/user/settings";
@@ -10,9 +10,11 @@ import { MemesStep } from "./steps/memes-step";
 import { SyncClipsStep } from "./steps/sync-clips-step";
 import { StreamStatsStep } from "./steps/stream-stats-step";
 import { SyncNowStep } from "./steps/sync-now-step";
-import { DiscordStep } from "./steps/discord-step";
+import { DiscordLinkStep } from "./steps/discord-link-step";
+import { DiscordJoinStep } from "./steps/discord-join-step";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@repo/ui";
 import { Button } from "@repo/ui";
+import { captureEvent } from "@repo/posthog";
 
 interface OnboardingValues {
   memes_enabled: boolean;
@@ -20,18 +22,68 @@ interface OnboardingValues {
   show_stream_stats: boolean;
 }
 
-const STEP_IDS = ["welcome", "sync-clips", "memes", "stream-stats", "sync-now", "discord"] as const;
+const STEP_IDS = [
+  "welcome",
+  "sync-clips",
+  "memes",
+  "stream-stats",
+  "sync-now",
+  "discord-link",
+  "discord-join",
+] as const;
+const DISCORD_LINK_STEP_INDEX = STEP_IDS.indexOf("discord-link");
+const DISCORD_JOIN_STEP_INDEX = STEP_IDS.indexOf("discord-join");
 
-export function OnboardingModal({ clipCount }: { clipCount: number }) {
+// Rendered only while the modal is actually shown, so mounting IS the event.
+function OnboardingStartedTracker() {
+  useEffect(() => {
+    captureEvent("onboarding_started");
+  }, []);
+  return null;
+}
+
+export function OnboardingModal({
+  clipCount,
+  discordStatus,
+  initialOnboardingCompleted,
+}: {
+  clipCount: number;
+  discordStatus: "verified" | "not_member" | "not_linked";
+  // Server-fetched truth. The client store's onboarding_completed defaults to
+  // false and only hydrates in a later effect, so it can't gate analytics —
+  // a mount effect would false-fire for every user already past onboarding.
+  initialOnboardingCompleted: boolean;
+}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { preferences, setPreferences } = useSessionStore();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    const marker = searchParams.get("onboarding");
+    if (marker === "discord-join-step") return DISCORD_JOIN_STEP_INDEX;
+    if (marker === "discord-link-step") return DISCORD_LINK_STEP_INDEX;
+    return 0;
+  });
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<OnboardingValues>({
     memes_enabled: preferences.memes_enabled,
     sync_clips_on_end: preferences.sync_clips_on_end,
     show_stream_stats: preferences.show_stream_stats,
   });
+
+  // Resuming at a discord step after the OAuth round trip — strip the
+  // marker so a refresh doesn't re-trigger the jump.
+  useEffect(() => {
+    const marker = searchParams.get("onboarding");
+    if (marker === "discord-join-step" || marker === "discord-link-step") {
+      router.replace("/dashboard/clips");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Captured in the initializer because the strip-marker effect above rewrites
+  // the URL right after mount, and a mount-effect check would then see no
+  // marker and miscount the OAuth resume as a fresh onboarding start.
+  const [resumedMidFlow] = useState(() => !!searchParams.get("onboarding"));
 
   const handleChange = useCallback((partial: Partial<OnboardingValues>) => {
     setValues((prev) => ({ ...prev, ...partial }));
@@ -68,8 +120,10 @@ export function OnboardingModal({ clipCount }: { clipCount: number }) {
         );
       case "sync-now":
         return <SyncNowStep clipCount={clipCount} />;
-      case "discord":
-        return <DiscordStep />;
+      case "discord-link":
+        return <DiscordLinkStep linked={discordStatus !== "not_linked"} values={values} />;
+      case "discord-join":
+        return <DiscordJoinStep status={discordStatus === "not_linked" ? "not_member" : discordStatus} />;
       default:
         return null;
     }
@@ -80,6 +134,7 @@ export function OnboardingModal({ clipCount }: { clipCount: number }) {
     const ok = await completeOnboarding(values);
     setSaving(false);
     if (!ok) return;
+    captureEvent("onboarding_completed");
     setPreferences({ ...preferences, ...values, onboarding_completed: true });
     router.push("/dashboard/clips");
   }, [values, preferences, setPreferences, router]);
@@ -101,6 +156,7 @@ export function OnboardingModal({ clipCount }: { clipCount: number }) {
 
   return (
     <Dialog open>
+      {!initialOnboardingCompleted && !resumedMidFlow && <OnboardingStartedTracker />}
       <DialogContent className="sm:max-w-lg" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="sr-only">Get set up</DialogTitle>

@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { LucideIcon } from "lucide-react";
 import type { Database } from "@repo/supabase";
 import type {
   ChildOverlayItemType,
@@ -35,7 +36,13 @@ export interface EditorClipPlaybackControls {
 export interface OverlayCanvasProps {
   item: OverlayItem;
   scene: OverlaySceneWithItems;
-  zoom: number;
+  /**
+   * On-screen px per content px (editor zoom x the item's content scale). The
+   * canvas already applies both as CSS transforms, so widget bodies must NOT
+   * multiply by this — it exists only so editor-only chrome (playback buttons,
+   * placeholder labels) can divide by it to stay legible when zoomed out.
+   */
+  screenScale: number;
   selectedItemId: string | null;
   selected: OverlayItem | undefined;
   selectItem: (id: string | null) => void;
@@ -43,7 +50,11 @@ export interface OverlayCanvasProps {
     parentClipItemId: string,
     fieldKey: DisplayFieldKey
   ) => void;
-  updateItem: (id: string, updates: Partial<OverlayItem>) => void;
+  updateItem: (
+    id: string,
+    updates: Partial<OverlayItem>,
+    options?: { history?: boolean }
+  ) => void;
   /** Editor-only: session clip preview (pause / mute / autoplay), not saved. */
   editorClipPlayback?: EditorClipPlaybackControls;
 }
@@ -53,7 +64,11 @@ export type ClipFolderRow = Database["public"]["Tables"]["clip_folders"]["Row"];
 /** Shown below generic “Properties” for root items. */
 export interface OverlayInspectorAppendProps {
   item: OverlayItem;
-  updateItem: (id: string, updates: Partial<OverlayItem>) => void;
+  updateItem: (
+    id: string,
+    updates: Partial<OverlayItem>,
+    options?: { history?: boolean }
+  ) => void;
   clipFolders: ClipFolderRow[];
 }
 
@@ -76,6 +91,8 @@ export interface OverlayRootWidgetDefinition extends WidgetBaseDefinition {
   layerScope: "root";
   showInLibrary: boolean;
   category?: WidgetCategory;
+  /** Marks the widget's rows in the layers panel so a type reads at a glance. */
+  icon: LucideIcon;
   library?: {
     title: string;
     description?: string;

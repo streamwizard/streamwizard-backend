@@ -1,4 +1,5 @@
-import { runFluxQuery } from "../query-client";
+import { runFluxQuery, assertValidFluxDuration } from "../query-client";
+import { resolveBucket, type QueryOpts } from "./query-opts";
 
 export interface HttpRequestPoint {
   time: string;
@@ -23,8 +24,10 @@ export interface HttpRouteStatPoint {
   avgDurationMs: number;
 }
 
-export async function queryHttpRequests(fluxRange = "24h", window = "1h"): Promise<HttpRequestPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryHttpRequests(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<HttpRequestPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -43,8 +46,9 @@ export async function queryHttpRequests(fluxRange = "24h", window = "1h"): Promi
   }));
 }
 
-export async function queryHttpRequestCount(fluxRange = "24h"): Promise<{ time: string; count: number; status: string }[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryHttpRequestCount(fluxRange = "24h", opts?: QueryOpts): Promise<{ time: string; count: number; status: string }[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -60,8 +64,9 @@ export async function queryHttpRequestCount(fluxRange = "24h"): Promise<{ time: 
   }));
 }
 
-export async function queryHttpRouteStats(fluxRange = "24h"): Promise<HttpRouteStatPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryHttpRouteStats(fluxRange = "24h", opts?: QueryOpts): Promise<HttpRouteStatPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})

@@ -12,6 +12,7 @@ import {
   safeDecodeOverlaySegment,
 } from "@/lib/overlay-route-params";
 import { supabaseAdmin } from "@repo/supabase/next/admin";
+import { reportError } from "@repo/sentry";
 import {
   DISPLAY_FIELD_KEYS,
   type DisplayFieldKey,
@@ -230,6 +231,9 @@ export async function loadOverlayBySlugOrId(args: {
   }
 
   if (sceneErr) {
+    // The result object is only rendered as a broken overlay in OBS — without
+    // this, a DB failure leaves no trace anywhere.
+    reportError(sceneErr, "overlay.loadOverlayBySlugOrId: scene query");
     return {
       ok: false,
       code: "DATABASE_ERROR",
@@ -253,6 +257,7 @@ export async function loadOverlayBySlugOrId(args: {
   );
 
   if (itemsError) {
+    reportError(itemsError, "overlay.loadOverlayBySlugOrId: items query");
     return {
       ok: false,
       code: "DATABASE_ERROR",

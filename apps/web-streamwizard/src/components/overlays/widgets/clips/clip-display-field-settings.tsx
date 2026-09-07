@@ -4,7 +4,7 @@ import { Button } from "@repo/ui";
 import { ChevronLeft } from "lucide-react";
 import { asClipDisplayFieldConfig } from "@/types/overlays";
 import type { OverlayInspectorAppendProps } from "../../registry/overlay-widget-registry.types";
-import { useOverlayStore } from "../../editor/use-overlay-store";
+import { useOverlayStore } from "@/stores/overlay-editor-store";
 import {
   ClipDisplayFieldInspector,
   getDefaultLayoutForField,

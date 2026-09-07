@@ -1,0 +1,32 @@
+---
+title: "OBS setup"
+description: "Browser source settings that work, and fixes for when they don't."
+---
+
+## The settings that matter
+
+Add a **Browser** source in OBS and set:
+
+- **URL**: your overlay URL (Copy URL in the editor or on the overlay card).
+- **Width / Height**: match your overlay size. Default is 1920 × 1080.
+- **Custom frame rate**: leave off unless you know you need it.
+
+Leave "Shutdown source when not visible" off for alert overlays. If OBS
+shuts the page down, alerts that fire while the scene is hidden are gone.
+
+## Sound from overlays
+
+OBS plays browser source audio through **Control audio via OBS** (right-click
+the source → Properties). Turn it on if your alert sounds are silent, and
+check the source's volume in the audio mixer.
+
+## Common fixes
+
+- **Overlay is blank**: is it switched on? Overlays render only while active.
+- **Old version showing**: right-click the browser source → **Refresh**.
+  Layout changes need a refresh; live events don't.
+- **Clips won't autoplay with sound**: browsers block autoplay audio.
+  In the clips widget settings, keep **Muted** on, or use Control audio via
+  OBS which is exempt from autoplay rules.
+- **Wrong size / cut off**: browser source width and height must match the
+  overlay's size exactly. Don't stretch it with the transform handles.

@@ -6,7 +6,7 @@ Use this file whenever you're writing copy for StreamWizard: marketing pages, la
 
 ## Who StreamWizard is talking to
 
-Streamers. People who live in Twitch chat, know what PogChamp means, have 847 untagged clips they'll never sort through, and are tired of tools that treat them like enterprise customers.
+Streamers. People who live in Twitch chat, know what PogChamp means, have a pile of untagged clips they'll never sort through, and are tired of tools that treat them like enterprise customers.
 
 ---
 
@@ -28,7 +28,7 @@ Say what the thing does. No fluff, no buildup. Lead with the value.
 Vague copy is lazy copy. Use real numbers, real scenarios, real streamer problems.
 
 - ❌ "Manage your content efficiently."
-- ✅ "No more scrolling through 847 untagged clips to find that one moment."
+- ✅ "No more scrolling through years of untagged clips to find that one moment."
 
 **Be a bit funny, but never at the cost of clarity.**
 The joke should make the meaning land harder, not replace it. If you have to choose between funny and clear, pick clear.
@@ -106,7 +106,7 @@ No, we're not saving your embarrassing moments. Probably.
 | ✅ Do | ❌ Don't |
 |---|---|
 | "Unlike your Twitch chat, we ask before we watch." | "Please accept our cookie policy." |
-| "No more 847 untagged clips." | "Manage your content efficiently." |
+| "No more endless pile of untagged clips." | "Manage your content efficiently." |
 | "Lurk mode activated." | "Your preferences have been saved." |
 | "Something broke. Try again?" | "We apologize for the inconvenience." |
 | "Folder created. 📁" | "Your folder has been successfully created!" |

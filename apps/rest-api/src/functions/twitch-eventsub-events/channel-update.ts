@@ -1,3 +1,4 @@
+import { reportError } from "@repo/sentry";
 import { TwitchApi } from "@repo/twitch-api";
 import { ChannelUpdateEvent } from "@repo/schemas";
 import { supabase } from "@repo/supabase";
@@ -18,6 +19,8 @@ export async function handleChannelUpdate(event: ChannelUpdateEvent, twitchApi: 
       updated_at: new Date().toISOString(),
     });
   } catch (error) {
-    console.error(`[Twitch EventSub] Error updating channel status:`, error);
+    reportError(error, "eventsub.channel-update", {
+      broadcasterUserId: event.broadcaster_user_id,
+    });
   }
 }

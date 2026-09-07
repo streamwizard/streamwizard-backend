@@ -4,6 +4,7 @@ import { RefreshCcw } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { Button, LoadingSpinner } from "@repo/ui";
+import { captureEvent } from "@repo/posthog";
 
 export default function SyncTwitchClipsButton() {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -22,6 +23,7 @@ export default function SyncTwitchClipsButton() {
             : response.message;
           throw new Error(msg);
         }
+        captureEvent("clips_synced", { source: "dashboard", skipped: !!response.skipped });
         return response.message;
       }),
       {

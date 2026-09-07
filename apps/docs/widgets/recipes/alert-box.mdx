@@ -1,0 +1,108 @@
+---
+title: "Recipe: alert box"
+description: "A complete follow/sub/cheer/raid alert with queueing, image, and sound. Paste and tweak."
+---
+
+This is the same widget as the **Alert box** starter in the widget library.
+It's here so you can read it, steal from it, or paste it into a blank widget
+and rework it. Alerts queue, so back-to-back events all get their moment.
+
+Prefer not to paste at all? **Widget library → Starters → Alert box** installs
+it directly.
+
+## HTML
+
+```html
+<div id="alert" class="flex flex-col items-center justify-center w-full h-full gap-3 p-6 opacity-0">
+  <img id="alert-image" src="{{alertImage}}" alt="" class="max-h-[45%] object-contain drop-shadow-xl" />
+  <p id="alert-title" class="text-white text-4xl font-bold drop-shadow-lg text-center"></p>
+  <p id="alert-message" class="text-white/80 text-xl text-center"></p>
+</div>
+```
+
+## Fields
+
+```json
+{
+  "alertImage": { "type": "image", "label": "Alert image", "value": "" },
+  "alertSound": { "type": "audio", "label": "Alert sound", "value": "" },
+  "soundVolume": { "type": "slider", "label": "Sound volume", "value": 0.7, "min": 0, "max": 1, "step": 0.05 },
+  "accentColor": { "type": "colorpicker", "label": "Accent color", "value": "#9e7aff" },
+  "alertDuration": { "type": "slider", "label": "Seconds on screen", "value": 5, "min": 2, "max": 15, "step": 1 },
+  "showFollows": { "type": "checkbox", "label": "Show follows", "value": true },
+  "showSubs": { "type": "checkbox", "label": "Show subs", "value": true },
+  "showCheers": { "type": "checkbox", "label": "Show cheers", "value": true },
+  "showRaids": { "type": "checkbox", "label": "Show raids", "value": true }
+}
+```
+
+## JS
+
+```js
+var duration = Number(fieldData.alertDuration) || 5;
+var accent = fieldData.accentColor || '#9e7aff';
+var busy = false;
+var queue = [];
+
+window.addEventListener('onWidgetLoad', function () {
+  var img = document.getElementById('alert-image');
+  if (!fieldData.alertImage) img.style.display = 'none';
+  document.getElementById('alert-title').style.color = accent;
+});
+
+window.addEventListener('onEventReceived', function (e) {
+  var listener = e.detail.listener;
+  var event = e.detail.event;
+
+  if (listener === 'channel.follow' && fieldData.showFollows !== false) {
+    enqueue(event.user_name, 'just followed!');
+  }
+  if (listener === 'channel.subscribe' && fieldData.showSubs !== false) {
+    enqueue(event.user_name, event.is_gift ? 'got a gifted sub!' : 'just subscribed!');
+  }
+  if (listener === 'channel.cheer' && fieldData.showCheers !== false) {
+    var name = event.is_anonymous ? 'Anonymous' : event.user_name;
+    enqueue(name, 'cheered ' + event.bits + ' bits!');
+  }
+  if (listener === 'channel.raid' && fieldData.showRaids !== false) {
+    enqueue(event.from_broadcaster_user_name, 'raided with ' + event.viewers + ' viewers!');
+  }
+});
+
+function enqueue(title, message) {
+  queue.push({ title: title, message: message });
+  if (!busy) next();
+}
+
+function next() {
+  var alert = queue.shift();
+  if (!alert) { busy = false; return; }
+  busy = true;
+
+  document.getElementById('alert-title').textContent = alert.title;
+  document.getElementById('alert-message').textContent = alert.message;
+
+  if (fieldData.alertSound) {
+    var audio = new Audio(fieldData.alertSound);
+    audio.volume = Number(fieldData.soundVolume);
+    if (isNaN(audio.volume)) audio.volume = 0.7;
+    audio.play().catch(function () {});
+  }
+
+  var tl = gsap.timeline({ onComplete: next });
+  tl.fromTo('#alert',
+    { opacity: 0, scale: 0.85, y: 24 },
+    { opacity: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }
+  );
+  tl.to('#alert', { duration: duration });
+  tl.to('#alert', { opacity: 0, scale: 0.9, y: -16, duration: 0.35, ease: 'power2.in' });
+}
+```
+
+## Ideas to make it yours
+
+- Different image or sound per event type: add more `image`/`audio` fields and
+  pick them in `next()` based on the alert.
+- Text animation: `gsap.registerPlugin(TextPlugin)` and tween
+  `{ text: alert.title }` for a typewriter reveal.
+- Minimum bits: `if (event.bits < 100) return;` before the cheer enqueue.

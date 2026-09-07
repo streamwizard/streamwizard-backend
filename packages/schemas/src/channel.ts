@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EnrichedUserProfileSchema } from "./shared";
 
 // ─── channel.bits.use ───────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export const ChannelFollowEventSchema = z.object({
   broadcaster_user_login: z.string(),
   broadcaster_user_name: z.string(),
   followed_at: z.string(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelFollowEvent = z.infer<typeof ChannelFollowEventSchema>;
@@ -68,9 +70,17 @@ export type ChannelFollowEvent = z.infer<typeof ChannelFollowEventSchema>;
 // ─── channel.ad_break.begin ─────────────────────────────────────────────────
 
 export const ChannelAdBreakBeginEventSchema = z.object({
-  duration_seconds: z.string(),
+  /*
+   * Twitch's docs once described these two as strings and this schema followed
+   * suit, but they arrive typed: 98 logged ad breaks between Feb and Jun 2026
+   * are number/boolean without exception, the Twitch CLI emits them the same
+   * way, and both dashboard consumers already read duration_seconds with a
+   * `typeof === "number"` check. Declaring them as strings was telling custom
+   * widget authors the wrong type.
+   */
+  duration_seconds: z.number().int(),
   started_at: z.string(),
-  is_automatic: z.string(),
+  is_automatic: z.boolean(),
   broadcaster_user_id: z.string(),
   broadcaster_user_login: z.string(),
   broadcaster_user_name: z.string(),
@@ -92,6 +102,7 @@ export const ChannelSubscribeEventSchema = z.object({
   broadcaster_user_name: z.string(),
   tier: z.enum(["1000", "2000", "3000"]),
   is_gift: z.boolean(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelSubscribeEvent = z.infer<typeof ChannelSubscribeEventSchema>;
@@ -124,6 +135,7 @@ export const ChannelSubscriptionGiftEventSchema = z.object({
   tier: z.enum(["1000", "2000", "3000"]),
   cumulative_total: z.number().int().nullable(),
   is_anonymous: z.boolean(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelSubscriptionGiftEvent = z.infer<typeof ChannelSubscriptionGiftEventSchema>;
@@ -151,6 +163,7 @@ export const ChannelSubscriptionMessageEventSchema = z.object({
   cumulative_months: z.number().int(),
   streak_months: z.number().int().nullable(),
   duration_months: z.number().int(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelSubscriptionMessageEvent = z.infer<typeof ChannelSubscriptionMessageEventSchema>;
@@ -167,6 +180,7 @@ export const ChannelCheerEventSchema = z.object({
   broadcaster_user_name: z.string(),
   message: z.string(),
   bits: z.number().int(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelCheerEvent = z.infer<typeof ChannelCheerEventSchema>;
@@ -181,6 +195,7 @@ export const ChannelRaidEventSchema = z.object({
   to_broadcaster_user_login: z.string(),
   to_broadcaster_user_name: z.string(),
   viewers: z.number().int(),
+  ...EnrichedUserProfileSchema.shape,
 });
 
 export type ChannelRaidEvent = z.infer<typeof ChannelRaidEventSchema>;

@@ -1,0 +1,67 @@
+# StreamWizard ingest stack — runs on the dedicated stream box (NOT Dokploy).
+#
+# Brings up the control plane (Bun), the media plane (Python/GStreamer), and the
+# Belabox SRTLA receiver on a shared bridge network. Per-streamer OBS containers
+# are launched dynamically by the control plane (via the Docker socket) and join
+# the same `stream-server` network — they are intentionally NOT defined here.
+#
+# Build context for the app images is the repo root (../..). Copy .env.example
+# to .env and fill it in before `docker compose up`.
+
+services:
+  ingest-control:
+    build:
+      context: ../..
+      dockerfile: apps/ingest-control/Dockerfile
+    environment:
+      DOPPLER_TOKEN: ${DOPPLER_TOKEN}
+      # Operational (non-secret) config; Supabase creds come from Doppler.
+      INGEST_CONTROL_SECRET: ${INGEST_CONTROL_SECRET}
+      INGEST_OBS_IMAGE: ${INGEST_OBS_IMAGE}
+      INGEST_OBS_NETWORK: stream-server
+      INGEST_OBS_SRT_PORT: "9000"
+      PORT: "8090"
+      WS_SERVER_URL: ${WS_SERVER_URL}
+    volumes:
+      # Needed to provision/tear down per-streamer OBS containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - stream-server
+    restart: unless-stopped
+
+  ingest-media:
+    build:
+      context: ../..
+      dockerfile: apps/ingest-media/Dockerfile
+    environment:
+      INGEST_CONTROL_URL: http://ingest-control:8090
+      INGEST_CONTROL_SECRET: ${INGEST_CONTROL_SECRET}
+      INGEST_SRT_PORT: "8888"
+      INGEST_SRTLA_SRT_PORT: "8889"
+      INGEST_RTMP_PORT: "1935"
+    ports:
+      - "8888:8888/udp"   # public SRT ingest
+      - "1935:1935/tcp"   # public RTMP ingest
+    networks:
+      - stream-server
+    depends_on:
+      - ingest-control
+    restart: unless-stopped
+
+  srtla-receiver:
+    build:
+      context: ./srtla
+      dockerfile: Dockerfile
+    command: ["5000", "ingest-media", "8889"]
+    ports:
+      - "5000:5000/udp"   # public SRTLA ingest
+    networks:
+      - stream-server
+    depends_on:
+      - ingest-media
+    restart: unless-stopped
+
+networks:
+  stream-server:
+    name: stream-server
+    driver: bridge

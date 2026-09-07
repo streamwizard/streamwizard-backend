@@ -1,0 +1,64 @@
+---
+title: "Recipe: persistent counter"
+description: "A death counter driven by channel points that survives stream restarts."
+---
+
+A counter that goes up when viewers redeem a channel point reward, and
+remembers its value between streams via [widget state](/widgets/state).
+Swap the reward name and label to count anything: deaths, jump scares, "chat
+was right" moments.
+
+## HTML
+
+```html
+<div class="flex items-center gap-3 w-full h-full px-5">
+  <span class="text-3xl">{{icon}}</span>
+  <div>
+    <p class="text-white/60 text-xs font-semibold uppercase tracking-widest">{{label}}</p>
+    <p id="count" class="text-white text-4xl font-bold tabular-nums">0</p>
+  </div>
+</div>
+```
+
+## Fields
+
+```json
+{
+  "label": { "type": "text", "label": "Label", "value": "Deaths" },
+  "icon": { "type": "text", "label": "Icon (emoji)", "value": "💀" },
+  "rewardTitle": { "type": "text", "label": "Channel point reward name", "value": "Add death" }
+}
+```
+
+## JS
+
+```js
+var count = 0;
+
+window.addEventListener('onWidgetLoad', async function () {
+  // The editor preview has no state; catch and start at 0 there.
+  var state = await StreamWizard.state.get().catch(function () { return null; });
+  count = (state && state.count) || 0;
+  render();
+});
+
+window.addEventListener('onEventReceived', function (e) {
+  if (e.detail.listener !== 'channel.channel_points_custom_reward_redemption.add') return;
+  if (e.detail.event.reward.title !== fieldData.rewardTitle) return;
+
+  count++;
+  render();
+  gsap.fromTo('#count', { scale: 1.4 }, { scale: 1, duration: 0.3, ease: 'back.out(2)' });
+  StreamWizard.state.set({ count: count }).catch(function () {});
+});
+
+function render() {
+  document.getElementById('count').textContent = count;
+}
+```
+
+## Try it
+
+The **Redeem** test button in the editor sends a redemption named
+"Test Reward". Set the widget's reward name field to `Test Reward` while
+testing, then switch it to your real reward.

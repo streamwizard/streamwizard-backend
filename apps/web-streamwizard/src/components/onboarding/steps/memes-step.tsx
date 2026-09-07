@@ -15,7 +15,7 @@ export function MemesStep({ value, onChange }: MemesStepProps) {
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold">We use some memes.</h2>
         <p className="text-sm text-muted-foreground">
-          StreamWizard throws in memes here and there. They're stupid. They're great. Turn them off if you're at work.
+          StreamWizard throws in memes here and there. They&apos;re stupid. They&apos;re great. Turn them off if you&apos;re at work.
         </p>
       </div>
       <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">

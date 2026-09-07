@@ -20,6 +20,10 @@ const schema = z.object({
   // Sentry
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_RELEASE: z.string().optional(),
+
+  // Discord alerting (DMs are skipped when unset)
+  DISCORD_BOT_TOKEN: z.string().min(1).optional(),
+  DISCORD_ALERT_USER_ID: z.string().min(1).optional(),
 })
 
 export const env = schema.parse(process.env)

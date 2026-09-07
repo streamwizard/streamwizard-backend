@@ -197,7 +197,7 @@ export function ViewerCountChart({
               strokeWidth={1.5}
               r={7}
               onClick={(point) => {
-                const clip = point._clip as ClipData | undefined;
+                const clip = point.payload?._clip as ClipData | undefined;
                 if (clip?.embed_url) openModal(<TwitchClipModal url={clip.embed_url} />);
               }}
               style={{ cursor: clipPoints.length > 0 ? "pointer" : "default" }}

@@ -212,7 +212,8 @@ export interface OverlayClipFilter {
   timeWindow: string;
   customDateRange?: { start: string; end: string };
   sort: string;
-  maxClips: number;
+  /** Row cap. Callers pass a fixed internal value — this is not a user setting. */
+  limit: number;
   broadcasterTwitchId?: string | null;
   clipTwitchIds?: string[];
 }
@@ -248,7 +249,7 @@ export async function getOverlayClips(client: DBClient, selectFields: string, fi
     if (sortConfig) query = query.order(sortConfig.column, { ascending: sortConfig.ascending }) as typeof query;
   }
 
-  query = query.limit(filter.maxClips) as typeof query;
+  query = query.limit(filter.limit) as typeof query;
 
   if (filter.clipTwitchIds && filter.clipTwitchIds.length > 0) {
     query = query.in("twitch_clip_id", filter.clipTwitchIds) as typeof query;
@@ -259,9 +260,66 @@ export async function getOverlayClips(client: DBClient, selectFields: string, fi
   return query;
 }
 
+export interface PickRandomOverlayClipParams {
+  p_user_id: string | null;
+  p_broadcaster_id: string | null;
+  p_clip_twitch_ids: string[] | null;
+  p_game_ids: string[];
+  p_creator_ids: string[];
+  p_is_featured_only: boolean;
+  p_min_view_count: number;
+  p_start: string | null;
+  p_end: string | null;
+  /** Clips the overlay played recently; ranked last rather than excluded. */
+  p_exclude_twitch_ids: string[];
+}
+
+type ClipRow = Database["public"]["Tables"]["clips"]["Row"];
+
+/**
+ * One random clip from the filtered set. Lives in Postgres because `order by
+ * random()` cannot be expressed through PostgREST, and the clips overlay widget
+ * fetches a single clip per transition rather than a playlist.
+ *
+ * Cast because the function post-dates the generated `Database` types; regenerate
+ * them (`supabase gen types`) and this can be typed directly.
+ */
+export async function pickRandomOverlayClip(
+  client: DBClient,
+  params: PickRandomOverlayClipParams
+): Promise<{ data: ClipRow | null; error: unknown }> {
+  const rpc = client.rpc as unknown as (
+    fn: string,
+    args: PickRandomOverlayClipParams
+  ) => Promise<{ data: ClipRow[] | null; error: unknown }>;
+
+  const { data, error } = await rpc.call(client, "pick_random_overlay_clip", params);
+  return { data: data?.[0] ?? null, error };
+}
+
 export async function upsertClips(client: DBClient, clips: Database["public"]["Tables"]["clips"]["Insert"][]) {
   const { error } = await client.from("clips").upsert(clips, { onConflict: "twitch_clip_id", ignoreDuplicates: false });
   if (error) throw error;
+}
+
+export async function getLatestClipByUserId(client: DBClient, userId: string) {
+  return client
+    .from("clips")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at_twitch", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+}
+
+export async function getMostViewedClipByUserId(client: DBClient, userId: string) {
+  return client
+    .from("clips")
+    .select("*")
+    .eq("user_id", userId)
+    .order("view_count", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 }
 
 export async function getClipBroadcasterId(client: DBClient, clipId: string, userId: string): Promise<string | null> {

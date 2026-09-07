@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
+import { captureEvent } from "@repo/posthog";
 import { createClipFolder, deleteClipFolder, editClipFolder } from "@/actions/supabase/clips/clips";
 import { useSession } from "@/providers/session-provider";
 import {
@@ -131,6 +132,7 @@ function CreateRenameFolderDialog({
         async () => {
           const res = await createClipFolder(values.name, userId, state.parentFolderId);
           if (!res.success) throw new Error(res.message);
+          captureEvent("clip_folder_created", { is_subfolder: !!state.parentFolderId });
           return res.message;
         },
         {

@@ -1,4 +1,5 @@
-import { runFluxQuery } from "../query-client";
+import { runFluxQuery, assertValidFluxDuration } from "../query-client";
+import { resolveBucket, type QueryOpts } from "./query-opts";
 
 export interface WsConnectionPoint {
   time: string;
@@ -45,8 +46,10 @@ export interface WsTopMessageTypePoint {
   count: number;
 }
 
-export async function queryWsConnections(fluxRange = "24h", window = "1h"): Promise<WsConnectionPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsConnections(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsConnectionPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -63,8 +66,10 @@ export async function queryWsConnections(fluxRange = "24h", window = "1h"): Prom
   }));
 }
 
-export async function queryWsMessages(fluxRange = "24h", window = "1h"): Promise<WsMessagePoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsMessages(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsMessagePoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -81,8 +86,10 @@ export async function queryWsMessages(fluxRange = "24h", window = "1h"): Promise
   }));
 }
 
-export async function queryWsAuthFailures(fluxRange = "24h", window = "1h"): Promise<WsAuthFailurePoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsAuthFailures(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsAuthFailurePoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -99,8 +106,10 @@ export async function queryWsAuthFailures(fluxRange = "24h", window = "1h"): Pro
   }));
 }
 
-export async function queryWsDroppedMessages(fluxRange = "24h", window = "1h"): Promise<WsMessageDropPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsDroppedMessages(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsMessageDropPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -117,8 +126,10 @@ export async function queryWsDroppedMessages(fluxRange = "24h", window = "1h"): 
   }));
 }
 
-export async function queryWsConnectionDuration(fluxRange = "24h", window = "1h"): Promise<WsConnectionDurationPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsConnectionDuration(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsConnectionDurationPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -135,8 +146,10 @@ export async function queryWsConnectionDuration(fluxRange = "24h", window = "1h"
   }));
 }
 
-export async function queryWsRoomEvents(fluxRange = "24h", window = "1h"): Promise<WsRoomEventPoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsRoomEvents(fluxRange = "24h", window = "1h", opts?: QueryOpts): Promise<WsRoomEventPoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  assertValidFluxDuration(window, "window");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -152,8 +165,8 @@ export async function queryWsRoomEvents(fluxRange = "24h", window = "1h"): Promi
   }));
 }
 
-export async function queryWsActiveConnectionsEstimate(): Promise<{ role: string; active: number }[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsActiveConnectionsEstimate(opts?: QueryOpts): Promise<{ role: string; active: number }[]> {
+  const bucket = resolveBucket(opts);
 
   // Compute opens and closes separately, then subtract in code — simpler than Flux join
   const opensQuery = `
@@ -185,8 +198,9 @@ export async function queryWsActiveConnectionsEstimate(): Promise<{ role: string
   }));
 }
 
-export async function queryWsTopMessageTypes(fluxRange = "24h", limit = 15): Promise<WsTopMessageTypePoint[]> {
-  const bucket = process.env.INFLUXDB_BUCKET ?? "streamwizard";
+export async function queryWsTopMessageTypes(fluxRange = "24h", limit = 15, opts?: QueryOpts): Promise<WsTopMessageTypePoint[]> {
+  assertValidFluxDuration(fluxRange, "range");
+  const bucket = resolveBucket(opts);
   const query = `
     from(bucket: "${bucket}")
       |> range(start: -${fluxRange})
@@ -195,7 +209,7 @@ export async function queryWsTopMessageTypes(fluxRange = "24h", limit = 15): Pro
       |> group(columns: ["message_type"])
       |> sum()
       |> sort(columns: ["_value"], desc: true)
-      |> limit(n: ${limit})
+      |> limit(n: ${Math.max(1, Math.floor(limit))})
       |> yield(name: "top_types")
   `;
   return runFluxQuery(query, (row) => ({

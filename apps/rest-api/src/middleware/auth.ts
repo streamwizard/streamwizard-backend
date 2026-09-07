@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { setCookie } from "hono/cookie";
 import { env } from "../lib/env";
+import { reportError } from "@repo/sentry";
 import type { Database } from "@repo/supabase";
 
 declare module "hono" {
@@ -147,7 +148,10 @@ export const supabaseAuth = (): MiddlewareHandler => {
 
       await next();
     } catch (error) {
-      console.error("Authentication error:", error);
+      // Returned as a 500 rather than rethrown, so safeErrorHandler never sees
+      // it — an auth middleware that is throwing on every request would look
+      // like silence in Sentry without this.
+      reportError(error, "auth.middleware");
       return c.json(
         {
           error: "Authentication failed",

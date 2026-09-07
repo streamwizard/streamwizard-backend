@@ -1,0 +1,38 @@
+---
+title: "Media library"
+description: "Upload alert images, sounds, and videos once. Use them in any overlay or widget."
+---
+
+**Dashboard → Media** is your storage for overlay files: alert images, sound
+effects, video loops, and Lottie animations. Upload once, pick them anywhere
+a widget asks for an image or sound.
+
+## Uploading
+
+Drag files onto the page or click to browse. Supported:
+
+- **Images**: PNG, JPEG, WebP, GIF, AVIF
+- **Audio**: MP3, WAV, OGG
+- **Video**: MP4, WebM
+- **Lottie**: JSON animations
+
+Up to 100MB per file. SVG is not supported.
+
+## Storage limits
+
+The bar at the top shows what you're using. Free accounts get 100MB; paid
+plans get more. Deleting a file frees its space right away.
+
+## Using your files
+
+- **In widget settings**: image and sound fields show a **Choose** button that
+  opens your library.
+- **In widget code**: the **Insert asset** button in the widget editor drops
+  the file's URL at your cursor.
+- **Anywhere else**: every file has a **Copy URL** button. The URL is public,
+  so it works in OBS, on your overlay, or wherever you paste it.
+
+<Warning>
+Deleting a file breaks any overlay still pointing at it. Swap it out in the
+widget settings first.
+</Warning>

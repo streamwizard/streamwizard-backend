@@ -1,0 +1,27 @@
+{
+  "name": "@repo/discord-bot",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "doppler run --config dev_discord_bot -- bun --preload ./src/sentry.ts --hot src/index.ts",
+    "start": "bun --preload ./src/sentry.ts src/index.ts",
+    "check-types": "tsc --noEmit",
+    "deploy-commands": "doppler run --config dev_discord_bot -- bun run src/scripts/deploy-commands.ts"
+  },
+  "dependencies": {
+    "@repo/github-api": "workspace:*",
+    "@repo/posthog": "workspace:*",
+    "@repo/sentry": "workspace:*",
+    "@repo/supabase": "workspace:*",
+    "@sentry/bun": "^10",
+    "discord.js": "^14.26.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.6",
+    "@types/node": "^20",
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "5.9.2"
+  }
+}

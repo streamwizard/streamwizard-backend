@@ -25,7 +25,7 @@ export function WelcomeStep() {
         )}
         <div>
           <h2 className="text-xl font-semibold">Welcome, {name}.</h2>
-          <p className="text-sm text-muted-foreground">Let's get three things sorted.</p>
+          <p className="text-sm text-muted-foreground">Let&apos;s get three things sorted.</p>
         </div>
       </div>
 
