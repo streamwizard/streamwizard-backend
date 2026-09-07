@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, faqPageSchema } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import { CloudObsShowcase } from "@/components/public/home/cloud-obs-showcase";
 import { IngestSection } from "@/components/public/cloud-obs/ingest-section";
 import { AutoSwitcherSection } from "@/components/public/cloud-obs/auto-switcher-section";
@@ -8,7 +9,7 @@ import { ChatNoticesSection } from "@/components/public/cloud-obs/chat-notices-s
 import { DeckSection } from "@/components/public/cloud-obs/deck-section";
 import { SwitcherDemoProvider } from "@/components/public/cloud-obs/switcher-demo-store";
 import { IrlOverlaysSection } from "@/components/public/cloud-obs/irl-overlays-section";
-import { CloudObsFaqSection } from "@/components/public/cloud-obs/cloud-obs-faq-section";
+import { CloudObsFaqSection, CLOUD_OBS_FAQ_ITEMS } from "@/components/public/cloud-obs/cloud-obs-faq-section";
 import { BetaNote } from "@/components/public/cloud-obs/beta-note";
 import { FinalCta } from "@/components/public/home/final-cta";
 
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
 export default function CloudObsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <JsonLd schema={faqPageSchema(CLOUD_OBS_FAQ_ITEMS)} />
       <section className="pt-16 md:pt-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
