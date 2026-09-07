@@ -12,6 +12,7 @@ import { IrlOverlaysSection } from "@/components/public/cloud-obs/irl-overlays-s
 import { CloudObsFaqSection, CLOUD_OBS_FAQ_ITEMS } from "@/components/public/cloud-obs/cloud-obs-faq-section";
 import { BetaNote } from "@/components/public/cloud-obs/beta-note";
 import { FinalCta } from "@/components/public/home/final-cta";
+import { FeatureTrustStrip } from "@/components/public/layout/feature-trust-strip";
 
 /*
  * Cloud OBS for IRL streamers. The showcase is the summary, shared with the
@@ -64,6 +65,7 @@ export default function CloudObsPage() {
       <IrlOverlaysSection />
       <CloudObsFaqSection />
       <BetaNote />
+      <FeatureTrustStrip path="/cloud-obs" />
       <FinalCta />
     </div>
   );

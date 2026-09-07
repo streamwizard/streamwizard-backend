@@ -9,6 +9,7 @@ import { OverlayRotatorSection } from "@/components/public/clips/overlay-rotator
 import { ClipsDownloadsSection } from "@/components/public/clips/clips-downloads-section";
 import { VodTimelineSection } from "@/components/public/clips/vod-timeline-section";
 import { FinalCta } from "@/components/public/home/final-cta";
+import { FeatureTrustStrip } from "@/components/public/layout/feature-trust-strip";
 
 /*
  * The clips product page: hero, the landing page's library section as the
@@ -52,6 +53,7 @@ export default function ClipsPage() {
       <OverlayRotatorSection />
       <ClipsDownloadsSection />
       <VodTimelineSection />
+      <FeatureTrustStrip path="/clips" />
       <FinalCta />
     </div>
   );

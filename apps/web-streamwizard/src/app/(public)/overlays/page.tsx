@@ -9,6 +9,7 @@ import { IrlWidgetsSection } from "@/components/public/overlays/irl-widgets-sect
 import { EditorSection } from "@/components/public/overlays/editor-section";
 import { OverlaysFaqSection, OVERLAY_FAQ_ITEMS } from "@/components/public/overlays/overlays-faq-section";
 import { FinalCta } from "@/components/public/home/final-cta";
+import { FeatureTrustStrip } from "@/components/public/layout/feature-trust-strip";
 
 /*
  * Overlays, same shape as /cloud-obs: the landing page's section is the
@@ -53,6 +54,7 @@ export default function OverlaysPage() {
       <IrlWidgetsSection />
       <EditorSection />
       <OverlaysFaqSection />
+      <FeatureTrustStrip path="/overlays" />
       <FinalCta />
     </div>
   );

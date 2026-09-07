@@ -9,6 +9,7 @@ import { VodsClipCreationSection } from "@/components/public/vods/vods-clip-crea
 import { ClipLibrarySection } from "@/components/public/vods/clip-library-section";
 import { VodsFaqSection, VODS_FAQ_ITEMS } from "@/components/public/vods/vods-faq-section";
 import { FinalCta } from "@/components/public/home/final-cta";
+import { FeatureTrustStrip } from "@/components/public/layout/feature-trust-strip";
 
 /*
  * The VODs product page: hero, the landing page's band as the overview (its
@@ -63,6 +64,7 @@ export default function VodsPage() {
       <VodsClipCreationSection />
       <ClipLibrarySection />
       <VodsFaqSection />
+      <FeatureTrustStrip path="/vods" tone="amber" />
       <FinalCta />
     </div>
   );
