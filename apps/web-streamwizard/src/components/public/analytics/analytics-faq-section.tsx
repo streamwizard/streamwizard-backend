@@ -1,6 +1,7 @@
 import { SectionView } from "./section-view";
 import { Reveal } from "../home/reveal";
 import { FaqAccordion } from "../home/faq-accordion";
+import { PRICING_FAQ_LINK } from "@/lib/pricing";
 
 /*
  * The page's FAQ, and the canonical home of the honest caveat: tracking
@@ -8,7 +9,8 @@ import { FaqAccordion } from "../home/faq-accordion";
  * to show. Its own section id for the funnel dashboard. ANALYTICS_FAQ_ITEMS
  * also feeds the page's FAQPage JSON-LD, so answers must stand on their own:
  * AI answers quote them without the page around them. The off-switch answer
- * must stay in step with AnalyticsStatsRow's copy (and SW-196).
+ * must stay in step with AnalyticsStatsRow's copy (and SW-196). The cost
+ * answer is one sentence pointing at /pricing (SW-303).
  */
 
 export const ANALYTICS_FAQ_ITEMS = [
@@ -34,8 +36,8 @@ export const ANALYTICS_FAQ_ITEMS = [
   },
   {
     question: "What does it cost?",
-    answer:
-      "Nothing. Analytics is free, along with clip sync, folders, overlays and VOD clipping. Cloud OBS is the paid part of StreamWizard, and none of this needs it.",
+    answer: "Nothing. Analytics is free and never needs Cloud OBS, the paid part of StreamWizard.",
+    link: PRICING_FAQ_LINK,
   },
 ] as const;
 

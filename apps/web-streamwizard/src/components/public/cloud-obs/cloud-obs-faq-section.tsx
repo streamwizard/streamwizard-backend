@@ -1,12 +1,14 @@
 import { SectionView } from "@/components/public/analytics/section-view";
 import { Reveal } from "@/components/public/home/reveal";
 import { FaqAccordion } from "@/components/public/home/faq-accordion";
+import { PRICING_FAQ_LINK } from "@/lib/pricing";
 
 /*
  * The page's FAQ, and the last stop before the beta note. It answers the
  * objections the sections above cannot: no PC at home, what you stream with,
  * whether a stopped container eats your scenes, and whether this is real OBS.
- * The cost answer stays short because the beta note underneath is its home.
+ * The cost answer is one sentence and points at /pricing (SW-303); the beta
+ * note underneath carries the Discord route.
  * Its own section id so the funnel dashboard can tell it apart from the home
  * FAQ. CLOUD_OBS_FAQ_ITEMS also feeds the page's FAQPage JSON-LD, so answers
  * must stand on their own: AI answers quote them without the page around them.
@@ -41,7 +43,8 @@ export const CLOUD_OBS_FAQ_ITEMS = [
   {
     question: "What does it cost?",
     answer:
-      "Cloud OBS, the ingest and the deck are the paid part of StreamWizard, and they are in beta, so access goes out by hand in Discord. Prices land with the plan story. Clips, overlays and analytics stay free either way.",
+      "Cloud OBS, the ingest server and the deck are the paid part of StreamWizard, in invite-only beta right now, so access goes out by hand in Discord.",
+    link: PRICING_FAQ_LINK,
   },
 ] as const;
 

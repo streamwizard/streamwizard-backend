@@ -1,11 +1,12 @@
 import { SectionView } from "@/components/public/analytics/section-view";
 import { TrackedLink } from "@/components/public/analytics/tracked-link";
-import { discordInviteLink } from "@/lib/constant";
+import { discordInviteLink, pricingLink } from "@/lib/constant";
 
 /*
- * Where the money conversation happens, since there is no pricing page yet.
- * Says paid and says beta, because a visitor who reads two thousand words of
- * detail and then discovers they cannot buy it has been wasted.
+ * The money note at the end of the page. Says paid and says beta, because a
+ * visitor who reads two thousand words of detail and then discovers they
+ * cannot buy it has been wasted. The full free-versus-paid split lives on
+ * /pricing; this only has to be honest and point there.
  */
 export function BetaNote() {
   return (
@@ -26,7 +27,17 @@ export function BetaNote() {
             >
               ask in Discord
             </TrackedLink>
-            . Prices land with the plan story. Clips, overlays and analytics stay free and open source either way.
+            . Prices land with the plan story. Clips, overlays and analytics stay free and open source either way,
+            and the full split is on the{" "}
+            <TrackedLink
+              href={pricingLink}
+              cta="pricing"
+              section="beta_note"
+              className="text-purple-300 transition-colors hover:text-purple-200"
+            >
+              pricing page
+            </TrackedLink>
+            .
           </p>
         </div>
       </SectionView>

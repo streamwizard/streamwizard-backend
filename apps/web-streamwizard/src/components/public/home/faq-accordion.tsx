@@ -2,6 +2,7 @@
 
 import { ChevronDownIcon } from "lucide-react";
 import { captureEvent } from "@repo/posthog";
+import { TrackedLink } from "../analytics/tracked-link";
 
 /*
  * The FAQ list as native <details>/<summary> rather than the Radix accordion.
@@ -20,11 +21,23 @@ import { captureEvent } from "@repo/posthog";
  * `faq_opened` with the question text. Closing reports nothing, and the
  * sibling that closes because of the exclusive group fires toggle with
  * open=false, so it stays quiet too.
+ *
+ * An item may end on a link (the cost answers point at /pricing). It is a
+ * separate field rather than markup in `answer` so the same item can feed
+ * faqPageSchema, which needs the answer as plain text and adds the anchor
+ * itself. The link reports as `cta_clicked` in section "faq"; the page comes
+ * from `$pathname`.
  */
-export function FaqAccordion({ items }: { items: readonly { question: string; answer: string }[] }) {
+export interface FaqItem {
+  question: string;
+  answer: string;
+  link?: { label: string; href: string; cta: string };
+}
+
+export function FaqAccordion({ items }: { items: readonly FaqItem[] }) {
   return (
     <div className="w-full">
-      {items.map(({ question, answer }) => (
+      {items.map(({ question, answer, link }) => (
         <details
           key={question}
           name="faq"
@@ -40,7 +53,22 @@ export function FaqAccordion({ items }: { items: readonly { question: string; an
               aria-hidden="true"
             />
           </summary>
-          <div className="pt-0 pb-4 text-sm leading-relaxed text-muted-foreground">{answer}</div>
+          <div className="pt-0 pb-4 text-sm leading-relaxed text-muted-foreground">
+            {answer}
+            {link && (
+              <>
+                {" "}
+                <TrackedLink
+                  href={link.href}
+                  cta={link.cta}
+                  section="faq"
+                  className="text-purple-300 transition-colors hover:text-purple-200"
+                >
+                  {link.label}
+                </TrackedLink>
+              </>
+            )}
+          </div>
         </details>
       ))}
     </div>

@@ -6,10 +6,11 @@ import {
   Radio,
   Scissors,
   Signpost,
+  Tag,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { productLinks } from "@/lib/constant";
+import { pricingLink, productLinks } from "@/lib/constant";
 
 export interface NavItem {
   name: string;
@@ -98,5 +99,12 @@ export const companyNavItems: NavItem[] = [
     cta: "roadmap",
     icon: Signpost,
     description: "What ships today and what is being worked on.",
+  },
+  {
+    name: "Pricing",
+    href: pricingLink,
+    cta: "pricing",
+    icon: Tag,
+    description: "What is free, what Cloud OBS costs, and why.",
   },
 ];

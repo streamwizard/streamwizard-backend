@@ -30,7 +30,7 @@ import { env } from "@/lib/env";
 // oversubscribe it.
 
 const FREE_QUOTA_MB = 100;
-const MAX_FILE_BYTES = 100 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const PENDING_RESERVATION_MS = 60 * 60 * 1000;
 const PRESIGN_EXPIRY_SECONDS = 300;
 
@@ -170,7 +170,7 @@ export async function createAssetUpload(input: {
     return { data: null, error: "Can't read that file's size." };
   }
   if (input.sizeBytes > MAX_FILE_BYTES) {
-    return { data: null, error: "Files can be up to 100MB." };
+    return { data: null, error: "Files can be up to 10MB." };
   }
 
   try {

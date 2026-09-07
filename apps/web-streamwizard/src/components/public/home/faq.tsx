@@ -2,6 +2,7 @@ import { FaDiscord } from "react-icons/fa";
 import { BookOpen } from "lucide-react";
 import { Button } from "@repo/ui";
 import { discordInviteLink, docsLink } from "@/lib/constant";
+import { FREE_TIER_SUMMARY, PAID_PLAN_SUMMARY, PRICING_FAQ_LINK } from "@/lib/pricing";
 import { Reveal } from "./reveal";
 import { FaqAccordion } from "./faq-accordion";
 import { TrackedLink } from "../analytics/tracked-link";
@@ -18,6 +19,10 @@ import { SectionView } from "../analytics/section-view";
  * quote them without the surrounding page. The last item is a joke and is
  * rendered only, never fed to the schema: a rich result is a bad place for a
  * bit.
+ *
+ * The cost answer is the short form, built from lib/pricing.ts and pointing at
+ * /pricing for the rest (SW-303). Every pillar page does the same, each in its
+ * own words, so a pricing change is one edit and the five do not read as copies.
  */
 
 export const FAQ_ITEMS = [
@@ -28,8 +33,8 @@ export const FAQ_ITEMS = [
   },
   {
     question: "Is it free?",
-    answer:
-      "Mostly. Clip sync, clip folders, VOD clipping, overlays and stream analytics are free. Cloud OBS, the ingest server and the phone deck that drives them need a paid plan. StreamWizard is also open source under the MIT license, so you can read every line or run it yourself.",
+    answer: `Mostly. Free: ${FREE_TIER_SUMMARY}. ${PAID_PLAN_SUMMARY}`,
+    link: PRICING_FAQ_LINK,
   },
   {
     question: "What happens to the clips I already have?",

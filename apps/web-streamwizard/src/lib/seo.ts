@@ -1,5 +1,7 @@
 import { discordInviteLink, docsLink, githubLink, twitchChannelLink } from "@/lib/constant";
 import { env } from "@/lib/env";
+import { FREE_TIER_OFFER_DESCRIPTION } from "@/lib/pricing";
+import type { FaqItem } from "@/components/public/home/faq-accordion";
 
 /**
  * Single source of truth for what search engines may see.
@@ -26,6 +28,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { path: "/clips", lastModified: "2026-08-29" },
   { path: "/vods", lastModified: "2026-08-29" },
   { path: "/analytics", lastModified: "2026-08-29" },
+  { path: "/pricing", lastModified: "2026-09-07" },
   { path: "/about", lastModified: "2026-08-29" },
   { path: "/contact", lastModified: "2026-08-29" },
   { path: "/roadmap", lastModified: "2026-08-29" },
@@ -208,19 +211,22 @@ export function webSiteSchema(): Record<string, unknown> {
 }
 
 /**
- * The home page FAQ, as a FAQPage rich result. Questions and answers come from
- * the section itself so the two can never drift apart.
+ * A page's FAQ, as a FAQPage rich result. Questions and answers come from the
+ * section itself so the two can never drift apart. An item's link becomes an
+ * anchor at the end of the answer: Google allows <a> inside Answer text, and
+ * the pointer to /pricing is part of the answer, not decoration around it.
  */
-export function faqPageSchema(
-  items: readonly { question: string; answer: string }[]
-): Record<string, unknown> {
+export function faqPageSchema(items: readonly FaqItem[]): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: items.map(({ question, answer }) => ({
+    mainEntity: items.map(({ question, answer, link }) => ({
       "@type": "Question",
       name: question,
-      acceptedAnswer: { "@type": "Answer", text: answer },
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: link ? `${answer} <a href="${absoluteUrl(link.href)}">${link.label}</a>` : answer,
+      },
     })),
   };
 }
@@ -228,9 +234,9 @@ export function faqPageSchema(
 /**
  * The product itself: what AI answers and rich results read to describe us.
  *
- * Rendered on the home page and on the four free pillar pages (overlays,
- * clips, vods, analytics), always under the same @id so it is one node
- * however many pages carry it. Not on /cloud-obs: that page sells the paid
+ * Rendered on the home page, on the four free pillar pages (overlays,
+ * clips, vods, analytics) and on /pricing, always under the same @id so it is
+ * one node however many pages carry it. Not on /cloud-obs: that page sells the paid
  * tier, and the free-tier offer below would sit oddly next to it.
  */
 export function softwareApplicationSchema(): Record<string, unknown> {
@@ -269,16 +275,17 @@ export function softwareApplicationSchema(): Record<string, unknown> {
     // Google wants offers, review or aggregateRating before it shows a software
     // rich result. The one honest offer is the free tier, so the description
     // spells out what the zero covers and names the paid part; a bare "0" would
-    // contradict the FAQ on the same page, which says Cloud OBS is paid. No
-    // price for Cloud OBS until pricing is public.
+    // contradict the FAQ on the same page, which says Cloud OBS is paid. The
+    // text is shared with /pricing through lib/pricing.ts so the two cannot
+    // drift. No second Offer for Cloud OBS: Google requires a price on every
+    // Offer, and there is no public price yet.
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "EUR",
       availability: "https://schema.org/InStock",
-      url: absoluteUrl("/"),
-      description:
-        "Free tier: clip sync, clip folders, overlays, VOD clipping and stream analytics. Cloud OBS, the ingest server and the mobile deck are a separate paid plan, currently in invite-only beta.",
+      url: absoluteUrl("/pricing"),
+      description: FREE_TIER_OFFER_DESCRIPTION,
     },
   };
 }

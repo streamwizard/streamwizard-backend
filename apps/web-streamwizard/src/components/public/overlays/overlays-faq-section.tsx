@@ -1,6 +1,7 @@
 import { SectionView } from "../analytics/section-view";
 import { Reveal } from "../home/reveal";
 import { FaqAccordion } from "../home/faq-accordion";
+import { FREE_MAX_FILE_MB, FREE_MEDIA_QUOTA_MB, PRICING_FAQ_LINK } from "@/lib/pricing";
 
 /*
  * The page's FAQ, which is also where the setup story lives now: one browser
@@ -8,6 +9,8 @@ import { FaqAccordion } from "../home/faq-accordion";
  * own section id so the funnel dashboard can tell it apart from the home FAQ.
  * OVERLAY_FAQ_ITEMS also feeds the page's FAQPage JSON-LD, so answers must
  * stand on their own: AI answers quote them without the page around them.
+ * The cost answer is one sentence with the quota from lib/pricing.ts and a
+ * pointer at /pricing (SW-303).
  */
 
 export const OVERLAY_FAQ_ITEMS = [
@@ -23,8 +26,8 @@ export const OVERLAY_FAQ_ITEMS = [
   },
   {
     question: "What does it cost?",
-    answer:
-      "Nothing. The alert box, the editor, the widget library and custom widgets are free, no plan required. The only quota is media storage: 10MB per file, 100MB total on the free tier.",
+    answer: `Nothing. The alert box, the editor, the widget library and custom widgets are free, with ${FREE_MAX_FILE_MB}MB per file and ${FREE_MEDIA_QUOTA_MB}MB total of media storage.`,
+    link: PRICING_FAQ_LINK,
   },
   {
     question: "Do I need to know how to code?",
