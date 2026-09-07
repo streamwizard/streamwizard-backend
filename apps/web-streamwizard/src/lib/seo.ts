@@ -9,7 +9,8 @@ import type { FaqItem } from "@/components/public/home/faq-accordion";
  *
  * This is an explicit allowlist, not a filesystem crawl: every public route is
  * listed by hand so a new route under (protected) or (auth) can never leak into
- * the sitemap by accident.
+ * the sitemap by accident. lib/llms.ts (the /llms.txt index) may only link paths
+ * on this list; llms.test.ts enforces it.
  */
 export type PublicRoute = {
   path: string;
